@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+
+/* «Тапкыч ордо» түстөрү: кызыл, алтын, асман көк + түнкү көк фон */
+@theme {
+  --color-ordo-red: #c8102e;
+  --color-ordo-red-dark: #9b0c23;
+  --color-ordo-gold: #f5b700;
+  --color-ordo-gold-light: #ffd95a;
+  --color-ordo-gold-dark: #b8860b;
+  --color-ordo-sky: #1ba4e3;
+  --color-ordo-sky-light: #7fd3f7;
+  --color-ordo-night: #0b1d3a;
+  --color-ordo-deep: #071226;
+  --color-ordo-cream: #fff8ec;
+  --color-ordo-ink: #1f1a17;
+
+  /* Варианттардын түстөрү (экранда да, телефондо да бирдей) */
+  --color-opt-a: #e11d48;
+  --color-opt-b: #0ea5e9;
+  --color-opt-c: #f59e0b;
+  --color-opt-d: #10b981;
+
+  --font-display: 'Montserrat Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Inter Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  body {
+    @apply bg-ordo-cream font-sans text-ordo-ink antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl border border-ordo-gold/30 bg-white shadow-[0_8px_30px_-12px_rgba(155,12,35,0.25)];
+  }
+  .input {
+    @apply w-full rounded-2xl border-2 border-ordo-gold/30 bg-white px-4 py-3 text-lg outline-none transition focus:border-ordo-sky focus:ring-4 focus:ring-ordo-sky/20;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-ordo-ink/70;
+  }
+  /* Түнкү фон (экран жана телефон) — оюу калыптары менен */
+  .bg-night {
+    background-color: var(--color-ordo-deep);
+    background-image:
+      radial-gradient(ellipse at 50% -10%, rgba(27, 164, 227, 0.35), transparent 60%),
+      radial-gradient(ellipse at 100% 110%, rgba(200, 16, 46, 0.35), transparent 55%),
+      radial-gradient(ellipse at 0% 110%, rgba(245, 183, 0, 0.18), transparent 50%);
+  }
+  .text-gold-gradient {
+    background: linear-gradient(180deg, #fff3b0 0%, #f5b700 45%, #b8860b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Басып чыгаруу (PIN карточкалары) */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

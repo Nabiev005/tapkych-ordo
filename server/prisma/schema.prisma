@@ -1,0 +1,145 @@
+// «Тапкыч ордо» — базанын схемасы
+// SQLite enum'дарды колдобогондуктан, абалдар String түрүндө сакталат.
+// Мүмкүн болгон маанилер src/types.ts файлында сүрөттөлгөн.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Суроолор банкы (алып баруучу алдын ала киргизет)
+model Question {
+  id        Int      @id @default(autoincrement())
+  round     String // ROUND1 | ROUND2 | FINAL
+  order     Int
+  text      String
+  imageUrl  String?
+  optionA   String
+  optionB   String
+  optionC   String
+  optionD   String
+  correct   String // A | B | C | D
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gameQuestions GameQuestion[]
+
+  @@index([round, order])
+}
+
+model Game {
+  id                Int       @id @default(autoincrement())
+  code              String    @unique // кошулуу коду (6 сан)
+  status            String    @default("LOBBY") // LOBBY | ROUND1 | ROUND2 | FINAL | FINISHED
+  phase             String    @default("IDLE") // IDLE | READY | QUESTION | REVEAL | ROUND_END
+  paused            Boolean   @default(false)
+  showLeaderboard   Boolean   @default(false) // рейтинг экранда көрсөтүлүп жатабы
+  currentIndex      Int       @default(-1) // учурдагы турдагы суроонун индекси
+  questionEndsAt    DateTime?
+  pausedRemainingMs Int?
+
+  // Жөндөөлөр
+  pointsPerCorrect   Int     @default(1)
+  timerSeconds       Int     @default(15)
+  round1Count        Int     @default(10)
+  round2Count        Int     @default(10)
+  finalQuestionCount Int     @default(5)
+  advanceToRound2    Int     @default(6)
+  advanceToFinal     Int     @default(3)
+  expectedPlayers    Int     @default(12)
+  soundEnabled       Boolean @default(true)
+
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  players     Player[]
+  questions   GameQuestion[]
+  answers     Answer[]
+  adjustments ScoreAdjustment[]
+}
+
+model Player {
+  id              Int       @id @default(autoincrement())
+  gameId          Int
+  name            String
+  pin             String // жеке 4 орундуу PIN
+  token           String?   @unique // кайра кошулуу үчүн
+  status          String    @default("ACTIVE") // ACTIVE | ELIMINATED | KICKED
+  eliminatedAfter String? // ROUND1 | ROUND2 | FINAL
+  seat            Int       @default(0) // тизмедеги тартиби
+  joinedAt        DateTime?
+  createdAt       DateTime  @default(now())
+
+  game        Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+  adjustments ScoreAdjustment[]
+
+  @@unique([gameId, pin])
+  @@index([gameId])
+}
+
+/// Оюн башталганда суроонун көчүрмөсү сакталат —
+/// банктагы суроо кийин өзгөртүлсө да, жыйынтык бузулбайт.
+model GameQuestion {
+  id         Int       @id @default(autoincrement())
+  gameId     Int
+  questionId Int?
+  round      String
+  order      Int
+  text       String
+  imageUrl   String?
+  optionA    String
+  optionB    String
+  optionC    String
+  optionD    String
+  correct    String
+  startedAt  DateTime?
+  endsAt     DateTime?
+  revealedAt DateTime?
+
+  game     Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  question Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  answers  Answer[]
+
+  @@unique([gameId, round, order])
+}
+
+model Answer {
+  id             Int      @id @default(autoincrement())
+  gameId         Int
+  playerId       Int
+  gameQuestionId Int
+  choice         String // A | B | C | D
+  isCorrect      Boolean
+  responseMs     Int
+  points         Int
+  createdAt      DateTime @default(now())
+
+  game         Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  gameQuestion GameQuestion @relation(fields: [gameQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, gameQuestionId]) // бир суроого бир гана жооп
+  @@index([gameId])
+}
+
+/// Алып баруучу упайды кол менен оңдогондо
+model ScoreAdjustment {
+  id        Int      @id @default(autoincrement())
+  gameId    Int
+  playerId  Int
+  round     String
+  delta     Int
+  reason    String?
+  createdAt DateTime @default(now())
+
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+}
