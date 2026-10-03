@@ -28,7 +28,8 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d' }));
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true });
+  // version — Render’де кайсы коммит иштеп жатканын текшерүү үчүн
+  res.json({ ok: true, version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? 'local' });
 });
 app.use('/api', publicRouter);
 app.use('/api/questions', questionsRouter);

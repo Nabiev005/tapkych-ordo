@@ -14,7 +14,7 @@ function safeEqual(a: string, b: string): boolean {
 
 export function checkAdminCredentials(username: string, password: string): boolean {
   // Экөөн тең текшеребиз (кыска туташуусуз), убакыт боюнча ачыкка чыкпашы үчүн
-  const u = safeEqual(username, config.adminUser);
+  const u = safeEqual(username.toLowerCase(), config.adminUser.toLowerCase());
   const p = safeEqual(password, config.adminPass);
   return u && p;
 }
