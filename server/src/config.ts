@@ -15,15 +15,16 @@ function required(name: string, fallback?: string): string {
 
 export const config = {
   port: Number(process.env.PORT ?? 3000),
-  adminUser: required('ADMIN_USER', 'admin'),
-  adminPass: required('ADMIN_PASS', 'ordo2026'),
+  // Хостингдин формасына кокус кошулган боштуктар/жаңы саптар эсепке алынбайт
+  adminUser: required('ADMIN_USER', 'admin').trim(),
+  adminPass: required('ADMIN_PASS', 'ordo2026').trim(),
   jwtSecret: required('JWT_SECRET', 'dev-secret-change-me'),
   publicUrl: (process.env.PUBLIC_URL ?? '').replace(/\/$/, ''),
   isProd: process.env.NODE_ENV === 'production',
 };
 
 // Интернетке чыгарылган серверде (Render) демейки пароль менен иштөөгө тыюу салабыз — репозиторий ачык
-if (process.env.RENDER && (!process.env.ADMIN_PASS || process.env.ADMIN_PASS === 'ordo2026')) {
+if (process.env.RENDER && (!process.env.ADMIN_PASS?.trim() || process.env.ADMIN_PASS.trim() === 'ordo2026')) {
   throw new Error('ADMIN_PASS коюлган эмес же демейки бойдон калган. Render’дин Environment бөлүмүнөн жаңы пароль коюңуз.');
 }
 

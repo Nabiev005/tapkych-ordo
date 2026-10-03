@@ -18,7 +18,7 @@ publicRouter.post('/auth/login', (req, res) => {
   const key = req.ip ?? 'unknown';
   loginLimiter.check(key);
   const { username, password } = z.object({ username: z.string(), password: z.string() }).parse(req.body);
-  if (!checkAdminCredentials(username.trim(), password)) {
+  if (!checkAdminCredentials(username.trim(), password.trim())) {
     loginLimiter.fail(key);
     throw new AppError('INVALID_CREDENTIALS', 401);
   }
