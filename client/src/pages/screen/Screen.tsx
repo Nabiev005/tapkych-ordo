@@ -6,7 +6,7 @@ import { JoinQr, LeaderboardList, OptionCard, Podium, RingTimer } from '../../co
 import { CornerOrnament, HornMotif, Logo, OrnamentBand, SunTunduk } from '../../components/Ornament';
 import { ConnBadge, FullCenter, Spinner } from '../../components/ui';
 import { ky, type RoundKey } from '../../i18n/ky';
-import { getJoinBase } from '../../lib/api';
+import { assetUrl, getJoinBase } from '../../lib/api';
 import { audioUnlocked, setSoundEnabled, sfx, unlockAudio } from '../../lib/sound';
 import { OPTION_KEYS, type ScreenState } from '../../lib/types';
 import { useCountdown, useGameSocket } from '../../lib/useGameSocket';
@@ -274,7 +274,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
 
       <div className="flex min-h-0 flex-1 gap-[3vw]">
         {q.imageUrl && (
-          <motion.img initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} src={q.imageUrl} alt="" className="max-h-full w-[34%] self-center rounded-3xl object-contain shadow-2xl ring-4 ring-ordo-gold/40" />
+          <motion.img initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} src={assetUrl(q.imageUrl)} alt="" className="max-h-full w-[34%] self-center rounded-3xl object-contain shadow-2xl ring-4 ring-ordo-gold/40" />
         )}
         <div className="grid flex-1 auto-rows-fr grid-cols-2 content-center gap-[2vh]">
           {OPTION_KEYS.map((k, i) => (

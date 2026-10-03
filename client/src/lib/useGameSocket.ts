@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { ApiError } from './api';
+import { API_BASE, ApiError } from './api';
 
 export type ConnStatus = 'connecting' | 'online' | 'offline' | 'denied';
 
@@ -24,7 +24,8 @@ export function useGameSocket<S extends { serverNow: number }>(
 
   useEffect(() => {
     if (!authKey) return;
-    const socket = io({ auth: JSON.parse(authKey), transports: ['websocket', 'polling'] });
+    const opts = { auth: JSON.parse(authKey), transports: ['websocket', 'polling'] };
+    const socket = API_BASE ? io(API_BASE, opts) : io(opts);
     socketRef.current = socket;
     setStatus('connecting');
 

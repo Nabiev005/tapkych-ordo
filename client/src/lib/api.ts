@@ -1,5 +1,14 @@
 import { errorText } from '../i18n/ky';
 
+/**
+ * Сервердин дареги. Бош болсо — сайт менен бир эле дарек (ноутбукта же бир серверде иштегенде).
+ * Vercel’де: VITE_API_URL=https://tapkych-ordo.onrender.com
+ */
+export const API_BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '');
+
+/** Сервердеги сүрөттөрдүн толук дареги (/uploads/... → https://сервер/uploads/...) */
+export const assetUrl = (u: string | null | undefined) => (u && u.startsWith('/uploads/') ? API_BASE + u : (u ?? undefined));
+
 const TOKEN_KEY = 'ordo_admin_token';
 
 export const adminToken = {
@@ -43,7 +52,7 @@ async function request<T>(method: string, path: string, body?: unknown, isForm =
 
   let res: Response;
   try {
-    res = await fetch(path, {
+    res = await fetch(API_BASE + path, {
       method,
       headers,
       body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
@@ -76,7 +85,7 @@ export const api = {
 /** Авторизация менен файл жүктөп алуу (Excel экспорт, шаблон) */
 export async function downloadFile(path: string, filename: string) {
   const token = adminToken.get();
-  const res = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => {
+  const res = await fetch(API_BASE + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => {
     throw new ApiError('NETWORK');
   });
   if (!res.ok) {

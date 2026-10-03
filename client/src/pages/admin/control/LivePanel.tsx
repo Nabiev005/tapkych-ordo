@@ -5,6 +5,7 @@ import { Button, Modal, useDialogs } from '../../../components/ui';
 import { ky, type RoundKey } from '../../../i18n/ky';
 import { OPTION_KEYS, type AdminState } from '../../../lib/types';
 import { useCountdown } from '../../../lib/useGameSocket';
+import { assetUrl } from '../../../lib/api';
 import type { Act } from '../GameControl';
 
 export default function LivePanel({ state, act, busy, offset }: { state: AdminState; act: Act; busy: string | null; offset: number }) {
@@ -145,7 +146,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                   {g.phase === 'READY' && <span className="rounded bg-ordo-gold/30 px-2 text-ordo-ink/70">{t.hiddenOnScreen}</span>}
                 </div>
                 <div className="flex gap-4">
-                  {q.imageUrl && <img src={q.imageUrl} alt="" className="h-28 w-40 shrink-0 rounded-2xl object-cover" />}
+                  {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="h-28 w-40 shrink-0 rounded-2xl object-cover" />}
                   <div className="text-xl font-semibold leading-snug">{q.text}</div>
                 </div>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">

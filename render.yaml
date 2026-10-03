@@ -1,0 +1,26 @@
+# Render Blueprint — «Тапкыч ордо» сервери (Socket.IO + SQLite)
+# Render: New → Blueprint → ушул репозиторийди тандаңыз.
+services:
+  - type: web
+    name: tapkych-ordo
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npm run build
+    # База бош болсо 25 мисал суроо жүктөлөт (суроолор бар болсо эч нерсе кошулбайт)
+    startCommand: npx prisma migrate deploy && npx tsx prisma/seed.ts && node dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: TRUST_PROXY
+        value: "1"
+      - key: ADMIN_USER
+        value: admin
+      # Түзүүдө Render паролду сурайт
+      - key: ADMIN_PASS
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true

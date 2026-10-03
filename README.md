@@ -118,9 +118,39 @@ npm start
 
 ## 5. Серверге (интернетке) жайгаштыруу
 
+### 5.0. Vercel + Render (акысыз)
+
+Сайттын сырткы бети **Vercel**’де, ал эми сервер жана база **Render**’де турат. Vercel өзү Socket.IO серверин жана SQLite базасын иштете албайт, ошондуктан сервер Render’ге коюлат.
+
+> ⚠️ **Render’дин акысыз планынын чектөөлөрү:**
+> - 15 мүнөт колдонулбаса, сервер уктап калат. Андан кийинки биринчи ачылышы ~1 мүнөткө созулат, ошондуктан оюндан мурун сайтты алдын ала ачып коюңуз.
+> - Сервер кайра иштетилгенде база тазаланат: киргизилген суроолор жана оюндар жоголот, 25 мисал суроо кайра жүктөлөт.
+> - Маалымат туруктуу сакталышы керек болсо, Render’де акы төлөнүүчү планга өтүп Disk кошуңуз (`/opt/render/project/src/server/prisma`), же 5.1-бөлүмдөгүдөй VPS колдонуңуз.
+
+**1-кадам — Render (сервер):**
+1. [render.com](https://render.com) сайтына GitHub аккаунту менен кириңиз.
+2. **New → Blueprint** баскычын басып, ушул репозиторийди тандаңыз. Render `render.yaml` файлын өзү окуйт.
+3. `ADMIN_PASS` деген талаага алып баруучунун жаңы паролун жазыңыз да, **Apply** баскычын басыңыз.
+4. Жайгаштыруу бүткөндө `https://tapkych-ordo-xxxx.onrender.com` сыяктуу дарек берилет. Аны көчүрүп алыңыз.
+5. Текшерүү: `https://…onrender.com/api/health` дареги `{"ok":true}` деп жооп бериши керек.
+
+**2-кадам — Vercel (сайт):**
+1. [vercel.com](https://vercel.com) сайтына GitHub аккаунту менен кириңиз. **Add New → Project** баскычын басып, ушул репозиторийди тандаңыз.
+2. **Root Directory** талаасына **`client`** деп жазыңыз.
+3. **Environment Variables** бөлүмүнө:
+   - аты: `VITE_API_URL`
+   - мааниси: Render берген дарек (мисалы, `https://tapkych-ordo-xxxx.onrender.com`, аягында `/` белгиси жок)
+4. **Deploy** баскычын басыңыз. Сиздин шилтемеңиз `https://<долбоор>.vercel.app` болот.
+   - Алып баруучу: `https://<долбоор>.vercel.app/admin`
+   - QR-код жана PIN карточкалары Vercel даректи автоматтык түрдө көрсөтөт.
+
+GitHub’га жаңы коммит жөнөтүлгөн сайын, экөө тең автоматтык түрдө жаңыланат.
+
+### 5.1. Өзүнчө VPS (маалымат туруктуу сакталат)
+
 Төмөндөгү мисал **Ubuntu 22.04/24.04** серверинде (VPS), домен менен жайгаштыруу үчүн.
 
-### 5.1. Node.js жана долбоор
+#### Node.js жана долбоор
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
@@ -133,7 +163,7 @@ nano server/.env      # ADMIN_PASS, JWT_SECRET жана PUBLIC_URL=https://ordo.
 npm run setup
 ```
 
-### 5.2. Туруктуу иштетүү (pm2)
+#### Туруктуу иштетүү (pm2)
 
 ```bash
 sudo npm install -g pm2
@@ -142,7 +172,7 @@ pm2 save
 pm2 startup        # көрсөтүлгөн буйрукту аткарыңыз — сервер кайра күйгөндө оюн өзү иштейт
 ```
 
-### 5.3. Nginx + HTTPS
+#### Nginx + HTTPS
 
 ```nginx
 # /etc/nginx/sites-available/tapkych
@@ -157,7 +187,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;  # жана .env: TRUST_PROXY=1
         proxy_read_timeout 3600s;
     }
 }
@@ -172,7 +202,7 @@ sudo certbot --nginx -d ordo.example.kg
 
 > `PUBLIC_URL` коюлса, QR-код жана PIN карточкалары ошол даректи көрсөтөт.
 
-### 5.4. Жаңыртуу жана резервдик көчүрмө
+#### Жаңыртуу жана резервдик көчүрмө
 
 ```bash
 cd /opt/tapkych && git pull && npm run setup && pm2 restart tapkych
@@ -193,7 +223,8 @@ cd /opt/tapkych && git pull && npm run setup && pm2 restart tapkych
 | `ADMIN_USER` | `admin` | Алып баруучунун логини |
 | `ADMIN_PASS` | `ordo2026` | Алып баруучунун пароли. **Сөзсүз өзгөртүңүз!** |
 | `JWT_SECRET` | — | Кирүү токендери үчүн купуя сап. Узун, кокус сап жазыңыз. |
-| `PUBLIC_URL` | бош | Интернетте иштесе, сайттын дареги. Бош калса, ноутбуктун IP'си автоматтык түрдө аныкталат. |
+| `PUBLIC_URL` | бош | QR-кодго жазыла турган сайттын дареги. Бош калса, ноутбуктун IP'си же сайттын өз дареги колдонулат. |
+| `TRUST_PROXY` | бош | Прокси (Render, nginx) артында иштесе `1` коюңуз. Ошондо PIN бөгөтү ар бир түзмөккө өзүнчө иштейт. |
 
 Ар бир оюндун жөндөөлөрү оюнду түзүүдө коюлат:
 

@@ -22,6 +22,11 @@ export const config = {
   isProd: process.env.NODE_ENV === 'production',
 };
 
+// Интернетке чыгарылган серверде (Render) демейки пароль менен иштөөгө тыюу салабыз — репозиторий ачык
+if (process.env.RENDER && (!process.env.ADMIN_PASS || process.env.ADMIN_PASS === 'ordo2026')) {
+  throw new Error('ADMIN_PASS коюлган эмес же демейки бойдон калган. Render’дин Environment бөлүмүнөн жаңы пароль коюңуз.');
+}
+
 /** Ноутбуктун жергиликтүү тармактагы IP дареги (телефондор кирүүсү үчүн) */
 export function getLanIp(): string | null {
   const nets = os.networkInterfaces();

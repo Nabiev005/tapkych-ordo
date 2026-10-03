@@ -18,7 +18,9 @@ import { setupSockets } from './sockets/index.js';
 import { restoreTimers } from './game/engine.js';
 
 const app = express();
-app.set('trust proxy', 'loopback');
+// Render/nginx сыяктуу прокси артында чыныгы IP’ни алуу үчүн TRUST_PROXY=1 коюлат (PIN бөгөтү ар бир түзмөккө өзүнчө иштеши үчүн)
+const trustProxy = process.env.TRUST_PROXY;
+app.set('trust proxy', trustProxy ? (/^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy === 'true') : 'loopback');
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 

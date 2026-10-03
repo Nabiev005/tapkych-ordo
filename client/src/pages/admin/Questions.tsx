@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
 import { ky, type OptionKey, type RoundKey } from '../../i18n/ky';
-import { api } from '../../lib/api';
+import { api, assetUrl } from '../../lib/api';
 import { OPTION_KEYS, ROUND_KEYS, type Question } from '../../lib/types';
 
 const REQUIRED: Record<RoundKey, number> = { ROUND1: 10, ROUND2: 10, FINAL: 5 };
@@ -156,7 +156,7 @@ function SortableRow({ q, index, onEdit, onDelete }: { q: Question; index: numbe
         ⠿
       </button>
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ordo-night font-display font-bold text-ordo-gold">{index + 1}</div>
-      {q.imageUrl && <img src={q.imageUrl} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
+      {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
       <div className="min-w-0 flex-1">
         <div className="font-semibold">{q.text}</div>
         <div className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
@@ -249,7 +249,7 @@ function QuestionForm({ draft, onClose, onSaved }: { draft: Draft | null; onClos
           <div>
             <label className="label">{f.image}</label>
             <div className="flex items-center gap-3">
-              {d.imageUrl && <img src={d.imageUrl} alt="" className="h-20 w-28 rounded-xl object-cover ring-2 ring-ordo-gold/30" />}
+              {d.imageUrl && <img src={assetUrl(d.imageUrl)} alt="" className="h-20 w-28 rounded-xl object-cover ring-2 ring-ordo-gold/30" />}
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
               <Button variant="outline" size="sm" loading={uploading} onClick={() => fileRef.current?.click()}>
                 🖼 {uploading ? f.uploading : f.uploadImage}
