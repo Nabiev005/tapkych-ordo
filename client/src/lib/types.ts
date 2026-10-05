@@ -135,6 +135,9 @@ export interface PlayerState {
   inRound: boolean;
   question: {
     number: number;
+    text: string | null;
+    imageUrl: string | null;
+    options: Options | null;
     myChoice: OptionKey | null;
     correct: OptionKey | null;
     myCorrect: boolean | null;

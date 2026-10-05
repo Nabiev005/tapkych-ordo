@@ -366,7 +366,7 @@ export const ky = {
     roundStarting: (round: RoundKey) => `${ky.rounds[round]} башталат`,
     getReady: 'Даярданыңыз! Суроо азыр чыгат',
     questionNo: (n: number, total: number) => `${n}-суроо · ${total} ичинен`,
-    lookAtScreen: 'Суроо экранда — жоопту тандаңыз',
+    lookAtScreen: 'Туура деп эсептеген жоопту басыңыз',
     answered: 'Жообуңуз кабыл алынды',
     yourAnswer: (l: string) => `Сиздин жооп: ${l}`,
     waitReveal: 'Туура жооп ачылганын күтүңүз',

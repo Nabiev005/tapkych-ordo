@@ -161,6 +161,7 @@ export function playerSnapshot(game: FullGame, playerId: number) {
   const q = currentQuestion(game);
   const revealed = !!q?.revealedAt;
   const myAnswer = q?.answers.find((a) => a.playerId === playerId);
+  const showText = game.phase === 'QUESTION' || game.phase === 'REVEAL';
   const inRound = !!me && !!round && me.status === 'ACTIVE' && playedRound(me, round);
   const ranking = round && inRound ? rankRound(game, round) : [];
   const mine = ranking.find((r) => r.playerId === playerId);
@@ -172,10 +173,14 @@ export function playerSnapshot(game: FullGame, playerId: number) {
     game: base(game),
     me: me ? { id: me.id, name: me.name, status: me.status, eliminatedAfter: me.eliminatedAfter } : null,
     inRound,
-    // Суроонун тексти жана варианттары телефонго ЖӨНӨТҮЛБӨЙТ — алар жалпы экранда
+    // Суроонун тексти жана варианттары суроо көрсөтүлгөндөн кийин гана (экран менен бир убакта) жөнөтүлөт.
+    // Туура жооп — REVEAL фазасына чейин эч качан.
     question: q
       ? {
           number: q.order + 1,
+          text: showText ? q.text : null,
+          imageUrl: showText ? q.imageUrl : null,
+          options: showText ? options(q) : null,
           myChoice: myAnswer?.choice ?? null,
           correct: revealed ? q.correct : null,
           myCorrect: revealed ? (myAnswer?.isCorrect ?? false) : null,

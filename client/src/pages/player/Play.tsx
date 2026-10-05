@@ -6,6 +6,7 @@ import { OrnamentBand, SunTunduk } from '../../components/Ornament';
 import { Button, ConnBadge, Spinner, useDialogs } from '../../components/ui';
 import { ky, type OptionKey, type RoundKey } from '../../i18n/ky';
 import { vibrate } from '../../lib/sound';
+import { assetUrl } from '../../lib/api';
 import { OPTION_KEYS, type PlayerState } from '../../lib/types';
 import { useCountdown, useGameSocket } from '../../lib/useGameSocket';
 import type { PlayerSession } from './Join';
@@ -219,12 +220,21 @@ function AnswerPad({
         />
       </div>
 
+      {/* Суроонун тексти — телефондо да көрүнөт */}
+      {q.text && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 rounded-3xl bg-white/[0.08] p-4 ring-1 ring-white/10">
+          {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="mb-3 max-h-44 w-full rounded-2xl object-contain" />}
+          <div className="text-xl font-semibold leading-snug">{q.text}</div>
+        </motion.div>
+      )}
+
       <AnimatePresence mode="wait">
         {choice ? (
           <motion.div key="done" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-1 flex-col items-center justify-center gap-5 text-center">
-            <div className={`flex h-40 w-40 items-center justify-center rounded-[2.5rem] font-display text-8xl font-black text-white shadow-2xl ${OPTION_STYLE[choice].bg} ${OPTION_STYLE[choice].glow}`}>
+            <div className={`flex h-32 w-32 items-center justify-center rounded-[2rem] font-display text-7xl font-black text-white shadow-2xl ${OPTION_STYLE[choice].bg} ${OPTION_STYLE[choice].glow}`}>
               {ky.options[choice]}
             </div>
+            {q.options && <div className="max-w-sm text-2xl font-semibold">{q.options[choice]}</div>}
             <div className="font-display text-2xl font-bold">✓ {t.answered}</div>
             <div className="text-white/60">{t.waitReveal}</div>
             <div className="text-sm text-white/40">🔒 {t.alreadyAnswered}</div>
@@ -238,6 +248,26 @@ function AnswerPad({
         ) : (
           <motion.div key="pad" className="flex flex-1 flex-col">
             <div className="mb-3 text-center text-white/60">{t.lookAtScreen}</div>
+            {q.options ? (
+              // Варианттардын тексти менен — бирден сапка, чоң баскычтар
+              <div className="flex flex-1 flex-col gap-3">
+                {OPTION_KEYS.map((k, i) => (
+                  <motion.button
+                    key={k}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    whileTap={{ scale: 0.96 }}
+                    disabled={locked}
+                    onClick={() => answer(k)}
+                    className={`flex min-h-20 flex-1 items-center gap-4 rounded-3xl px-4 py-3 text-left text-white shadow-[0_6px_0_rgba(0,0,0,0.35)] active:shadow-none disabled:opacity-40 ${OPTION_STYLE[k].bg}`}
+                  >
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-black/20 font-display text-4xl font-black">{ky.options[k]}</span>
+                    <span className="text-xl font-bold leading-tight">{q.options![k]}</span>
+                  </motion.button>
+                ))}
+              </div>
+            ) : (
             <div className="grid flex-1 grid-cols-2 gap-3">
               {OPTION_KEYS.map((k, i) => (
                 <motion.button
@@ -254,6 +284,7 @@ function AnswerPad({
                 </motion.button>
               ))}
             </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -280,10 +311,12 @@ function RevealView({ state }: { state: PlayerState }) {
       <div className="font-display text-5xl font-black">{ok ? t.correct : t.wrong}</div>
       {ok && q.myPoints ? <div className="font-display text-3xl font-bold text-ordo-gold-light">{t.plusPoints(q.myPoints)}</div> : null}
       {!q.myChoice && <div className="text-xl text-white/80">{t.noAnswer}</div>}
+      {q.text && <div className="max-w-sm text-lg text-white/80">{q.text}</div>}
       {q.correct && (
-        <div className="flex items-center gap-3 rounded-2xl bg-black/20 px-5 py-3 text-xl">
-          {t.correctWas('')}
-          <span className={`flex h-12 w-12 items-center justify-center rounded-xl font-display text-2xl font-black ${OPTION_STYLE[q.correct].bg}`}>{ky.options[q.correct]}</span>
+        <div className="flex max-w-sm items-center gap-3 rounded-2xl bg-black/20 px-5 py-3 text-left text-xl">
+          <span className="shrink-0">{t.correctWas('')}</span>
+          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-display text-2xl font-black ${OPTION_STYLE[q.correct].bg}`}>{ky.options[q.correct]}</span>
+          {q.options && <span className="font-bold">{q.options[q.correct]}</span>}
         </div>
       )}
       <ScoreLine state={state} />
