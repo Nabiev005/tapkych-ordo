@@ -121,9 +121,10 @@ importExportRouter.post('/questions/import', upload.single('file'), async (req, 
 
   const replace = req.query.replace === '1';
   await prisma.$transaction(async (tx) => {
-    if (replace) await tx.question.deleteMany();
+    // Архив (мурунку оюндарда суралгандар) сакталат — банктагы активдүү суроолор гана алмаштырылат
+    if (replace) await tx.question.deleteMany({ where: { archived: false } });
     for (const round of ROUNDS) {
-      const last = await tx.question.findFirst({ where: { round }, orderBy: { order: 'desc' } });
+      const last = await tx.question.findFirst({ where: { round, archived: false }, orderBy: { order: 'desc' } });
       let order = (last?.order ?? -1) + 1;
       const items = valid.filter((v) => v.round === round).map((v) => ({ ...v, order: order++ }));
       if (items.length) await tx.question.createMany({ data: items });
@@ -202,7 +203,8 @@ importExportRouter.get('/games/:id/export.xlsx', async (req, res) => {
   // 3. Суроолор
   const ws3 = wb.addWorksheet('Суроолор');
   ws3.addRow(['Тур', '№', 'Суроо', 'А', 'Б', 'В', 'Г', 'Туура жооп', 'Туура жооп бергендер', 'Жооп бергендер']);
-  for (const q of game.questions) {
+  const ordered = [...game.questions].sort((a, b) => ROUNDS.indexOf(a.round as Round) - ROUNDS.indexOf(b.round as Round) || a.order - b.order);
+  for (const q of ordered) {
     ws3.addRow([
       ROUND_LABEL[q.round as Round],
       q.order + 1,

@@ -14,6 +14,9 @@ const NewGame = lazy(() => import('./pages/admin/NewGame'));
 const GameControl = lazy(() => import('./pages/admin/GameControl'));
 const Pins = lazy(() => import('./pages/admin/Pins'));
 const Screen = lazy(() => import('./pages/screen/Screen'));
+const Students = lazy(() => import('./pages/admin/Students'));
+const History = lazy(() => import('./pages/admin/History'));
+const Rating = lazy(() => import('./pages/Rating'));
 
 export default function App() {
   return (
@@ -28,12 +31,15 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/join" element={<Join />} />
         <Route path="/screen/:code" element={<Screen />} />
+        <Route path="/rating" element={<Rating />} />
         <Route path="/admin/login" element={<Login />} />
         <Route path="/admin/games/:id/pins" element={<Pins />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="questions" element={<Questions />} />
           <Route path="import" element={<ImportPage />} />
+          <Route path="students" element={<Students />} />
+          <Route path="history" element={<History />} />
           <Route path="games/new" element={<NewGame />} />
           <Route path="games/:id" element={<GameControl />} />
         </Route>

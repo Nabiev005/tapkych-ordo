@@ -28,7 +28,7 @@ function parseId(raw: string): number {
 }
 
 async function nextOrder(round: Round): Promise<number> {
-  const last = await prisma.question.findFirst({ where: { round }, orderBy: { order: 'desc' } });
+  const last = await prisma.question.findFirst({ where: { round, archived: false }, orderBy: { order: 'desc' } });
   return (last?.order ?? -1) + 1;
 }
 
@@ -37,9 +37,9 @@ questionsRouter.get('/', async (_req, res) => {
   res.json({ questions });
 });
 
-/** Ар бир турда суроолор жетиштүүбү — "1-турда 10 суроо бар ✓" */
+/** Ар бир турда суроолор жетиштүүбү — "1-турда 10 суроо бар ✓" (архивдегилер эсептелбейт) */
 questionsRouter.get('/summary', async (_req, res) => {
-  const groups = await prisma.question.groupBy({ by: ['round'], _count: { _all: true } });
+  const groups = await prisma.question.groupBy({ by: ['round'], where: { archived: false }, _count: { _all: true } });
   const summary = ROUNDS.map((round) => {
     const count = groups.find((g) => g.round === round)?._count._all ?? 0;
     return { round, count, required: DEFAULT_REQUIRED[round], ok: count >= DEFAULT_REQUIRED[round] };
@@ -64,12 +64,34 @@ questionsRouter.put('/reorder', async (req, res) => {
   res.json({ ok: true });
 });
 
+/** Архивден кайра банкка кайтаруу: бир суроо же бир турдун баары (ids жок болсо) */
+questionsRouter.post('/restore', async (req, res) => {
+  const { ids, round } = z.object({ ids: z.array(z.number().int()).optional(), round: z.enum(ROUNDS).optional() }).parse(req.body);
+  const list = await prisma.question.findMany({
+    where: { archived: true, ...(ids ? { id: { in: ids } } : {}), ...(round ? { round } : {}) },
+    orderBy: [{ round: 'asc' }, { lastUsedAt: 'asc' }],
+  });
+  for (const q of list) {
+    await prisma.question.update({ where: { id: q.id }, data: { archived: false, order: await nextOrder(q.round as Round) } });
+  }
+  res.json({ restored: list.length });
+});
+
+/** Колдонулбаса да кол менен архивге жылдыруу */
+questionsRouter.post('/:id/archive', async (req, res) => {
+  const id = parseId(req.params.id);
+  await prisma.question.update({ where: { id }, data: { archived: true } }).catch(() => {
+    throw new AppError('NOT_FOUND', 404);
+  });
+  res.json({ ok: true });
+});
+
 questionsRouter.put('/:id', async (req, res) => {
   const id = parseId(req.params.id);
   const data = questionSchema.parse(req.body);
   const existing = await prisma.question.findUnique({ where: { id } });
   if (!existing) throw new AppError('NOT_FOUND', 404);
-  const order = existing.round === data.round ? existing.order : await nextOrder(data.round);
+  const order = existing.round === data.round || existing.archived ? existing.order : await nextOrder(data.round);
   const question = await prisma.question.update({
     where: { id },
     data: { ...data, imageUrl: data.imageUrl || null, order },

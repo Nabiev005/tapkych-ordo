@@ -66,6 +66,37 @@ export const ky = {
     joinHint: 'Оюнчулар үчүн — телефондон',
     host: 'Алып баруучу',
     hostHint: 'Оюнду башкаруу панели',
+    rating: 'Рейтинг',
+    ratingHint: 'Эң акылдуу окуучулар',
+  },
+
+  // ─────────────────────────── Рейтинг (ачык бет) ───────────────────────────
+  rating: {
+    title: 'АКЫЛДУУЛАР РЕЙТИНГИ',
+    subtitle: (games: number) => `${games} оюндун жыйынтыгы боюнча`,
+    allClasses: 'Бардык класстар',
+    empty: 'Азырынча бүткөн оюн жок. Биринчи оюн аяктагандан кийин рейтинг ушул жерде пайда болот.',
+    name: 'Аты-жөнү',
+    className: 'Классы',
+    games: 'Оюн',
+    wins: 'Жеңиш',
+    podiums: 'Үчтүк',
+    finals: 'Финал',
+    score: 'Упай',
+    accuracy: 'Тактык',
+    best: 'Эң жакшы орун',
+    sortBy: 'Иреттөө:',
+    sort: {
+      totalScore: 'Упай боюнча',
+      wins: 'Жеңиш боюнча',
+      accuracy: 'Тактык боюнча',
+    } as Record<string, string>,
+    rule: 'Иреттөө эрежеси: жалпы упай → жеңиштер → туура жооптордун пайызы.',
+    export: 'Excel’ге жүктөп алуу',
+    back: 'Башкы бетке',
+    top3: 'Алдыңкы үчтүк',
+    gamesCount: (n: number) => `${n} оюн`,
+    winsCount: (n: number) => `${n} жеңиш`,
   },
 
   errors: {
@@ -107,6 +138,41 @@ export const ky = {
       dashboard: 'Башкы бет',
       questions: 'Суроолор',
       games: 'Оюндар',
+      students: 'Окуучулар',
+      history: 'Тарых',
+      rating: 'Рейтинг',
+    },
+
+    students: {
+      title: 'Окуучулар',
+      hint: 'Окуучулардын туруктуу тизмеси. Оюн түзгөндө катышуучулар ушул жерден тандалат, ал эми рейтинг ар бир окуучу боюнча эсептелет.',
+      add: 'Окуучу кошуу',
+      name: 'Аты-жөнү',
+      className: 'Классы',
+      classPlaceholder: 'мис. 9А',
+      bulkTitle: 'Тизме менен кошуу',
+      bulkHint: 'Ар бир сапка: Аты-жөнү; классы. Мисалы: Айбек Токтогулов; 9А',
+      bulkPlaceholder: 'Айбек Токтогулов; 9А\nНурай Асанова; 9Б\n…',
+      bulkAdd: 'Тизмени кошуу',
+      added: (n: number) => `${n} окуучу кошулду`,
+      search: 'Издөө…',
+      allClasses: 'Бардык класстар',
+      noClass: 'Класссыз',
+      empty: 'Тизме бош. Окуучуларды бирден же тизме менен кошуңуз.',
+      games: (n: number) => `${n} оюн`,
+      edit: 'Оңдоо',
+      deleteConfirm: (name: string) => `${name} тизмеден өчүрүлсүнбү? Анын мурунку оюндардагы жыйынтыктары сакталат, бирок рейтингден чыгат.`,
+      count: (n: number) => `${n} окуучу`,
+    },
+
+    history: {
+      title: 'Оюндардын тарыхы',
+      hint: 'Аяктаган бардык оюндар. Ачсаңыз — толук жыйынтык, суралган суроолор жана Excel.',
+      empty: 'Азырынча аяктаган оюн жок.',
+      untitled: 'Аталышсыз оюн',
+      players: (n: number) => `${n} оюнчу`,
+      questions: (n: number) => `${n} суроо`,
+      open: 'Жыйынтыкты ачуу',
     },
 
     dashboard: {
@@ -146,6 +212,17 @@ export const ky = {
       deleted: 'Суроо өчүрүлдү',
       reordered: 'Тартип сакталды',
       correctBadge: 'туура',
+      archiveTab: 'Архив',
+      archiveHint: 'Оюнда суралган суроолор автоматтык түрдө архивге өтөт жана кийинки оюндарда кайталанбайт. Керек болсо банкка кайра кайтарыңыз.',
+      archiveEmpty: 'Архив бош. Оюнда суралган суроолор ушул жерге түшөт.',
+      restore: 'Банкка кайтаруу',
+      restoreAll: 'Баарын банкка кайтаруу',
+      restoreAllConfirm: (n: number) => `Архивдеги ${n} суроонун баары банкка кайтарылсынбы? Алар кийинки оюндарда кайра суралат.`,
+      restored: (n: number) => `${n} суроо банкка кайтарылды`,
+      toArchive: 'Архивге',
+      archived: 'Суроо архивге жылдырылды',
+      usedInfo: (times: number, date: string) => `${times} жолу суралган · акыркысы ${date}`,
+      filterAll: 'Бардык турлар',
       form: {
         newTitle: 'Жаңы суроо',
         editTitle: 'Суроону оңдоо',
@@ -196,6 +273,17 @@ export const ky = {
 
     newGame: {
       title: 'Жаңы оюн',
+      gameTitle: 'Оюндун аталышы (милдеттүү эмес)',
+      gameTitlePlaceholder: 'мис. 9-класстар арасындагы таймаш',
+      pickTitle: 'Окуучуларды тандаңыз',
+      pickHint: 'Тизмеден басып тандаңыз. Тандалгандар оң жакта көрүнөт.',
+      selected: (n: number, expected: number) => `Тандалды: ${n} (күтүлгөнү: ${expected})`,
+      selectAllClass: (c: string) => `${c} классын баарын тандоо`,
+      clearSelection: 'Тандоону тазалоо',
+      quickAdd: 'Тизмеде жок окуучу',
+      quickAddHint: 'Жаңы окуучу тизмеге сакталат жана дароо тандалат.',
+      noStudents: 'Окуучулар тизмеси бош. Адегенде «Окуучулар» бөлүмүнөн кошуңуз же төмөндө жаңы окуучу кошуңуз.',
+      manageStudents: 'Окуучулар тизмесин башкаруу',
       playersTitle: 'Оюнчулар',
       playersHint: 'Ар бир сапка бир оюнчунун аты-жөнүн жазыңыз. Ар бир оюнчуга жеке PIN код түзүлөт.',
       playersPlaceholder: 'Айбек Токтогулов\nНурай Асанова\n…',
@@ -212,7 +300,7 @@ export const ky = {
       expectedPlayers: 'Күтүлгөн оюнчулар саны',
       create: 'Оюнду түзүү',
       creating: 'Түзүлүүдө…',
-      needPlayers: 'Жок дегенде 2 оюнчунун атын жазыңыз',
+      needPlayers: 'Жок дегенде 2 окуучуну тандаңыз',
       bankWarn: 'Суроолор жетишсиз — оюнду түзө аласыз, бирок баштоодон мурун суроолорду кошуңуз:',
     },
 
@@ -340,6 +428,8 @@ export const ky = {
       total: 'Жалпы',
       reached: 'Жеткен тур',
       export: 'Толук жыйынтыкты Excel’ге жүктөп алуу',
+      askedTitle: 'Суралган суроолор',
+      askedStats: (c: number, a: number) => `${c}/${a} туура`,
       exportHint: 'Excel файлда ар бир суроо боюнча ким кандай жооп бергени көрсөтүлөт.',
     },
   },
@@ -348,6 +438,7 @@ export const ky = {
     templateXlsx: 'суроолор-шаблон.xlsx',
     templateCsv: 'суроолор-шаблон.csv',
     results: (code: string) => `тапкыч-ордо-${code}.xlsx`,
+    rating: 'тапкыч-ордо-рейтинг.xlsx',
   },
 
   // ─────────────────────────── Оюнчу (телефон) ───────────────────────────
@@ -426,6 +517,13 @@ export const ky = {
 };
 
 export type Ky = typeof ky;
+
+/**
+ * Даталар: «2026-ж., 6-октябрь». Кыска форматты (ky-KG) колдонбойбуз —
+ * кээ бир браузерлер айды жана күндү алмаштырып көрсөтөт (2026-06-10).
+ */
+export const fmtDate = (d: string | Date) => new Date(d).toLocaleDateString('ky-KG', { dateStyle: 'long' });
+export const fmtDateTime = (d: string | Date) => new Date(d).toLocaleString('ky-KG', { dateStyle: 'long', timeStyle: 'short' });
 
 /** Сервердин ката кодун кыргызча текстке айлантуу */
 export function errorText(code: string | undefined, details?: unknown): string {

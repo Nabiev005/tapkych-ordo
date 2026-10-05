@@ -80,6 +80,36 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
         </table>
       </section>
 
+      {state.askedQuestions.length > 0 && (
+        <section className="card p-5">
+          <h2 className="mb-3 font-display text-lg font-bold">❓ {t.askedTitle}</h2>
+          <div className="space-y-1.5">
+            {state.askedQuestions.map((q) => {
+              const pct = q.answered ? Math.round((q.correctCount / q.answered) * 100) : 0;
+              return (
+                <div key={q.id} className="flex items-center gap-3 rounded-xl px-2 py-2 odd:bg-ordo-cream">
+                  <span className="w-20 shrink-0 text-xs font-bold text-ordo-ink/50">
+                    {ky.rounds[q.round]} · №{q.number}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold">{q.text}</div>
+                    <div className="text-sm text-emerald-700">
+                      ✓ {ky.options[q.correct]} — {q.correctText}
+                    </div>
+                  </div>
+                  <div className="w-24 shrink-0 text-right">
+                    <div className="text-sm font-bold">{t.askedStats(q.correctCount, q.answered)}</div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ordo-ink/10">
+                      <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="card flex flex-col items-center gap-3 p-6 text-center">
         <Button size="xl" variant="green" icon="📊" loading={busy} onClick={exportXlsx}>
           {t.export}

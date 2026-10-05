@@ -23,17 +23,22 @@ model Question {
   optionC   String
   optionD   String
   correct   String // A | B | C | D
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  /// Оюнда суралган суроо архивге өтөт (кийинки оюнда кайталанбайт)
+  archived   Boolean   @default(false)
+  usedCount  Int       @default(0)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   gameQuestions GameQuestion[]
 
-  @@index([round, order])
+  @@index([round, archived, order])
 }
 
 model Game {
   id                Int       @id @default(autoincrement())
   code              String    @unique // кошулуу коду (6 сан)
+  title             String? // мис. «9-класстар арасындагы таймаш»
   status            String    @default("LOBBY") // LOBBY | ROUND1 | ROUND2 | FINAL | FINISHED
   phase             String    @default("IDLE") // IDLE | READY | QUESTION | REVEAL | ROUND_END
   paused            Boolean   @default(false)
@@ -72,15 +77,18 @@ model Player {
   status          String    @default("ACTIVE") // ACTIVE | ELIMINATED | KICKED
   eliminatedAfter String? // ROUND1 | ROUND2 | FINAL
   seat            Int       @default(0) // тизмедеги тартиби
+  studentId       Int? // окуучулар тизмесиндеги жазуу (рейтинг үчүн)
   joinedAt        DateTime?
   createdAt       DateTime  @default(now())
 
   game        Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  student     Student?          @relation(fields: [studentId], references: [id], onDelete: SetNull)
   answers     Answer[]
   adjustments ScoreAdjustment[]
 
   @@unique([gameId, pin])
   @@index([gameId])
+  @@index([studentId])
 }
 
 /// Оюн башталганда суроонун көчүрмөсү сакталат —
@@ -142,4 +150,24 @@ model ScoreAdjustment {
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([gameId])
+}
+
+/// Окуучулардын туруктуу тизмеси — бардык оюндар боюнча рейтинг ушул аркылуу эсептелет
+model Student {
+  id        Int      @id @default(autoincrement())
+  name      String
+  className String   @default("") // мис. 9«А»
+  createdAt DateTime @default(now())
+
+  players Player[]
+
+  @@unique([name, className])
+}
+
+/// Жүктөлгөн сүрөттөр базада сакталат (сервер кайра иштетилгенде да жоголбойт)
+model Upload {
+  id        String   @id // файлдын аты, мис. 3f2a….jpg
+  mime      String
+  data      Bytes
+  createdAt DateTime @default(now())
 }

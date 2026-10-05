@@ -4,9 +4,8 @@
  * Эгер базада суроолор бар болсо, эч нерсе кошулбайт (кайталанбашы үчүн).
  * Баарын кайра жүктөө үчүн: npm run db:seed -- --force
  */
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+// Сервер менен бирдей туташуу (жергиликтүү файл же Turso)
+import { prisma } from '../src/db.js';
 
 type Q = [text: string, a: string, b: string, c: string, d: string, correct: 'A' | 'B' | 'C' | 'D'];
 
@@ -47,6 +46,7 @@ const FINAL: Q[] = [
 async function main() {
   const force = process.argv.includes('--force');
   const count = await prisma.question.count();
+  // Суроолор (архивдегилер да) бар болсо — эч нерсе кошпойбуз
   if (count > 0 && !force) {
     console.log(`Базада ${count} суроо бар — seed өткөрүлүп жиберилди. Кайра жүктөө үчүн: npm run db:seed -- --force`);
     return;

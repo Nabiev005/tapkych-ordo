@@ -1,5 +1,9 @@
-# Render Blueprint — «Тапкыч ордо» сервери (Socket.IO + SQLite)
+# Render Blueprint — «Тапкыч ордо» сервери (Socket.IO)
 # Render: New → Blueprint → ушул репозиторийди тандаңыз.
+#
+# Маалымат туруктуу сакталышы үчүн Turso (акысыз) базасын туташтырыңыз:
+# TURSO_DATABASE_URL жана TURSO_AUTH_TOKEN (README, 5.0-бөлүм).
+# Булар коюлбаса — сервер кайра иштетилгенде база тазаланат.
 services:
   - type: web
     name: tapkych-ordo
@@ -7,8 +11,8 @@ services:
     plan: free
     rootDir: server
     buildCommand: npm install && npm run build
-    # База бош болсо 25 мисал суроо жүктөлөт (суроолор бар болсо эч нерсе кошулбайт)
-    startCommand: npx prisma migrate deploy && npx tsx prisma/seed.ts && node dist/index.js
+    # Базанын түзүлүшүн жаңыртуу → база бош болсо 25 мисал суроо → сервер
+    startCommand: node dist/migrate.js && npx tsx prisma/seed.ts && node dist/index.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -24,3 +28,8 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      # Turso: libsql://….turso.io дареги жана токен
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false

@@ -1,7 +1,7 @@
 import { prisma } from '../db.js';
 import { ROUNDS, type Round } from '../types.js';
 import { presence } from './presence.js';
-import { currentQuestion, currentRound, participants, playedRound, roundQuestions, type FullGame, type FullQuestion } from './load.js';
+import { currentQuestion, currentRound, participants, playedRound, roundIndex, roundQuestions, type FullGame, type FullQuestion } from './load.js';
 import { advanceSuggestion, overallStandings, rankRound } from './scoring.js';
 
 /**
@@ -14,6 +14,7 @@ function base(game: FullGame) {
   return {
     id: game.id,
     code: game.code,
+    title: game.title,
     status: game.status,
     phase: game.phase,
     paused: game.paused,
@@ -46,7 +47,7 @@ function previousRound(round: Round | null): Round | null {
 export async function adminSnapshot(game: FullGame) {
   const round = currentRound(game);
   const q = currentQuestion(game);
-  const bankGroups = await prisma.question.groupBy({ by: ['round'], _count: { _all: true } });
+  const bankGroups = await prisma.question.groupBy({ by: ['round'], where: { archived: false }, _count: { _all: true } });
   const bank = Object.fromEntries(ROUNDS.map((r) => [r, bankGroups.find((g) => g.round === r)?._count._all ?? 0]));
   const active = round ? participants(game, round).filter((p) => p.status === 'ACTIVE').map((p) => p.id) : [];
 
@@ -98,6 +99,23 @@ export async function adminSnapshot(game: FullGame) {
     leaderboard: round ? rankRound(game, round) : [],
     roundEnd: round && game.phase === 'ROUND_END' ? advanceSuggestion(game, round) : null,
     standings: game.status === 'LOBBY' ? [] : overallStandings(game),
+    // Оюн бүткөндө — суралган суроолордун тизмеси (тарых үчүн)
+    askedQuestions:
+      game.status === 'FINISHED'
+        ? [...game.questions]
+            .sort((a, b) => roundIndex(a.round as Round) - roundIndex(b.round as Round) || a.order - b.order)
+            .filter((x) => x.startedAt)
+            .map((x) => ({
+              id: x.id,
+              round: x.round,
+              number: x.order + 1,
+              text: x.text,
+              correct: x.correct,
+              correctText: options(x)[x.correct as keyof ReturnType<typeof options>],
+              answered: x.answers.length,
+              correctCount: x.answers.filter((a) => a.isCorrect).length,
+            }))
+        : [],
   };
 }
 

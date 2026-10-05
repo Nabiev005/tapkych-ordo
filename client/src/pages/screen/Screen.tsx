@@ -145,6 +145,7 @@ function Lobby({ state }: { state: ScreenState }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-[3vh] px-10">
       <Logo size="xl" />
+      {g.title && <div className="-mt-2 rounded-full bg-white/10 px-8 py-2 font-display text-3xl font-bold text-ordo-gold-light">{g.title}</div>}
       <div className="flex items-center gap-14">
         {base && <JoinQr url={`${base}/join?code=${g.code}`} size={Math.min(260, window.innerHeight * 0.26)} />}
         <div className="space-y-3">

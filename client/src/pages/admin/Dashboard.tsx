@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Spinner, useDialogs } from '../../components/ui';
-import { ky, type RoundKey } from '../../i18n/ky';
+import { fmtDateTime, ky, type RoundKey } from '../../i18n/ky';
 import { api } from '../../lib/api';
 import type { GameRow } from '../../lib/types';
 
@@ -87,9 +87,10 @@ export default function Dashboard() {
               <div key={g.id} className="card flex items-center gap-4 p-5">
                 <div className="rounded-2xl bg-ordo-night px-4 py-3 font-display text-xl font-bold tracking-widest text-ordo-gold">{g.code}</div>
                 <div className="flex-1">
-                  <div className="font-semibold">{ky.admin.dashboard.status[g.status]}</div>
+                  <div className="font-semibold">{g.title || ky.admin.dashboard.status[g.status]}</div>
+                  {g.title && <div className="text-sm font-semibold text-ordo-ink/60">{ky.admin.dashboard.status[g.status]}</div>}
                   <div className="text-sm text-ordo-ink/50">
-                    {ky.admin.dashboard.players(g._count?.players ?? 0)} · {new Date(g.createdAt).toLocaleString('ky-KG')}
+                    {ky.admin.dashboard.players(g._count?.players ?? 0)} · {fmtDateTime(g.createdAt)}
                   </div>
                 </div>
                 <Button variant="sky" onClick={() => navigate(`/admin/games/${g.id}`)}>

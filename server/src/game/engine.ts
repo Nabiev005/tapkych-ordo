@@ -77,7 +77,8 @@ async function startGame(gameId: number) {
   const snapshot: Prisma.GameQuestionCreateManyInput[] = [];
   for (const round of ROUNDS) {
     const need = roundSize(game, round);
-    const bank = await prisma.question.findMany({ where: { round }, orderBy: { order: 'asc' }, take: need });
+    // Архивдеги (мурунку оюндарда суралган) суроолор алынбайт
+    const bank = await prisma.question.findMany({ where: { round, archived: false }, orderBy: { order: 'asc' }, take: need });
     if (bank.length < need) throw new AppError('NOT_ENOUGH_QUESTIONS', 400, { round, need, have: bank.length });
     bank.forEach((q, order) =>
       snapshot.push({
@@ -128,6 +129,10 @@ async function showQuestion(gameId: number) {
   const endsAt = new Date(now.getTime() + game.timerSeconds * 1000);
   await prisma.$transaction([
     prisma.gameQuestion.update({ where: { id: q.id }, data: { startedAt: now, endsAt } }),
+    // Суралган суроо банктан архивге өтөт — кийинки оюнда кайталанбайт
+    ...(q.questionId
+      ? [prisma.question.updateMany({ where: { id: q.questionId }, data: { archived: true, usedCount: { increment: 1 }, lastUsedAt: now } })]
+      : []),
     prisma.game.update({
       where: { id: gameId },
       data: { phase: 'QUESTION', questionEndsAt: endsAt, showLeaderboard: false, pausedRemainingMs: null },

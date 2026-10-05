@@ -15,6 +15,9 @@ export interface Question {
   optionC: string;
   optionD: string;
   correct: OptionKey;
+  archived: boolean;
+  usedCount: number;
+  lastUsedAt: string | null;
 }
 
 export interface Settings {
@@ -32,6 +35,7 @@ export interface Settings {
 export interface GameRow extends Settings {
   id: number;
   code: string;
+  title: string | null;
   status: GameStatus;
   createdAt: string;
   players: { id: number; name: string; pin: string; status: PlayerStatus; joinedAt: string | null; seat: number }[];
@@ -41,6 +45,7 @@ export interface GameRow extends Settings {
 export interface BaseGame {
   id: number;
   code: string;
+  title: string | null;
   status: GameStatus;
   phase: Phase;
   paused: boolean;
@@ -106,6 +111,7 @@ export interface AdminState {
   leaderboard: Ranked[];
   roundEnd: { round: RoundKey; count: number; ranking: Ranked[]; suggested: number[]; tieAtCutoff: boolean } | null;
   standings: Standing[];
+  askedQuestions: { id: number; round: RoundKey; number: number; text: string; correct: OptionKey; correctText: string; answered: number; correctCount: number }[];
 }
 
 export interface ScreenState {
@@ -151,3 +157,37 @@ export interface PlayerState {
 
 export const OPTION_KEYS: OptionKey[] = ['A', 'B', 'C', 'D'];
 export const ROUND_KEYS: RoundKey[] = ['ROUND1', 'ROUND2', 'FINAL'];
+
+export interface Student {
+  id: number;
+  name: string;
+  className: string;
+  _count?: { players: number };
+}
+
+export interface RatingRow {
+  studentId: number;
+  name: string;
+  className: string;
+  games: number;
+  wins: number;
+  podiums: number;
+  finals: number;
+  totalScore: number;
+  correct: number;
+  answered: number;
+  accuracy: number;
+  bestPlace: number | null;
+  lastPlayedAt: string | null;
+}
+
+export interface HistoryGame {
+  id: number;
+  code: string;
+  title: string | null;
+  createdAt: string;
+  finishedAt: string | null;
+  players: number;
+  questions: number;
+  top: { name: string; total: number }[];
+}

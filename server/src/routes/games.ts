@@ -5,6 +5,8 @@ import { prisma } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { bus } from '../events.js';
 import { AppError } from '../types.js';
+import { loadFull } from '../game/load.js';
+import { overallStandings } from '../game/scoring.js';
 
 export const gamesRouter = Router();
 gamesRouter.use(requireAdmin);
@@ -82,18 +84,59 @@ gamesRouter.get('/', async (_req, res) => {
   res.json({ games });
 });
 
-/** Жаңы оюн: оюнчулардын аттары + жөндөөлөр → код жана жеке PIN'дер түзүлөт */
+/** Бүткөн оюндардын тарыхы: аталышы, датасы, 1-2-3-орундар */
+gamesRouter.get('/history', async (_req, res) => {
+  const finished = await prisma.game.findMany({ where: { status: 'FINISHED' }, orderBy: { finishedAt: 'desc' }, select: { id: true } });
+  const games = [];
+  for (const { id } of finished) {
+    const g = await loadFull(id);
+    if (!g) continue;
+    games.push({
+      id: g.id,
+      code: g.code,
+      title: g.title,
+      createdAt: g.createdAt,
+      finishedAt: g.finishedAt,
+      players: g.players.filter((p) => p.status !== 'KICKED').length,
+      questions: g.questions.filter((q) => q.startedAt).length,
+      top: overallStandings(g)
+        .slice(0, 3)
+        .map((s) => ({ name: s.name, total: s.total })),
+    });
+  }
+  res.json({ games });
+});
+
+/**
+ * Жаңы оюн: окуучулар тизмесинен (students) жана/же жөн гана аттар (players) + жөндөөлөр.
+ * Ар бир оюнчуга жеке PIN түзүлөт.
+ */
 gamesRouter.post('/', async (req, res) => {
   const body = z
-    .object({ players: z.array(nameSchema).max(100), settings: settingsSchema.partial().optional() })
+    .object({
+      title: z.string().trim().max(120).optional(),
+      students: z.array(z.number().int()).max(100).optional(),
+      players: z.array(nameSchema).max(100).optional(),
+      settings: settingsSchema.partial().optional(),
+    })
     .parse(req.body);
-  assertUniqueNames(body.players);
+
+  const students = body.students?.length ? await prisma.student.findMany({ where: { id: { in: body.students } } }) : [];
+  const ordered = (body.students ?? []).map((id) => students.find((s) => s.id === id)).filter((s) => !!s);
+  // Аттары бирдей окуучулар болсо, классы кошо жазылат: «Айбек (9А)»
+  const dupe = (n: string) => ordered.filter((s) => s.name.toLocaleLowerCase('ky') === n.toLocaleLowerCase('ky')).length > 1;
+  const entries = [
+    ...ordered.map((s) => ({ name: dupe(s.name) && s.className ? `${s.name} (${s.className})` : s.name, studentId: s.id })),
+    ...(body.players ?? []).map((name) => ({ name, studentId: null as number | null })),
+  ];
+  assertUniqueNames(entries.map((e) => e.name));
   const pins = new Set<string>();
   const game = await prisma.game.create({
     data: {
       code: await uniqueGameCode(),
+      title: body.title || null,
       ...body.settings,
-      players: { create: body.players.map((name, seat) => ({ name, seat, pin: uniquePin(pins) })) },
+      players: { create: entries.map((e, seat) => ({ name: e.name, studentId: e.studentId, seat, pin: uniquePin(pins) })) },
     },
   });
   res.status(201).json({ game: await loadGame(game.id) });
@@ -117,12 +160,15 @@ gamesRouter.patch('/:id/settings', async (req, res) => {
 
 gamesRouter.post('/:id/players', async (req, res) => {
   const id = parseId(req.params.id);
-  const { name } = z.object({ name: nameSchema }).parse(req.body);
+  const body = z.object({ name: nameSchema.optional(), studentId: z.number().int().optional() }).parse(req.body);
+  const student = body.studentId ? await prisma.student.findUnique({ where: { id: body.studentId } }) : null;
+  const name = student?.name ?? body.name;
+  if (!name) throw new AppError('BAD_REQUEST');
   const game = await requireLobby(id);
   assertUniqueNames([...game.players.map((p) => p.name), name]);
   const pins = new Set(game.players.map((p) => p.pin));
   const seat = Math.max(-1, ...game.players.map((p) => p.seat)) + 1;
-  await prisma.player.create({ data: { gameId: id, name, seat, pin: uniquePin(pins) } });
+  await prisma.player.create({ data: { gameId: id, name, studentId: student?.id ?? null, seat, pin: uniquePin(pins) } });
   bus.emit('game:changed', id);
   res.status(201).json({ game: await loadGame(id) });
 });

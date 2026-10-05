@@ -11,9 +11,10 @@ export default function Home() {
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
           <Logo size="lg" />
         </motion.div>
-        <div className="grid w-full max-w-2xl gap-5 sm:grid-cols-2">
+        <div className="grid w-full max-w-4xl gap-5 sm:grid-cols-3">
           {[
             { to: '/join', title: ky.home.join, hint: ky.home.joinHint, icon: '📱', cls: 'from-ordo-red to-ordo-red-dark' },
+            { to: '/rating', title: ky.home.rating, hint: ky.home.ratingHint, icon: '🏆', cls: 'from-ordo-gold to-ordo-gold-dark' },
             { to: '/admin', title: ky.home.host, hint: ky.home.hostHint, icon: '🎙️', cls: 'from-[#1ba4e3] to-[#0b5f8a]' },
           ].map((b, i) => (
             <motion.div key={b.to} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}>

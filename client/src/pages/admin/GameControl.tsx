@@ -59,7 +59,10 @@ export default function GameControl() {
           ←
         </Button>
         <div className="rounded-2xl bg-ordo-night px-4 py-2 font-display text-lg font-bold tracking-[0.3em] text-ordo-gold">{g.code}</div>
-        <div className="font-semibold text-ordo-ink/60">{ky.admin.dashboard.status[g.status]}</div>
+        <div className="font-semibold text-ordo-ink/60">
+          {g.title && <span className="mr-2 font-display text-ordo-ink">{g.title}</span>}
+          {ky.admin.dashboard.status[g.status]}
+        </div>
         <div className="flex-1" />
         <Button variant="outline" size="sm" onClick={() => window.open(`/screen/${g.code}`, '_blank')}>
           🖥 {ky.admin.control.screenLink}

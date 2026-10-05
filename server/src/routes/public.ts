@@ -82,7 +82,9 @@ publicRouter.post('/join', async (req, res) => {
 });
 
 /** Жалпы экран үчүн: мындай оюн барбы */
-publicRouter.get('/games/:code', async (req, res) => {
+publicRouter.get('/games/:code', async (req, res, next) => {
+  // 6 сандан турган код гана — калгандары (мис. /games/history) алып баруучунун маршруттарына өтөт
+  if (!/^\d{6}$/.test(req.params.code)) return next();
   const game = await prisma.game.findUnique({ where: { code: req.params.code } });
   if (!game) throw new AppError('GAME_NOT_FOUND', 404);
   res.json({ game: { code: game.code, status: game.status } });

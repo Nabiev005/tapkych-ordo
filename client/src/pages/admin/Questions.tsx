@@ -5,13 +5,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
-import { ky, type OptionKey, type RoundKey } from '../../i18n/ky';
+import { fmtDate, ky, type OptionKey, type RoundKey } from '../../i18n/ky';
 import { api, assetUrl } from '../../lib/api';
 import { OPTION_KEYS, ROUND_KEYS, type Question } from '../../lib/types';
 
 const REQUIRED: Record<RoundKey, number> = { ROUND1: 10, ROUND2: 10, FINAL: 5 };
 
-type Draft = Omit<Question, 'id' | 'order'> & { id?: number };
+type Draft = Omit<Question, 'id' | 'order' | 'archived' | 'usedCount' | 'lastUsedAt'> & { id?: number };
 const emptyDraft = (round: RoundKey): Draft => ({
   round,
   text: '',
@@ -28,7 +28,7 @@ export default function Questions() {
   const navigate = useNavigate();
   const { confirm, toast } = useDialogs();
   const [questions, setQuestions] = useState<Question[] | null>(null);
-  const [tab, setTab] = useState<RoundKey>('ROUND1');
+  const [tab, setTab] = useState<RoundKey | 'ARCHIVE'>('ROUND1');
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const load = () =>
@@ -42,12 +42,17 @@ export default function Questions() {
 
   const byRound = useMemo(() => {
     const m: Record<RoundKey, Question[]> = { ROUND1: [], ROUND2: [], FINAL: [] };
-    for (const q of questions ?? []) m[q.round].push(q);
+    for (const q of questions ?? []) if (!q.archived) m[q.round].push(q);
     for (const r of ROUND_KEYS) m[r].sort((a, b) => a.order - b.order);
     return m;
   }, [questions]);
 
-  const list = byRound[tab];
+  const archived = useMemo(
+    () => (questions ?? []).filter((q) => q.archived).sort((a, b) => (b.lastUsedAt ?? '').localeCompare(a.lastUsedAt ?? '')),
+    [questions],
+  );
+  const list = tab === 'ARCHIVE' ? [] : byRound[tab];
+  const roundTab: RoundKey = tab === 'ARCHIVE' ? 'ROUND1' : tab;
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
   const onDragEnd = async (e: DragEndEvent) => {
@@ -55,7 +60,7 @@ export default function Questions() {
     const oldI = list.findIndex((q) => q.id === e.active.id);
     const newI = list.findIndex((q) => q.id === e.over!.id);
     const moved = arrayMove(list, oldI, newI).map((q, i) => ({ ...q, order: i }));
-    setQuestions((qs) => [...(qs ?? []).filter((q) => q.round !== tab), ...moved]);
+    setQuestions((qs) => [...(qs ?? []).filter((q) => q.archived || q.round !== tab), ...moved]);
     try {
       await api.put('/api/questions/reorder', { round: tab, ids: moved.map((q) => q.id) });
       toast(ky.admin.questions.reordered);
@@ -76,6 +81,16 @@ export default function Questions() {
     }
   };
 
+  const toArchive = async (q: Question) => {
+    try {
+      await api.post(`/api/questions/${q.id}/archive`);
+      toast(ky.admin.questions.archived);
+      void load();
+    } catch (err) {
+      toast((err as Error).message, 'err');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -84,14 +99,14 @@ export default function Questions() {
           <Button variant="outline" icon="📥" onClick={() => navigate('/admin/import')}>
             {ky.admin.questions.import}
           </Button>
-          <Button variant="red" icon="＋" onClick={() => setDraft(emptyDraft(tab))}>
+          <Button variant="red" icon="＋" onClick={() => setDraft(emptyDraft(roundTab))}>
             {ky.admin.questions.add}
           </Button>
         </div>
       </div>
 
       {/* Турлар боюнча өтмөктөр + саны текшерүү */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {ROUND_KEYS.map((r) => {
           const n = byRound[r].length;
           const ok = n >= REQUIRED[r];
@@ -109,8 +124,19 @@ export default function Questions() {
             </button>
           );
         })}
+        <button
+          onClick={() => setTab('ARCHIVE')}
+          className={`rounded-2xl border-2 p-4 text-left transition ${tab === 'ARCHIVE' ? 'border-ordo-night bg-white shadow-lg' : 'border-transparent bg-white/60 hover:bg-white'}`}
+        >
+          <div className="font-display text-lg font-bold">🗄 {ky.admin.questions.archiveTab}</div>
+          <div className="mt-1 text-sm font-semibold text-ordo-ink/50">{archived.length}</div>
+        </button>
       </div>
 
+      {tab === 'ARCHIVE' ? (
+        <ArchiveList list={archived} onChanged={load} onEdit={(q) => setDraft({ ...q })} onDelete={remove} />
+      ) : (
+      <>
       <div className="text-sm text-ordo-ink/50">
         {ky.admin.questions.dragHint}. {tab === 'FINAL' ? ky.admin.questions.finalNote : ky.admin.questions.onlyFirst(REQUIRED[tab])}
       </div>
@@ -124,11 +150,13 @@ export default function Questions() {
           <SortableContext items={list.map((q) => q.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
               {list.map((q, i) => (
-                <SortableRow key={q.id} q={q} index={i} onEdit={() => setDraft({ ...q })} onDelete={() => remove(q)} />
+                <SortableRow key={q.id} q={q} index={i} onEdit={() => setDraft({ ...q })} onDelete={() => remove(q)} onArchive={() => toArchive(q)} />
               ))}
             </div>
           </SortableContext>
         </DndContext>
+      )}
+      </>
       )}
 
       <QuestionForm
@@ -136,7 +164,7 @@ export default function Questions() {
         onClose={() => setDraft(null)}
         onSaved={(round) => {
           setDraft(null);
-          setTab(round);
+          if (tab !== 'ARCHIVE') setTab(round);
           void load();
         }}
       />
@@ -144,7 +172,7 @@ export default function Questions() {
   );
 }
 
-function SortableRow({ q, index, onEdit, onDelete }: { q: Question; index: number; onEdit: () => void; onDelete: () => void }) {
+function SortableRow({ q, index, onEdit, onDelete, onArchive }: { q: Question; index: number; onEdit: () => void; onDelete: () => void; onArchive: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id });
   return (
     <div
@@ -172,6 +200,9 @@ function SortableRow({ q, index, onEdit, onDelete }: { q: Question; index: numbe
       <div className="flex shrink-0 flex-col gap-1">
         <Button size="sm" variant="outline" onClick={onEdit}>
           ✏️ {ky.common.edit}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onArchive}>
+          🗄 {ky.admin.questions.toArchive}
         </Button>
         <Button size="sm" variant="danger" onClick={onDelete}>
           🗑 {ky.common.delete}
@@ -302,5 +333,83 @@ function QuestionForm({ draft, onClose, onSaved }: { draft: Draft | null; onClos
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Архив: мурунку оюндарда суралган суроолор — кайра банкка кайтарса болот */
+function ArchiveList({ list, onChanged, onEdit, onDelete }: { list: Question[]; onChanged: () => void; onEdit: (q: Question) => void; onDelete: (q: Question) => void }) {
+  const t = ky.admin.questions;
+  const { confirm, toast } = useDialogs();
+  const [round, setRound] = useState<RoundKey | ''>('');
+  const shown = list.filter((q) => !round || q.round === round);
+
+  const restore = async (ids?: number[]) => {
+    try {
+      const r = await api.post<{ restored: number }>('/api/questions/restore', ids ? { ids } : round ? { round } : {});
+      toast(t.restored(r.restored));
+      onChanged();
+    } catch (e) {
+      toast((e as Error).message, 'err');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl bg-ordo-sky/10 p-4 text-ordo-ink/80">ℹ️ {t.archiveHint}</div>
+      <div className="flex flex-wrap items-center gap-2">
+        {(['', ...ROUND_KEYS] as (RoundKey | '')[]).map((r) => (
+          <button
+            key={r || 'all'}
+            onClick={() => setRound(r)}
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold ${round === r ? 'bg-ordo-night text-white' : 'bg-white ring-1 ring-ordo-gold/30'}`}
+          >
+            {r ? ky.rounds[r] : t.filterAll} ({(r ? list.filter((q) => q.round === r) : list).length})
+          </button>
+        ))}
+        <div className="flex-1" />
+        {shown.length > 0 && (
+          <Button
+            variant="green"
+            size="sm"
+            onClick={async () => {
+              if (await confirm({ title: t.restoreAll, message: t.restoreAllConfirm(shown.length), confirmText: t.restoreAll })) await restore();
+            }}
+          >
+            ↩ {t.restoreAll}
+          </Button>
+        )}
+      </div>
+      {shown.length === 0 ? (
+        <div className="card p-10 text-center text-ordo-ink/60">{t.archiveEmpty}</div>
+      ) : (
+        <div className="space-y-2">
+          {shown.map((q) => (
+            <div key={q.id} className="card flex items-start gap-3 p-4 opacity-90">
+              <span className="shrink-0 rounded-lg bg-ordo-ink/5 px-2 py-1 text-xs font-bold text-ordo-ink/60">{ky.rounds[q.round]}</span>
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold">{q.text}</div>
+                <div className="mt-1 text-sm text-emerald-700">
+                  ✓ {ky.options[q.correct]} — {q[optField(q.correct)]}
+                </div>
+                {q.lastUsedAt && (
+                  <div className="mt-1 text-xs text-ordo-ink/45">{t.usedInfo(q.usedCount, fmtDate(q.lastUsedAt))}</div>
+                )}
+              </div>
+              <div className="flex shrink-0 flex-col gap-1">
+                <Button size="sm" variant="green" onClick={() => restore([q.id])}>
+                  ↩ {t.restore}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => onEdit(q)}>
+                  ✏️ {ky.common.edit}
+                </Button>
+                <Button size="sm" variant="danger" onClick={() => onDelete(q)}>
+                  🗑 {ky.common.delete}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
