@@ -10,7 +10,7 @@ import type { RatingRow, Season } from '../lib/types';
 
 type SortKey = 'totalScore' | 'wins' | 'accuracy';
 
-/** Бардык оюндар боюнча эң акылдуу окуучулардын рейтинги — ачык бет */
+/** Бардык оюндар боюнча эң акылдуу студенттердин рейтинги — ачык бет */
 export default function Rating() {
   const t = ky.rating;
   const navigate = useNavigate();

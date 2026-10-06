@@ -16,11 +16,13 @@ function parseId(raw: string): number {
   return id;
 }
 
-/** Класстын жазылышын бирдейлейбиз: «9 а», «9а», «9-А» → «9А» */
+/** Топтун жазылышын бирдейлейбиз: «ит 21», «ИТ - 21» → «ИТ-21» (сызыкча сакталат) */
 export function normalizeClass(c: string): string {
   return c
     .trim()
-    .replace(/[«»"'\s-]+/g, '')
+    .replace(/[«»"']+/g, '')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s+/g, '')
     .toLocaleUpperCase('ky');
 }
 
@@ -33,8 +35,8 @@ studentsRouter.get('/', async (_req, res) => {
 });
 
 /**
- * Кошуу: бирөө ({ name, className }) же тизме менен ({ lines: "Аты-жөнү; класс\n…" }).
- * Тизмеде бар окуучу кайра кошулбайт.
+ * Кошуу: бирөө ({ name, className }) же тизме менен ({ lines: "Аты-жөнү; топ\n…" }).
+ * Тизмеде бар студент кайра кошулбайт.
  */
 studentsRouter.post('/', async (req, res) => {
   const body = z
@@ -78,7 +80,7 @@ studentsRouter.patch('/:id', async (req, res) => {
   res.json({ student });
 });
 
-/** Өчүрүү: окуучунун мурунку оюндардагы жыйынтыктары сакталат, бирок рейтингден чыгат */
+/** Өчүрүү: студенттин мурунку оюндардагы жыйынтыктары сакталат, бирок рейтингден чыгат */
 studentsRouter.delete('/:id', async (req, res) => {
   const id = parseId(req.params.id);
   await prisma.student.delete({ where: { id } }).catch(() => {

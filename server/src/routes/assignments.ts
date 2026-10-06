@@ -10,13 +10,13 @@ import { uniqueCode } from './games.js';
 import { correctLabel } from './importExport.js';
 
 /**
- * Үй тапшырмасы: мугалим суроолорду тандап шилтеме берет, окуучулар өз убагында иштешет.
+ * Үй тапшырмасы: мугалим суроолорду тандап шилтеме берет, студенттер өз убагында иштешет.
  * Ар бир суроонун убактысы сервер боюнча эсептелет. Жыйынтык рейтингге кошулат.
  */
 export const assignmentsRouter = Router();
 assignmentsRouter.use(requireAdmin);
 
-/** Окуучулар үчүн ачык бөлүк (/api/hw) */
+/** Студенттер үчүн ачык бөлүк (/api/hw) */
 export const homeworkRouter = Router();
 
 const GRACE_MS = 1500;
@@ -186,7 +186,7 @@ assignmentsRouter.delete('/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-/** Окуучунун жыйынтыгын өчүрүү (мис. кайра иштөөгө уруксат берүү үчүн) */
+/** Студенттин жыйынтыгын өчүрүү (мис. кайра иштөөгө уруксат берүү үчүн) */
 assignmentsRouter.delete('/:id/submissions/:sid', async (req, res) => {
   const a = await ownedAssignment(parseId(req.params.id), res);
   await prisma.submission.deleteMany({ where: { id: parseId(req.params.sid), assignmentId: a.id } });
@@ -198,7 +198,7 @@ assignmentsRouter.get('/:id/export.xlsx', async (req, res) => {
   const a = await ownedAssignment(parseId(req.params.id), res);
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Жыйынтык');
-  ws.addRow(['Орун', 'Аты-жөнү', 'Классы', 'Упай', 'Туура', 'Суроолор', 'Убакыт (сек)', 'Бүттү', ...a.questions.map((q) => `№${q.order + 1} (${correctLabel(q.type, q.correct)})`)]);
+  ws.addRow(['Орун', 'Аты-жөнү', 'Тобу', 'Упай', 'Туура', 'Суроолор', 'Убакыт (сек)', 'Бүттү', ...a.questions.map((q) => `№${q.order + 1} (${correctLabel(q.type, q.correct)})`)]);
   a.submissions.forEach((s, i) => {
     const answers = JSON.parse(s.answers) as StoredAnswer[];
     ws.addRow([
@@ -227,7 +227,7 @@ assignmentsRouter.get('/:id/export.xlsx', async (req, res) => {
   res.end();
 });
 
-// ─────────────────────────── Окуучу (ачык) ───────────────────────────
+// ─────────────────────────── Студент (ачык) ───────────────────────────
 
 homeworkRouter.get('/:code', async (req, res) => {
   if (!/^\d{6}$/.test(req.params.code)) throw new AppError('NOT_FOUND', 404);
@@ -240,7 +240,7 @@ homeworkRouter.get('/:code', async (req, res) => {
   });
 });
 
-/** Баштоо же улантуу: окуучу тизмеден өзүн тандайт */
+/** Баштоо же улантуу: студент тизмеден өзүн тандайт */
 homeworkRouter.post('/:code/start', async (req, res) => {
   const { studentId } = z.object({ studentId: z.number().int() }).parse(req.body);
   const a = await prisma.assignment.findUnique({ where: { code: req.params.code } });

@@ -7,7 +7,7 @@ import { fmtDate, ky } from '../i18n/ky';
 import { api } from '../lib/api';
 import type { StudentProfile as Profile } from '../lib/types';
 
-/** Окуучунун жеке баракчасы — ачык бет */
+/** Студенттин жеке баракчасы — ачык бет */
 export default function StudentProfile() {
   const t = ky.profile;
   const { id } = useParams();

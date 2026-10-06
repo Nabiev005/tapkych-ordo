@@ -8,7 +8,7 @@ import { overallStandings } from '../game/scoring.js';
 import type { FullGame } from '../game/load.js';
 
 /**
- * Бардык бүткөн оюндар жана үй тапшырмалары боюнча окуучулардын рейтинги.
+ * Бардык бүткөн оюндар жана үй тапшырмалары боюнча студенттердин рейтинги.
  * Ачык бет (логинсиз) — проекторго же мектептин сайтына чыгарса болот.
  */
 export const ratingRouter = Router();
@@ -179,7 +179,7 @@ ratingRouter.get('/', async (req, res) => {
   res.json({ rows: className ? rows.filter((r) => r.className === className) : rows, classes, games, tasks });
 });
 
-/** Окуучунун жеке баракчасы: оюндары, упайынын өсүшү, күчтүү темалары, медалдары */
+/** Студенттин жеке баракчасы: оюндары, упайынын өсүшү, күчтүү темалары, медалдары */
 ratingRouter.get('/student/:id', async (req, res) => {
   const id = Number(req.params.id);
   const student = await prisma.student.findUnique({ where: { id } });
@@ -212,7 +212,7 @@ ratingRouter.get('/export.xlsx', requireAdmin, async (req, res) => {
   const { rows } = await computeRating(seasonParam(req.query.seasonId));
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Рейтинг');
-  ws.addRow(['Орун', 'Аты-жөнү', 'Классы', 'Оюндар', 'Тапшырмалар', 'Жеңиштер', '1-3-орундар', 'Финалга чыккан', 'Жалпы упай', 'Туура жооптор', 'Тактык (%)', 'Эң жакшы орун']);
+  ws.addRow(['Орун', 'Аты-жөнү', 'Тобу', 'Оюндар', 'Тапшырмалар', 'Жеңиштер', '1-3-орундар', 'Финалга чыккан', 'Жалпы упай', 'Туура жооптор', 'Тактык (%)', 'Эң жакшы орун']);
   rows.forEach((r, i) =>
     ws.addRow([i + 1, r.name, r.className, r.games, r.tasks, r.wins, r.podiums, r.finals, r.totalScore, `${r.correct}/${r.answered}`, r.accuracy, r.bestPlace ?? '']),
   );

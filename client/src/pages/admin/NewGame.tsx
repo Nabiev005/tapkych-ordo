@@ -118,7 +118,7 @@ export default function NewGame() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* Окуучуларды тандоо */}
+        {/* Студенттерди тандоо */}
         <section className="card space-y-4 p-5 lg:col-span-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-lg font-bold">👥 {t.pickTitle}</h2>
@@ -174,7 +174,7 @@ export default function NewGame() {
             </div>
           )}
 
-          {/* Тизмеде жок окуучуну тез кошуу */}
+          {/* Тизмеде жок студентти тез кошуу */}
           <div className="rounded-2xl bg-ordo-cream p-3">
             <div className="mb-2 text-sm font-semibold text-ordo-ink/70">
               ＋ {t.quickAdd} <span className="font-normal text-ordo-ink/45">— {t.quickAddHint}</span>

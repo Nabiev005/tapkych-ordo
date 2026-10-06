@@ -52,7 +52,7 @@ const store = {
   },
 };
 
-/** Үй тапшырмасы — окуучунун бети */
+/** Үй тапшырмасы — студенттин бети */
 export default function Homework() {
   const t = ky.homework;
   const { code = '' } = useParams();

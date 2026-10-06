@@ -123,7 +123,7 @@ gamesRouter.get('/history', async (_req, res) => {
 });
 
 /**
- * Жаңы оюн: окуучулар тизмесинен (students) жана/же жөн гана аттар (players) + жөндөөлөр.
+ * Жаңы оюн: студенттер тизмесинен (students) жана/же жөн гана аттар (players) + жөндөөлөр.
  * Ар бир оюнчуга жеке PIN түзүлөт.
  */
 gamesRouter.post('/', async (req, res) => {
@@ -138,7 +138,7 @@ gamesRouter.post('/', async (req, res) => {
 
   const students = body.students?.length ? await prisma.student.findMany({ where: { id: { in: body.students } } }) : [];
   const ordered = (body.students ?? []).map((id) => students.find((s) => s.id === id)).filter((s) => !!s);
-  // Аттары бирдей окуучулар болсо, классы кошо жазылат: «Айбек (9А)»
+  // Аттары бирдей студенттер болсо, тобу кошо жазылат: «Айбек (ИТ-21)»
   const dupe = (n: string) => ordered.filter((s) => s.name.toLocaleLowerCase('ky') === n.toLocaleLowerCase('ky')).length > 1;
   const entries = [
     ...ordered.map((s) => ({ name: dupe(s.name) && s.className ? `${s.name} (${s.className})` : s.name, studentId: s.id, team: s.className })),

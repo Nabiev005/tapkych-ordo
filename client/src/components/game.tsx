@@ -195,7 +195,7 @@ export function JoinQr({ url, size = 220 }: { url: string; size?: number }) {
   );
 }
 
-/** Командалык рейтинг (класс класска каршы) */
+/** Командалык рейтинг (топ топко каршы) */
 export function TeamBoard({ teams, light, big }: { teams: TeamStanding[]; light?: boolean; big?: boolean }) {
   const medal = ['🥇', '🥈', '🥉'];
   const max = Math.max(1, ...teams.map((t) => t.total));

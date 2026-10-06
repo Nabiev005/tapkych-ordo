@@ -58,7 +58,7 @@ model Game {
   id                Int       @id @default(autoincrement())
   ownerId           Int?
   code              String    @unique // кошулуу коду (6 сан)
-  title             String? // мис. «9-класстар арасындагы таймаш»
+  title             String? // мис. «1-курстар арасындагы таймаш»
   status            String    @default("LOBBY") // LOBBY | ROUND1 | ROUND2 | FINAL | FINISHED
   phase             String    @default("IDLE") // IDLE | READY | QUESTION | REVEAL | ROUND_END
   paused            Boolean   @default(false)
@@ -77,7 +77,7 @@ model Game {
   advanceToFinal     Int     @default(3)
   expectedPlayers    Int     @default(12)
   soundEnabled       Boolean @default(true)
-  teamMode           Boolean @default(false) // класс класска каршы
+  teamMode           Boolean @default(false) // топ топко каршы
   speedBonus         Int     @default(0) // тез жооп үчүн кошумча упай (0 — өчүк)
   fiftyFifty         Boolean @default(false) // «50/50» жардамы
   selectionMode      String  @default("ORDER") // ORDER — турлар боюнча; DIFFICULTY — кыйынчылык боюнча
@@ -103,8 +103,8 @@ model Player {
   status          String    @default("ACTIVE") // ACTIVE | ELIMINATED | KICKED
   eliminatedAfter String? // ROUND1 | ROUND2 | FINAL
   seat            Int       @default(0) // тизмедеги тартиби
-  studentId       Int? // окуучулар тизмесиндеги жазуу (рейтинг үчүн)
-  team            String    @default("") // командалык режимде — классы
+  studentId       Int? // студенттер тизмесиндеги жазуу (рейтинг үчүн)
+  team            String    @default("") // командалык режимде — тобу
   fiftyQuestionId Int? // «50/50» колдонулган суроо (бир оюнда бир жолу)
   fiftyHidden     String? // жашырылган эки ката вариант, мис. "BD"
   joinedAt        DateTime?
@@ -200,7 +200,7 @@ model ScoreAdjustment {
   @@index([gameId])
 }
 
-/// Окуучулардын туруктуу тизмеси — бардык оюндар боюнча рейтинг ушул аркылуу эсептелет
+/// Студенттердин туруктуу тизмеси — бардык оюндар боюнча рейтинг ушул аркылуу эсептелет
 model Student {
   id        Int      @id @default(autoincrement())
   name      String
@@ -222,7 +222,7 @@ model Season {
   createdAt DateTime @default(now())
 }
 
-/// Үй тапшырмасы: окуучулар шилтеме аркылуу өз убагында иштешет
+/// Үй тапшырмасы: студенттер шилтеме аркылуу өз убагында иштешет
 model Assignment {
   id           Int       @id @default(autoincrement())
   ownerId      Int?

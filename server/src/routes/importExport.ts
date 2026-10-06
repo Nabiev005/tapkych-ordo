@@ -339,10 +339,10 @@ importExportRouter.get('/games/:id/export.xlsx', async (req, res) => {
   ws3.columns.forEach((c, i) => (c.width = i === 4 ? 60 : i >= 5 && i <= 8 ? 20 : 12));
   styleHeader(ws3);
 
-  // Командалык режим: класстардын жыйынтыгы
+  // Командалык режим: топтордун жыйынтыгы
   if (game.teamMode) {
     const ws4 = wb.addWorksheet('Командалар');
-    ws4.addRow(['Орун', 'Команда (класс)', 'Оюнчулар', 'Жалпы упай', 'Орточо упай', 'Туура жооптор']);
+    ws4.addRow(['Орун', 'Команда (топ)', 'Оюнчулар', 'Жалпы упай', 'Орточо упай', 'Туура жооптор']);
     for (const t of teamStandings(game)) ws4.addRow([t.place, t.team, t.members, t.total, t.average, t.correct]);
     ws4.columns.forEach((c, i) => (c.width = i === 1 ? 24 : 14));
     styleHeader(ws4);
