@@ -10,6 +10,12 @@ services:
     runtime: node
     plan: free
     rootDir: server
+    # Сайт (client) өзгөргөндө да кайра жайгаштыруу
+    buildFilter:
+      paths:
+        - server/**
+        - client/**
+        - render.yaml
     # Сервер + сайт: сервер client/dist ичиндеги сайтты өзү берет (бүт система бир даректе)
     buildCommand: npm install && npm run build && cd ../client && npm install && npm run build
     # Базанын түзүлүшүн жаңыртуу → база бош болсо 25 мисал суроо → сервер
