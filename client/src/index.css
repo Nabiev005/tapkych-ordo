@@ -30,6 +30,9 @@
   #root {
     min-height: 100%;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-ordo-cream font-sans text-ordo-ink antialiased;
     -webkit-tap-highlight-color: transparent;

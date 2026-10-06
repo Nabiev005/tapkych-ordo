@@ -40,20 +40,39 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-ordo-cream text-ordo-ink">
-      {/* ─────────── Башкы блок ─────────── */}
-      <header className="bg-night relative overflow-hidden text-white">
-        <OrnamentBand />
-        <nav className="relative z-10 mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
-          <Logo size="sm" />
-          <div className="flex items-center gap-3">
-            <LangSwitch dark />
-            <Link to="/admin" className="hidden rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/20 hover:bg-white/20 sm:inline-block">
-              {h.host}
-            </Link>
+      {/* ─────────── Жогорку тилке — ылдый түшкөндө да ордунда турат ─────────── */}
+      <div className="sticky top-0 z-50 text-white shadow-lg">
+        <OrnamentBand height={12} bg="#071226" />
+        <nav className="border-b border-white/10 bg-ordo-deep/90 backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+            <a href="#top" aria-label={ky.appName}>
+              <Logo size="sm" />
+            </a>
+            <div className="hidden items-center gap-1 text-sm font-semibold text-white/75 lg:flex">
+              {[
+                ['#how', t.whatTitle],
+                ['#features', t.featuresTitle],
+                ['#faq', t.faqTitle],
+              ].map(([href, label]) => (
+                <a key={href} href={href} className="rounded-lg px-3 py-2 hover:bg-white/10 hover:text-white">
+                  {label.replace('?', '')}
+                </a>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <LangSwitch dark />
+              <Link to="/admin" className="hidden rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/20 hover:bg-white/20 sm:inline-block">
+                {h.host}
+              </Link>
+            </div>
           </div>
         </nav>
+      </div>
 
-        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-8 lg:grid-cols-2">
+      {/* ─────────── Башкы блок ─────────── */}
+      <header id="top" className="bg-night relative overflow-hidden text-white">
+
+        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 lg:grid-cols-2">
           <div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -130,7 +149,7 @@ export default function Home() {
       </header>
 
       {/* ─────────── Кантип иштейт ─────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-20">
+      <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-20">
         <SectionTitle title={t.whatTitle} text={t.whatText} />
         <div className="grid gap-6 md:grid-cols-3">
           {t.devices.map((d, i) => (
@@ -171,7 +190,7 @@ export default function Home() {
       </section>
 
       {/* ─────────── Мүмкүнчүлүктөр ─────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-20">
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-20">
         <SectionTitle title={t.featuresTitle} text={t.featuresText} />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {t.features.map((f, i) => (
@@ -207,7 +226,7 @@ export default function Home() {
       </section>
 
       {/* ─────────── Көп берилүүчү суроолор ─────────── */}
-      <section className="mx-auto max-w-3xl px-4 py-20">
+      <section id="faq" className="mx-auto max-w-3xl scroll-mt-24 px-4 py-20">
         <SectionTitle title={t.faqTitle} />
         <div className="space-y-3">
           {t.faq.map((f, i) => (
