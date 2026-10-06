@@ -10,7 +10,8 @@ services:
     runtime: node
     plan: free
     rootDir: server
-    buildCommand: npm install && npm run build
+    # Сервер + сайт: сервер client/dist ичиндеги сайтты өзү берет (бүт система бир даректе)
+    buildCommand: npm install && npm run build && cd ../client && npm install && npm run build
     # Базанын түзүлүшүн жаңыртуу → база бош болсо 25 мисал суроо → сервер
     startCommand: node dist/migrate.js && npx tsx prisma/seed.ts && node dist/index.js
     healthCheckPath: /api/health
