@@ -6,6 +6,13 @@ export type Round = (typeof ROUNDS)[number];
 export const OPTIONS = ['A', 'B', 'C', 'D'] as const;
 export type Option = (typeof OPTIONS)[number];
 
+/** Суроонун түрлөрү: тандоо (А/Б/В/Г), Туура/Туура эмес, иретке келтирүү */
+export const QUESTION_TYPES = ['CHOICE', 'TF', 'ORDER'] as const;
+export type QuestionType = (typeof QUESTION_TYPES)[number];
+
+export const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+
 export type GameStatus = 'LOBBY' | Round | 'FINISHED';
 /**
  * IDLE      — тур башталды, биринчи суроо күтүлүүдө (экранда «1-ТУР» же өткөндөр)
@@ -43,6 +50,10 @@ export type ErrorCode =
   | 'ALREADY_ANSWERED'
   | 'TIME_UP'
   | 'NOT_IN_ROUND'
+  | 'FORBIDDEN'
+  | 'ASSIGNMENT_CLOSED'
+  | 'ALREADY_SUBMITTED'
+  | 'LIFELINE_USED'
   | 'SERVER_ERROR';
 
 export class AppError extends Error {

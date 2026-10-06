@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { config, getLanIp } from '../config.js';
-import { checkAdminCredentials, randomToken, signAdminToken, requireAdmin } from '../auth.js';
+import { checkAdminCredentials, randomToken, requireAdmin, signStaffToken, staff, verifyPassword, type StaffUser } from '../auth.js';
 import { FailLimiter } from '../rateLimit.js';
 import { bus } from '../events.js';
 import { AppError } from '../types.js';
@@ -14,20 +14,31 @@ const ipLimiter = new FailLimiter(10, 5 * 60_000);
 const gameLimiter = new FailLimiter(60, 5 * 60_000);
 const loginLimiter = new FailLimiter(10, 5 * 60_000);
 
-publicRouter.post('/auth/login', (req, res) => {
+publicRouter.post('/auth/login', async (req, res) => {
   const key = req.ip ?? 'unknown';
   loginLimiter.check(key);
   const { username, password } = z.object({ username: z.string(), password: z.string() }).parse(req.body);
-  if (!checkAdminCredentials(username.trim(), password.trim())) {
+  const u = username.trim();
+  const p = password.trim();
+  let user: StaffUser | null = null;
+  if (checkAdminCredentials(u, p)) {
+    user = { role: 'admin', teacherId: null, name: config.adminUser };
+  } else {
+    // Мугалимдин аккаунту
+    const teacher = await prisma.teacher.findUnique({ where: { username: u.toLowerCase() } });
+    if (teacher && verifyPassword(p, teacher.passwordHash)) user = { role: 'teacher', teacherId: teacher.id, name: teacher.name };
+  }
+  if (!user) {
     loginLimiter.fail(key);
     throw new AppError('INVALID_CREDENTIALS', 401);
   }
   loginLimiter.reset(key);
-  res.json({ token: signAdminToken() });
+  res.json({ token: signStaffToken(user), user: { role: user.role, name: user.name } });
 });
 
 publicRouter.get('/auth/me', requireAdmin, (_req, res) => {
-  res.json({ ok: true });
+  const user = staff(res);
+  res.json({ ok: true, user: { role: user.role, name: user.name } });
 });
 
 /** QR-код үчүн дарек: PUBLIC_URL же ноутбуктун жергиликтүү IP'си */

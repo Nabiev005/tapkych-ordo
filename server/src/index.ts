@@ -15,6 +15,9 @@ import { gamesRouter } from './routes/games.js';
 import { uploadsPublicRouter, uploadsRouter, UPLOAD_DIR } from './routes/uploads.js';
 import { studentsRouter } from './routes/students.js';
 import { ratingRouter } from './routes/rating.js';
+import { teachersRouter } from './routes/teachers.js';
+import { seasonsRouter } from './routes/seasons.js';
+import { assignmentsRouter, homeworkRouter } from './routes/assignments.js';
 import { importExportRouter } from './routes/importExport.js';
 import { setupSockets } from './sockets/index.js';
 import { restoreTimers } from './game/engine.js';
@@ -40,6 +43,10 @@ app.use('/api/games', gamesRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/rating', ratingRouter);
+app.use('/api/teachers', teachersRouter);
+app.use('/api/seasons', seasonsRouter);
+app.use('/api/assignments', assignmentsRouter);
+app.use('/api/hw', homeworkRouter);
 app.use('/api', importExportRouter);
 
 app.use('/api', (_req, _res) => {

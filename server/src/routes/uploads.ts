@@ -23,6 +23,23 @@ const upload = multer({
   fileFilter: (_req, file, cb) => cb(null, ALLOWED.has(file.mimetype)),
 });
 
+const AUDIO = new Map([
+  ['audio/mpeg', '.mp3'],
+  ['audio/mp3', '.mp3'],
+  ['audio/ogg', '.ogg'],
+  ['audio/wav', '.wav'],
+  ['audio/x-wav', '.wav'],
+  ['audio/mp4', '.m4a'],
+  ['audio/x-m4a', '.m4a'],
+  ['audio/webm', '.webm'],
+]);
+
+const uploadAudio = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => cb(null, AUDIO.has(file.mimetype)),
+});
+
 export const uploadsRouter = Router();
 uploadsRouter.use(requireAdmin);
 
@@ -34,7 +51,15 @@ uploadsRouter.post('/image', upload.single('image'), async (req, res) => {
   res.status(201).json({ url: `/uploads/${id}` });
 });
 
-/** GET /uploads/:id — базадан сүрөттү берүү */
+/** Аудио (музыкалык суроолор үчүн), 10 МБ чейин */
+uploadsRouter.post('/audio', uploadAudio.single('audio'), async (req, res) => {
+  if (!req.file) throw new AppError('INVALID_FILE');
+  const id = crypto.randomUUID() + (AUDIO.get(req.file.mimetype) ?? '');
+  await prisma.upload.create({ data: { id, mime: req.file.mimetype, data: new Uint8Array(req.file.buffer) } });
+  res.status(201).json({ url: `/uploads/${id}` });
+});
+
+/** GET /uploads/:id — базадан сүрөттү же аудиону берүү */
 export const uploadsPublicRouter = Router();
 uploadsPublicRouter.get('/:id', async (req, res, next) => {
   const file = await prisma.upload.findUnique({ where: { id: req.params.id } });

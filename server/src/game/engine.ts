@@ -74,11 +74,43 @@ async function startGame(gameId: number) {
   const players = game.players.filter((p) => p.status !== 'KICKED');
   if (players.length < 2) throw new AppError('NOT_ENOUGH_PLAYERS');
 
+  // Ээсинин банкы, архивдеги (мурунку оюндарда суралган) суроолорсуз, тандалган темалар боюнча
+  const categories = game.categories
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean);
+  const pool = await prisma.question.findMany({
+    where: { ownerId: game.ownerId, archived: false, ...(categories.length ? { category: { in: categories } } : {}) },
+    orderBy: [{ round: 'asc' }, { order: 'asc' }],
+  });
+
+  const picked = new Map<Round, typeof pool>();
+  if (game.selectionMode === 'DIFFICULTY') {
+    // 1-тур — жеңил, 2-тур — орто, финал — кыйын (жетпесе башка деңгээлден толуктайт)
+    const prefer: Record<Round, string[]> = { ROUND1: ['EASY', 'MEDIUM', 'HARD'], ROUND2: ['MEDIUM', 'EASY', 'HARD'], FINAL: ['HARD', 'MEDIUM', 'EASY'] };
+    const used = new Set<number>();
+    for (const round of [...ROUNDS].reverse()) {
+      const need = roundSize(game, round);
+      const list: typeof pool = [];
+      for (const level of prefer[round]) {
+        for (const q of pool) {
+          if (list.length >= need) break;
+          if (q.difficulty === level && !used.has(q.id)) {
+            list.push(q);
+            used.add(q.id);
+          }
+        }
+      }
+      picked.set(round, list);
+    }
+  } else {
+    for (const round of ROUNDS) picked.set(round, pool.filter((q) => q.round === round).slice(0, roundSize(game, round)));
+  }
+
   const snapshot: Prisma.GameQuestionCreateManyInput[] = [];
   for (const round of ROUNDS) {
     const need = roundSize(game, round);
-    // Архивдеги (мурунку оюндарда суралган) суроолор алынбайт
-    const bank = await prisma.question.findMany({ where: { round, archived: false }, orderBy: { order: 'asc' }, take: need });
+    const bank = picked.get(round) ?? [];
     if (bank.length < need) throw new AppError('NOT_ENOUGH_QUESTIONS', 400, { round, need, have: bank.length });
     bank.forEach((q, order) =>
       snapshot.push({
@@ -86,8 +118,12 @@ async function startGame(gameId: number) {
         questionId: q.id,
         round,
         order,
+        type: q.type,
+        category: q.category,
+        difficulty: q.difficulty,
         text: q.text,
         imageUrl: q.imageUrl,
+        audioUrl: q.audioUrl,
         optionA: q.optionA,
         optionB: q.optionB,
         optionC: q.optionC,
@@ -167,6 +203,9 @@ async function restartQuestion(gameId: number) {
   clearTimer(gameId);
   await prisma.$transaction([
     prisma.answer.deleteMany({ where: { gameQuestionId: q.id } }),
+    prisma.audienceVote.deleteMany({ where: { gameQuestionId: q.id } }),
+    // Бул суроодо колдонулган «50/50» кайра берилет
+    prisma.player.updateMany({ where: { gameId, fiftyQuestionId: q.id }, data: { fiftyQuestionId: null, fiftyHidden: null } }),
     prisma.gameQuestion.update({ where: { id: q.id }, data: { startedAt: null, endsAt: null, revealedAt: null } }),
     prisma.game.update({
       where: { id: gameId },
@@ -328,15 +367,22 @@ export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
 
 // ───────────────────────── Оюнчунун жообу ─────────────────────────
 
+/** Суроонун түрүнө жараша жооптун туура форматын текшерет */
+export function validChoice(type: string, choice: string): boolean {
+  if (type === 'TF') return choice === 'A' || choice === 'B';
+  if (type === 'ORDER') return choice.length === 4 && [...choice].sort().join('') === 'ABCD';
+  return (OPTIONS as readonly string[]).includes(choice);
+}
+
 export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknown): Promise<void> {
   return withLock(gameId, async () => {
-    const choice = String(choiceRaw) as Option;
-    if (!OPTIONS.includes(choice)) throw new AppError('BAD_REQUEST');
+    const choice = String(choiceRaw ?? '').toUpperCase() as Option;
     const game = await mustLoad(gameId);
     const round = currentRound(game);
     const q = currentQuestion(game);
     const player = game.players.find((p) => p.id === playerId);
     if (!round || !q || !player) throw new AppError('INVALID_ACTION');
+    if (!validChoice(q.type, choice)) throw new AppError('BAD_REQUEST');
     if (player.status !== 'ACTIVE') throw new AppError('NOT_IN_ROUND');
     if (game.phase !== 'QUESTION') throw new AppError('TIME_UP');
     if (game.paused) throw new AppError('GAME_PAUSED');
@@ -348,6 +394,8 @@ export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknow
     const fullMs = game.timerSeconds * 1000;
     const responseMs = Math.min(fullMs, Math.max(0, fullMs - (endsAt - now)));
     const isCorrect = choice === q.correct;
+    // Тез жооп бонусу: туура жана убакыттын алгачкы үчтөн биринде берилсе
+    const bonus = isCorrect && game.speedBonus > 0 && responseMs <= fullMs / 3 ? game.speedBonus : 0;
     try {
       await prisma.answer.create({
         data: {
@@ -357,7 +405,8 @@ export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknow
           choice,
           isCorrect,
           responseMs,
-          points: isCorrect ? game.pointsPerCorrect : 0,
+          bonus,
+          points: isCorrect ? game.pointsPerCorrect + bonus : 0,
         },
       });
     } catch (e) {
@@ -366,6 +415,50 @@ export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknow
     }
     changed(gameId);
   });
+}
+
+/**
+ * «50/50» жардамы: оюнчу бир оюнда бир жолу эки ката вариантты жашырат.
+ * Жашырылган варианттар ошол оюнчуга гана жөнөтүлөт.
+ */
+export function useFiftyFifty(gameId: number, playerId: number): Promise<void> {
+  return withLock(gameId, async () => {
+    const game = await mustLoad(gameId);
+    const q = currentQuestion(game);
+    const player = game.players.find((p) => p.id === playerId);
+    if (!game.fiftyFifty || !q || !player || q.type !== 'CHOICE') throw new AppError('INVALID_ACTION');
+    if (player.status !== 'ACTIVE') throw new AppError('NOT_IN_ROUND');
+    if (game.phase !== 'QUESTION' || game.paused) throw new AppError('TIME_UP');
+    if (player.fiftyQuestionId) throw new AppError('LIFELINE_USED');
+    if (q.answers.some((a) => a.playerId === playerId)) throw new AppError('ALREADY_ANSWERED');
+    const wrong = OPTIONS.filter((o) => o !== q.correct);
+    const hidden = wrong
+      .map((o) => [o, Math.random()] as const)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 2)
+      .map(([o]) => o)
+      .sort()
+      .join('');
+    await prisma.player.update({ where: { id: playerId }, data: { fiftyQuestionId: q.id, fiftyHidden: hidden } });
+    changed(gameId);
+  });
+}
+
+/** Залдагы көрүүчүнүн добушу (упайга таасир этпейт, бир суроого бир жолу) */
+export async function audienceVote(gameId: number, voterId: string, choiceRaw: unknown): Promise<void> {
+  const game = await mustLoad(gameId);
+  const q = currentQuestion(game);
+  const choice = String(choiceRaw ?? '').toUpperCase();
+  if (!q || game.phase !== 'QUESTION' || game.paused) throw new AppError('TIME_UP');
+  if (!validChoice(q.type, choice) || q.type === 'ORDER') throw new AppError('BAD_REQUEST');
+  if (!game.questionEndsAt || Date.now() > game.questionEndsAt.getTime() + ANSWER_GRACE_MS) throw new AppError('TIME_UP');
+  try {
+    await prisma.audienceVote.create({ data: { gameQuestionId: q.id, voterId: voterId.slice(0, 64), choice } });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw new AppError('ALREADY_ANSWERED');
+    throw e;
+  }
+  changed(gameId);
 }
 
 /** Сервер кайра иштетилгенде жүрүп жаткан таймерлерди калыбына келтирет */

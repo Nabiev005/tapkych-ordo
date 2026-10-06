@@ -124,3 +124,33 @@ export function overallStandings(game: FullGame): Standing[] {
   rows.forEach((r, i) => (r.place = i + 1));
   return rows;
 }
+
+export interface TeamStanding {
+  team: string;
+  members: number;
+  total: number;
+  average: number;
+  correct: number;
+  place: number;
+}
+
+/**
+ * Командалык режим (класс класска каршы): команданын упайы — мүчөлөрүнүн жалпы упайларынын суммасы.
+ * Тең болсо — орточо упай жогору болгону алдыда.
+ */
+export function teamStandings(game: FullGame): TeamStanding[] {
+  const byTeam = new Map<string, TeamStanding>();
+  for (const s of overallStandings(game)) {
+    const player = game.players.find((p) => p.id === s.playerId);
+    const team = player?.team || '—';
+    const t = byTeam.get(team) ?? { team, members: 0, total: 0, average: 0, correct: 0, place: 0 };
+    t.members++;
+    t.total += s.total;
+    t.correct += Object.values(s.rounds).reduce((sum, r) => sum + (r?.correct ?? 0), 0);
+    byTeam.set(team, t);
+  }
+  const list = [...byTeam.values()].map((t) => ({ ...t, average: Math.round((t.total / Math.max(1, t.members)) * 10) / 10 }));
+  list.sort((a, b) => b.total - a.total || b.average - a.average || a.team.localeCompare(b.team, 'ky'));
+  list.forEach((t, i) => (t.place = i + 1));
+  return list;
+}

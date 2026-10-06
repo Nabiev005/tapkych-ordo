@@ -1,12 +1,12 @@
 import type { Server, Socket } from 'socket.io';
 import { prisma } from '../db.js';
-import { verifyAdminToken } from '../auth.js';
+import { verifyStaffToken } from '../auth.js';
 import { bus } from '../events.js';
 import { AppError } from '../types.js';
 import { presence } from '../game/presence.js';
 import { loadFull } from '../game/load.js';
-import { adminSnapshot, playerSnapshot, screenSnapshot } from '../game/state.js';
-import { runAdminAction, submitAnswer, type AdminAction } from '../game/engine.js';
+import { adminSnapshot, audienceSnapshot, playerSnapshot, screenSnapshot } from '../game/state.js';
+import { audienceVote, runAdminAction, submitAnswer, useFiftyFifty, type AdminAction } from '../game/engine.js';
 
 /**
  * Бөлмөлөр:
@@ -19,12 +19,14 @@ export const rooms = {
   admin: (g: number) => `game:${g}:admin`,
   screen: (g: number) => `game:${g}:screen`,
   players: (g: number) => `game:${g}:players`,
+  audience: (g: number) => `game:${g}:audience`,
   player: (p: number) => `player:${p}`,
 };
 
 type SocketData =
   | { role: 'admin'; gameId: number }
   | { role: 'screen'; gameId: number }
+  | { role: 'audience'; gameId: number; voterId: string }
   | { role: 'player'; gameId: number; playerId: number; token: string };
 
 type Ack = (res: { ok: true } | { ok: false; error: string; details?: unknown }) => void;
@@ -43,6 +45,11 @@ export async function broadcastState(gameId: number) {
   for (const p of game.players) {
     io.to(rooms.player(p.id)).emit('state', playerSnapshot(game, p.id));
   }
+  // Көрүүчүлөр: ар бирине өзүнүн добушу менен
+  for (const s of await io.in(rooms.audience(gameId)).fetchSockets()) {
+    const d = s.data as SocketData;
+    if (d.role === 'audience') s.emit('state', audienceSnapshot(game, d.voterId));
+  }
 }
 
 /** Бир эле учурда көп өзгөрүү болсо (мис. 12 оюнчу бир секундда жооп берсе), бир гана жолу жөнөтөбүз */
@@ -60,11 +67,18 @@ function scheduleBroadcast(gameId: number) {
 
 async function authenticate(socket: Socket): Promise<SocketData | null> {
   const auth = socket.handshake.auth as Record<string, unknown>;
-  if (auth.role === 'admin' && typeof auth.token === 'string' && verifyAdminToken(auth.token)) {
+  const user = auth.role === 'admin' && typeof auth.token === 'string' ? verifyStaffToken(auth.token) : null;
+  if (user) {
     const gameId = Number(auth.gameId);
     if (!Number.isInteger(gameId)) return null;
-    const exists = await prisma.game.findUnique({ where: { id: gameId }, select: { id: true } });
-    return exists ? { role: 'admin', gameId } : null;
+    const game = await prisma.game.findUnique({ where: { id: gameId }, select: { id: true, ownerId: true } });
+    // Мугалим өзүнүн оюнун гана башкара алат
+    if (!game || (user.role === 'teacher' && game.ownerId !== user.teacherId)) return null;
+    return { role: 'admin', gameId };
+  }
+  if (auth.role === 'audience' && typeof auth.code === 'string' && typeof auth.voterId === 'string' && auth.voterId.length >= 8) {
+    const game = await prisma.game.findUnique({ where: { code: auth.code }, select: { id: true } });
+    return game ? { role: 'audience', gameId: game.id, voterId: auth.voterId.slice(0, 64) } : null;
   }
   if (auth.role === 'screen' && typeof auth.code === 'string') {
     const game = await prisma.game.findUnique({ where: { code: auth.code }, select: { id: true } });
@@ -122,12 +136,32 @@ export function setupSockets(server: Server) {
 
     if (data.role === 'screen') socket.join(rooms.screen(data.gameId));
 
+    if (data.role === 'audience') {
+      socket.join(rooms.audience(data.gameId));
+      socket.on('audience:vote', async (payload: { choice?: unknown }, ack?: Ack) => {
+        try {
+          await audienceVote(data.gameId, data.voterId, payload?.choice);
+          ack?.({ ok: true });
+        } catch (e) {
+          replyError(ack, e);
+        }
+      });
+    }
+
     if (data.role === 'player') {
       socket.join([rooms.players(data.gameId), rooms.player(data.playerId)]);
       presence.add(data.playerId, socket.id);
       socket.on('player:answer', async (payload: { choice?: unknown }, ack?: Ack) => {
         try {
           await submitAnswer(data.gameId, data.playerId, payload?.choice);
+          ack?.({ ok: true });
+        } catch (e) {
+          replyError(ack, e);
+        }
+      });
+      socket.on('player:fifty', async (_payload: unknown, ack?: Ack) => {
+        try {
+          await useFiftyFifty(data.gameId, data.playerId);
           ack?.({ ok: true });
         } catch (e) {
           replyError(ack, e);

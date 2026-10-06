@@ -7,7 +7,7 @@ export async function loadFull(gameId: number) {
     where: { id: gameId },
     include: {
       players: { orderBy: { seat: 'asc' } },
-      questions: { orderBy: [{ round: 'asc' }, { order: 'asc' }], include: { answers: true } },
+      questions: { orderBy: [{ round: 'asc' }, { order: 'asc' }], include: { answers: true, votes: true } },
       adjustments: true,
     },
   });
