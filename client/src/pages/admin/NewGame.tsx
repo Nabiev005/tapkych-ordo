@@ -15,9 +15,15 @@ const DEFAULTS: Omit<Settings, 'soundEnabled'> = {
   advanceToRound2: 6,
   advanceToFinal: 3,
   expectedPlayers: 12,
+  teamMode: false,
+  speedBonus: 0,
+  fiftyFifty: false,
+  selectionMode: 'ORDER',
+  categories: '',
 };
 
-const FIELDS: { key: keyof typeof DEFAULTS; min: number; max: number }[] = [
+type NumKey = 'pointsPerCorrect' | 'timerSeconds' | 'expectedPlayers' | 'round1Count' | 'round2Count' | 'finalQuestionCount' | 'advanceToRound2' | 'advanceToFinal';
+const FIELDS: { key: NumKey; min: number; max: number }[] = [
   { key: 'pointsPerCorrect', min: 1, max: 100 },
   { key: 'timerSeconds', min: 5, max: 120 },
   { key: 'expectedPlayers', min: 2, max: 100 },
@@ -42,6 +48,7 @@ export default function NewGame() {
   const [s, setS] = useState(DEFAULTS);
   const [busy, setBusy] = useState(false);
   const [bank, setBank] = useState<Record<RoundKey, number> | null>(null);
+  const [bankInfo, setBankInfo] = useState<{ total: number; categories: { name: string; count: number }[] } | null>(null);
 
   const loadStudents = () =>
     api
@@ -52,8 +59,11 @@ export default function NewGame() {
   useEffect(() => {
     void loadStudents();
     api
-      .get<{ summary: { round: RoundKey; count: number }[] }>('/api/questions/summary')
-      .then((r) => setBank(Object.fromEntries(r.summary.map((x) => [x.round, x.count])) as Record<RoundKey, number>))
+      .get<{ summary: { round: RoundKey; count: number }[]; total: number; categories: { name: string; count: number }[] }>('/api/questions/summary')
+      .then((r) => {
+        setBank(Object.fromEntries(r.summary.map((x) => [x.round, x.count])) as Record<RoundKey, number>);
+        setBankInfo({ total: r.total, categories: r.categories });
+      })
       .catch(() => undefined);
   }, []);
 
@@ -220,6 +230,50 @@ export default function NewGame() {
           </section>
 
           <section className="card space-y-4 p-5">
+            <h2 className="font-display text-lg font-bold">🎮 {t.modesTitle}</h2>
+            <Toggle checked={s.teamMode} onChange={(v) => setS({ ...s, teamMode: v })} label={t.teamMode} hint={t.teamModeHint} />
+            <Toggle checked={s.fiftyFifty} onChange={(v) => setS({ ...s, fiftyFifty: v })} label={t.fiftyFifty} hint={t.fiftyFiftyHint} />
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-ordo-ink/80">⚡ {t.speedBonus}</div>
+                <div className="text-xs text-ordo-ink/50">{t.speedBonusHint}</div>
+              </div>
+              <input type="number" className="input w-20 py-2 text-center" min={0} max={10} value={s.speedBonus} onChange={(e) => setS({ ...s, speedBonus: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} />
+            </div>
+            <div>
+              <div className="mb-1.5 text-sm font-semibold text-ordo-ink/80">🎯 {t.selection}</div>
+              {(['ORDER', 'DIFFICULTY'] as const).map((m) => (
+                <label key={m} className={`mb-1.5 flex cursor-pointer items-center gap-2 rounded-xl border-2 p-2.5 text-sm ${s.selectionMode === m ? 'border-ordo-sky bg-ordo-sky/5' : 'border-ordo-gold/20'}`}>
+                  <input type="radio" checked={s.selectionMode === m} onChange={() => setS({ ...s, selectionMode: m })} />
+                  {m === 'ORDER' ? t.selectionOrder : t.selectionDifficulty}
+                </label>
+              ))}
+            </div>
+            {bankInfo && bankInfo.categories.length > 0 && (
+              <div>
+                <div className="text-sm font-semibold text-ordo-ink/80">🏷 {t.categories}</div>
+                <div className="mb-1.5 text-xs text-ordo-ink/50">{t.categoriesHint}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {bankInfo.categories.map((c) => {
+                    const list = s.categories.split(',').filter(Boolean);
+                    const on = list.includes(c.name);
+                    return (
+                      <button
+                        key={c.name}
+                        onClick={() => setS({ ...s, categories: (on ? list.filter((x) => x !== c.name) : [...list, c.name]).join(',') })}
+                        className={`rounded-full px-3 py-1 text-sm font-semibold ${on ? 'bg-ordo-red text-white' : 'bg-white ring-1 ring-ordo-gold/30 hover:bg-ordo-gold/10'}`}
+                      >
+                        {c.name} <span className="opacity-60">{c.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {bankInfo && <div className="text-xs text-ordo-ink/45">{t.bankTotal(bankInfo.total)}</div>}
+          </section>
+
+          <section className="card space-y-4 p-5">
             <h2 className="font-display text-lg font-bold">⚙️ {t.settings}</h2>
             <p className="text-sm text-ordo-ink/60">{t.settingsHint}</p>
             <div className="space-y-3">
@@ -256,5 +310,25 @@ export default function NewGame() {
         {busy ? t.creating : t.create}
       </Button>
     </div>
+  );
+}
+
+function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint: string }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition ${checked ? 'bg-emerald-500' : 'bg-slate-300'}`}
+      >
+        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? 'left-6' : 'left-1'}`} />
+      </button>
+      <span>
+        <span className="block text-sm font-semibold text-ordo-ink/80">{label}</span>
+        <span className="block text-xs text-ordo-ink/50">{hint}</span>
+      </span>
+    </label>
   );
 }

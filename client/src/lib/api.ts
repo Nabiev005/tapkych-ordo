@@ -35,6 +35,29 @@ export const adminToken = {
   },
 };
 
+/** Кирген колдонуучу (башкы алып баруучу же мугалим) — навигация үчүн */
+export interface StaffUser {
+  role: 'admin' | 'teacher';
+  name: string;
+}
+const USER_KEY = 'ordo_admin_user';
+export const staffUser = {
+  get: (): StaffUser | null => {
+    try {
+      return JSON.parse(localStorage.getItem(USER_KEY) ?? 'null');
+    } catch {
+      return null;
+    }
+  },
+  set: (u: StaffUser) => {
+    try {
+      localStorage.setItem(USER_KEY, JSON.stringify(u));
+    } catch {
+      /* жеке режим */
+    }
+  },
+};
+
 export class ApiError extends Error {
   constructor(
     public code: string,

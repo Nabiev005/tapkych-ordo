@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../../components/Ornament';
+import { LangSwitch } from '../../components/LangSwitch';
 import { Button } from '../../components/ui';
 import { ky } from '../../i18n/ky';
 import { ApiError, api } from '../../lib/api';
@@ -98,6 +99,9 @@ function JoinForm({ initialCode, notice, onJoined }: { initialCode: string; noti
   return (
     <div className="bg-night flex min-h-dvh flex-col text-white">
       <OrnamentBand height={20} />
+      <div className="flex justify-end px-4 pt-3">
+        <LangSwitch dark />
+      </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-8 p-5">
         <Logo size="md" />
         <motion.form onSubmit={submit} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm space-y-5">

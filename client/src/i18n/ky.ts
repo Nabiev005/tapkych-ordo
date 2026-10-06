@@ -1,12 +1,18 @@
 /**
  * «Тапкыч ордо» — интерфейстин БАРДЫК тексттери ушул файлда.
  * Текстти өзгөртүү үчүн ушул жерди гана оңдоо жетиштүү.
+ * Орусча котормо — ru.ts (түзүлүшү так ушундай болушу керек).
  */
+
+import { currentLang, dateLocale } from './lang';
+import { ruDict } from './ru';
 
 export type RoundKey = 'ROUND1' | 'ROUND2' | 'FINAL';
 export type OptionKey = 'A' | 'B' | 'C' | 'D';
+export type QuestionType = 'CHOICE' | 'TF' | 'ORDER';
+export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
-export const ky = {
+const kyDict = {
   appName: 'Тапкыч ордо',
   appNameUpper: 'ТАПКЫЧ ОРДО',
   tagline: 'Интеллектуалдык таймаш',
@@ -29,6 +35,32 @@ export const ky = {
     ROUND2: '2-ТУР',
     FINAL: 'ФИНАЛ',
   } as Record<RoundKey, string>,
+
+  /** Суроонун түрлөрү */
+  qtypes: {
+    CHOICE: 'Тандоо (А/Б/В/Г)',
+    TF: 'Туура / Туура эмес',
+    ORDER: 'Иретке келтирүү',
+  } as Record<QuestionType, string>,
+  qtypesShort: {
+    CHOICE: 'Тандоо',
+    TF: 'Туура/Ката',
+    ORDER: 'Ирет',
+  } as Record<QuestionType, string>,
+  difficulty: {
+    EASY: 'Жеңил',
+    MEDIUM: 'Орто',
+    HARD: 'Кыйын',
+  } as Record<Difficulty, string>,
+  /** «Туура / Туура эмес» суроонун варианттары */
+  tf: { A: 'Туура', B: 'Туура эмес' } as Record<string, string>,
+  noCategory: 'Темасыз',
+
+  lang: {
+    ky: 'КЫР',
+    ru: 'РУС',
+    title: 'Тил',
+  },
 
   common: {
     save: 'Сактоо',
@@ -58,6 +90,13 @@ export const ky = {
     logout: 'Чыгуу',
     soundOn: 'Үн күйгүзүлгөн',
     soundOff: 'Үн өчүрүлгөн',
+    all: 'Баары',
+    open: 'Ачуу',
+    copied: 'Көчүрүлдү!',
+    copyLink: 'Шилтемени көчүрүү',
+    active: 'Активдүү',
+    closed: 'Жабык',
+    optional: 'милдеттүү эмес',
   },
 
   home: {
@@ -97,6 +136,112 @@ export const ky = {
     top3: 'Алдыңкы үчтүк',
     gamesCount: (n: number) => `${n} оюн`,
     winsCount: (n: number) => `${n} жеңиш`,
+    tasks: 'Тапшырма',
+    allTime: 'Бардык убакыт',
+    certificate: 'Грамота',
+    profileHint: 'Атын басып, жеке баракчасын ачыңыз',
+    subtitleTasks: (games: number, tasks: number) => `${games} оюн жана ${tasks} үй тапшырмасынын жыйынтыгы боюнча`,
+  },
+
+  // ─────────────────────────── Окуучунун жеке баракчасы ───────────────────────────
+  profile: {
+    back: 'Рейтингге кайтуу',
+    rank: (r: number, of: number) => `Рейтингде ${r}-орун (${of} окуучунун ичинен)`,
+    noRank: 'Рейтингде азырынча жок',
+    medals: 'Медалдар',
+    medal: {
+      wins: 'Жеңиш',
+      podiums: 'Үчтүккө кирген',
+      finals: 'Финалга чыккан',
+      tasks: 'Үй тапшырмасы',
+    },
+    growth: 'Упайдын өсүшү',
+    growthHint: 'Ар бир оюн жана тапшырмадан кийин топтолгон жалпы упай',
+    strengths: 'Темалар боюнча тактык',
+    strengthsHint: 'Ар бир темадагы туура жооптордун пайызы',
+    strongest: 'Эң күчтүү тема',
+    gamesTitle: 'Катышкан оюндар',
+    tasksTitle: 'Үй тапшырмалары',
+    place: (p: number, of: number) => `${p}-орун / ${of}`,
+    reached: 'Жеткен тур',
+    empty: 'Азырынча маалымат жок.',
+    untitled: 'Аталышсыз оюн',
+    taskScore: (c: number, t: number) => `${c}/${t} туура`,
+  },
+
+  // ─────────────────────────── Грамота ───────────────────────────
+  certificate: {
+    title: 'ГРАМОТА',
+    awarded: 'Ыйгарылат',
+    placeText: (p: number) => (p === 1 ? '1-орун — Жеңүүчү' : `${p}-орун`),
+    reason: (season: string) => `«Тапкыч ордо» интеллектуалдык таймашында ${season} жогорку жыйынтык көрсөткөнү үчүн`,
+    allTime: 'жалпы эсепте',
+    seasonOf: (name: string) => `«${name}» сезонунда`,
+    stats: (score: number, wins: number, acc: number) => `Жалпы упай: ${score} · Жеңиш: ${wins} · Тактык: ${acc}%`,
+    signature: 'Колу',
+    director: 'Мектептин директору',
+    organizer: 'Уюштуруучу',
+    date: 'Датасы',
+    print: 'Басып чыгаруу / PDF сактоо',
+    printHint: 'Басып чыгаруу терезесинде «PDF катары сактоо» тандасаңыз, грамота PDF файл болуп сакталат. Барак: альбомдук (горизонталдык).',
+    pick: 'Грамоталарды басып чыгаруу',
+    top3: 'Алдыңкы үчтүккө',
+  },
+
+  // ─────────────────────────── Залдагы көрүүчү ───────────────────────────
+  audience: {
+    title: 'Залдагы көрүүчү',
+    hint: 'Суроо чыкканда туура деп эсептеген жоопту басыңыз. Сиздин добушуңуз оюнчулардын упайына таасир этпейт.',
+    waiting: 'Суроону күтүңүз…',
+    voted: 'Добушуңуз кабыл алынды',
+    results: 'Залдын жыйынтыгы',
+    you: 'сиз',
+    correct: 'Туура жооп',
+    noVote: 'Бул суроодо зал добуш бербейт',
+    timeUp: 'Добуш берүү убактысы бүттү',
+    finished: 'Оюн аяктады. Рахмат!',
+    notFound: 'Оюн табылган жок',
+    join: 'Залдан добуш берүү',
+    hintShort: 'Көрүүчүлөр: телефондон добуш бериңиз',
+  },
+
+  // ─────────────────────────── Үй тапшырмасы (окуучу) ───────────────────────────
+  homework: {
+    title: 'Үй тапшырмасы',
+    questions: (n: number, s: number) => `${n} суроо · ар бирине ${s} сек`,
+    closesAt: (d: string) => `Мөөнөтү: ${d} чейин`,
+    closed: 'Бул тапшырма жабылган',
+    pickClass: 'Классыңызды тандаңыз',
+    pickName: 'Атыңызды тандаңыз',
+    search: 'Атыңызды издеңиз…',
+    start: 'Баштоо',
+    starting: 'Башталууда…',
+    rules: 'Ар бир суроого убакыт чектелген. Жооп бергенден кийин өзгөртүүгө болбойт. Баракты жабып алсаңыз, ошол жерден улантасыз, бирок убакыт токтобойт.',
+    notMe: 'Бул мен эмесмин',
+    questionNo: (n: number, t: number) => `${n}-суроо · ${t} ичинен`,
+    timeUp: 'Убакыт бүттү — кийинки суроо',
+    finished: 'Тапшырма аткарылды!',
+    score: (c: number, t: number) => `${c} / ${t} туура`,
+    review: 'Жоопторду карап чыгуу',
+    yourAnswer: 'Сиздин жооп',
+    noAnswer: 'жооп берилген жок',
+    correctAnswer: 'Туура жооп',
+    notFound: 'Тапшырма табылган жок. Шилтемени текшериңиз.',
+    already: 'Сиз бул тапшырманы аткаргансыз',
+  },
+
+  // ─────────────────────────── Оюнду кайталап көрүү ───────────────────────────
+  replay: {
+    title: 'Оюнду кайталап көрүү',
+    step: (i: number, n: number) => `${i} / ${n}`,
+    prev: 'Мурунку',
+    next: 'Кийинки',
+    keysHint: 'Баскычтар: ← → же боштук',
+    answers: 'Жооптор',
+    notAnswered: 'Жооп бербегендер',
+    leaderboard: 'Ушул суроодон кийинки рейтинг',
+    audience: 'Зал',
+    empty: 'Бул оюнда суралган суроо жок.',
   },
 
   errors: {
@@ -119,16 +264,20 @@ export const ky = {
     TIME_UP: 'Убакыт бүттү',
     NOT_IN_ROUND: 'Сиз бул турга катышпайсыз',
     SERVER_ERROR: 'Сервердеги ката. Кайра аракет кылыңыз',
+    FORBIDDEN: 'Бул бөлүм башкы алып баруучу үчүн гана',
+    ASSIGNMENT_CLOSED: 'Бул тапшырма жабылган',
+    ALREADY_SUBMITTED: 'Сиз бул тапшырманы аткаргансыз',
+    LIFELINE_USED: '«50/50» бул оюнда колдонулган',
     NETWORK: 'Сервер менен байланыш жок. Интернетти же Wi-Fi’ды текшериңиз',
     UNKNOWN: 'Белгисиз ката кетти',
   } as Record<string, string>,
 
   notEnoughQuestions: (round: RoundKey, need: number, have: number) =>
-    `${ky.rounds[round]} үчүн ${need} суроо керек, банкта ${have} гана бар. «Суроолор» бөлүмүнөн кошуңуз.`,
+    `${kyDict.rounds[round]} үчүн ${need} суроо керек, банкта ${have} гана бар. «Суроолор» бөлүмүнөн кошуңуз.`,
 
   // ─────────────────────────── Алып баруучу ───────────────────────────
   admin: {
-    loginTitle: 'Алып баруучунун кирүүсү',
+    loginTitle: 'Алып баруучу же мугалим: кирүү',
     username: 'Логин',
     password: 'Пароль',
     login: 'Кирүү',
@@ -141,6 +290,82 @@ export const ky = {
       students: 'Окуучулар',
       history: 'Тарых',
       rating: 'Рейтинг',
+      assignments: 'Тапшырмалар',
+      teachers: 'Мугалимдер',
+      seasons: 'Сезондор',
+    },
+    roleAdmin: 'Башкы алып баруучу',
+    roleTeacher: 'Мугалим',
+
+    teachers: {
+      title: 'Мугалимдер',
+      hint: 'Ар бир мугалим өз логини менен кирет: өзүнүн суроолор банкы, оюндары жана үй тапшырмалары болот. Окуучулар тизмеси жана рейтинг — жалпы.',
+      add: 'Мугалим кошуу',
+      name: 'Аты-жөнү',
+      username: 'Логин (латын тамгалары, кеминде 3)',
+      password: 'Сыр сөз (кеминде 6 белги)',
+      newPassword: 'Жаңы сыр сөз',
+      resetPassword: 'Сыр сөздү алмаштыруу',
+      passwordChanged: 'Сыр сөз алмаштырылды',
+      empty: 'Азырынча мугалим жок.',
+      stats: (q: number, g: number, a: number) => `${q} суроо · ${g} оюн · ${a} тапшырма`,
+      deleteConfirm: (n: string) => `${n} өчүрүлсүнбү? Анын суроолор банкы да өчөт. Оюндары жана тапшырмалары тарыхта калат.`,
+      created: 'Мугалим кошулду. Логин жана сыр сөздү ага бериңиз.',
+    },
+
+    seasons: {
+      title: 'Сезондор',
+      hint: 'Рейтингди мезгилдерге бөлүңүз (мис. «Күзгү сезон 2026»). Ар бир сезондун жеңүүчүлөрү үчүн грамота басып чыгарса болот.',
+      add: 'Сезон кошуу',
+      name: 'Сезондун аталышы',
+      namePlaceholder: 'мис. Күзгү сезон 2026',
+      startsAt: 'Башталышы',
+      endsAt: 'Аякташы',
+      empty: 'Азырынча сезон жок.',
+      deleteConfirm: (n: string) => `«${n}» сезону өчүрүлсүнбү? Оюндар жана жыйынтыктар өчпөйт.`,
+      openRating: 'Рейтингди ачуу',
+      certificates: 'Грамоталар',
+      current: 'Учурдагы',
+    },
+
+    assignments: {
+      title: 'Үй тапшырмалары',
+      hint: 'Тапшырма түзүп, шилтемесин окуучуларга жибериңиз. Алар өз убагында иштешет, жыйынтыгы рейтингге кошулат.',
+      create: 'Жаңы тапшырма',
+      empty: 'Азырынча тапшырма жок.',
+      titleLabel: 'Тапшырманын аталышы',
+      titlePlaceholder: 'мис. 7-класс: География №1',
+      timer: 'Ар бир суроого убакыт (секунд)',
+      closesAt: 'Жабылуу мөөнөтү (милдеттүү эмес)',
+      mode: 'Суроолорду тандоо',
+      modeAuto: 'Автоматтык (кокус)',
+      modeManual: 'Банктан колго тандоо',
+      count: 'Суроолордун саны',
+      categories: 'Темалар',
+      difficulty: 'Кыйынчылыгы',
+      anyDifficulty: 'Баары',
+      includeArchived: 'Архивдеги суроолорду да колдонуу',
+      selected: (n: number) => `Тандалды: ${n}`,
+      createBtn: 'Тапшырманы түзүү',
+      link: 'Окуучулар үчүн шилтеме',
+      code: 'Коду',
+      stats: (q: number, f: number, s: number) => `${q} суроо · ${f} окуучу бүттү${s > f ? ` · ${s - f} иштеп жатат` : ''}`,
+      results: 'Жыйынтыктар',
+      noResults: 'Азырынча эч ким аткарган жок.',
+      name: 'Аты-жөнү',
+      className: 'Классы',
+      score: 'Упай',
+      time: 'Убакыт',
+      status: 'Абалы',
+      inProgress: 'иштеп жатат',
+      done: 'бүттү',
+      close: 'Жабуу',
+      reopen: 'Кайра ачуу',
+      allowRetry: 'Кайра иштөөгө уруксат берүү',
+      retryConfirm: (n: string) => `${n}: жыйынтык өчүрүлөт жана окуучу тапшырманы кайра иштей алат. Уланталыбы?`,
+      deleteConfirm: (t: string) => `«${t}» тапшырмасы жана анын бардык жыйынтыктары өчүрүлсүнбү?`,
+      export: 'Excel’ге жүктөө',
+      questionsTitle: 'Суроолор',
     },
 
     students: {
@@ -178,7 +403,7 @@ export const ky = {
     dashboard: {
       title: 'Башкы бет',
       readiness: 'Суроолордун даярдыгы',
-      roundStatus: (round: RoundKey, count: number) => `${ky.rounds[round]}: ${count} суроо`,
+      roundStatus: (round: RoundKey, count: number) => `${kyDict.rounds[round]}: ${count} суроо`,
       enough: 'жетиштүү',
       need: (n: number) => `дагы ${n} керек`,
       newGame: 'Жаңы оюн түзүү',
@@ -204,8 +429,8 @@ export const ky = {
       import: 'Excel/CSV’ден импорттоо',
       empty: 'Бул турда азырынча суроо жок.',
       dragHint: 'Тартибин өзгөртүү үчүн ⠿ белгисинен кармап сүйрөңүз',
-      countOk: (round: RoundKey, n: number) => `${ky.rounds[round]}да ${n} суроо бар ✓`,
-      countLow: (round: RoundKey, n: number, need: number) => `${ky.rounds[round]}да ${n} суроо бар — ${need} керек`,
+      countOk: (round: RoundKey, n: number) => `${kyDict.rounds[round]}да ${n} суроо бар ✓`,
+      countLow: (round: RoundKey, n: number, need: number) => `${kyDict.rounds[round]}да ${n} суроо бар — ${need} керек`,
       finalNote: 'Финалдагы суроолордун санын оюнду түзүүдө коёсуз (демейки: 5).',
       onlyFirst: (n: number) => `Оюнда ушул турдун алгачкы ${n} суроосу колдонулат.`,
       deleteConfirm: 'Бул суроону өчүрөсүзбү?',
@@ -223,6 +448,10 @@ export const ky = {
       archived: 'Суроо архивге жылдырылды',
       usedInfo: (times: number, date: string) => `${times} жолу суралган · акыркысы ${date}`,
       filterAll: 'Бардык турлар',
+      exportBank: 'Excel’ге жүктөө',
+      exportHint: 'Банк жана архив Excel файлга жүктөлөт — резервдик көчүрмө же башка мугалим менен бөлүшүү үчүн. Файлды кайра импорттосо болот.',
+      filterCategory: 'Тема:',
+      filterDifficulty: 'Кыйынчылык:',
       form: {
         newTitle: 'Жаңы суроо',
         editTitle: 'Суроону оңдоо',
@@ -238,13 +467,27 @@ export const ky = {
         correct: 'Туура жоопту белгилеңиз',
         correctHint: 'Туура варианттын тамгасын басыңыз',
         missing: 'Суроонун текстин жана 4 вариантты тең толтуруңуз',
+        type: 'Суроонун түрү',
+        category: 'Тема',
+        categoryPlaceholder: 'мис. Тарых',
+        difficulty: 'Кыйынчылыгы',
+        audio: 'Аудио — музыкалык суроолор үчүн (милдеттүү эмес)',
+        uploadAudio: 'Аудио тандоо',
+        removeAudio: 'Аудиону алып салуу',
+        tfCorrect: 'Ырастоо туурабы же туура эмеспи?',
+        orderItems: 'Иреттеле турган 4 элемент (каалагандай тартипте жазыңыз)',
+        orderHint: 'Туура иретти белгилеңиз: элементтерди биринчиден акыркыга чейин кезеги менен басыңыз',
+        orderCurrent: 'Туура ирет:',
+        orderReset: 'Кайра белгилөө',
+        missingOrder: 'Туура иретти толук белгилеңиз (4 элемент)',
+        imageResized: 'Сүрөт кичирейтилип жүктөлдү',
       },
     },
 
     import: {
       title: 'Суроолорду файлдан импорттоо',
       step1: '1. Шаблонду жүктөп алыңыз',
-      step1Hint: 'Шаблондо мамычалар даяр: Тур, Суроо, А, Б, В, Г, Туура жооп, Сүрөт. Мисал саптарды өчүрүп, өз суроолоруңузду жазыңыз.',
+      step1Hint: 'Шаблондо мамычалар даяр: Тур, Түрү, Тема, Кыйынчылык, Суроо, А, Б, В, Г, Туура жооп, Сүрөт. Туура/Туура эмес суроодо варианттарды бош калтырып, жоопко «Туура» же «Туура эмес» деп жазыңыз. Иретке келтирүүдө туура иретти тамгалар менен жазыңыз, мис. «ВАГБ». Эски шаблон да кабыл алынат.',
       templateXlsx: 'Excel шаблон (.xlsx)',
       templateCsv: 'CSV шаблон (.csv)',
       step2: '2. Толтурулган файлды тандаңыз',
@@ -253,14 +496,16 @@ export const ky = {
       checking: 'Текшерилүүдө…',
       step3: '3. Текшерип, импорттоңуз',
       found: (n: number) => `${n} суроо табылды`,
-      perRound: (round: RoundKey, n: number) => `${ky.rounds[round]}: ${n}`,
+      perRound: (round: RoundKey, n: number) => `${kyDict.rounds[round]}: ${n}`,
       errorsTitle: (n: number) => `${n} сапта ката бар — алар импорттолбойт:`,
-      rowError: (row: number, problem: string) => `${row}-сап: ${ky.admin.import.problems[problem] ?? problem}`,
+      rowError: (row: number, problem: string) => `${row}-сап: ${kyDict.admin.import.problems[problem] ?? problem}`,
       problems: {
         ROUND: 'тур туура эмес (1, 2 же Финал болушу керек)',
         TEXT: 'суроонун тексти жок',
         OPTIONS: '4 варианттын бири бош',
-        CORRECT: 'туура жооп туура эмес (А, Б, В же Г болушу керек)',
+        CORRECT: 'туура жооп туура эмес (А/Б/В/Г; «Туура»/«Туура эмес»; ирет үчүн мис. «ВАГБ»)',
+        TYPE: 'суроонун түрү туура эмес (Тандоо, Туура/Туура эмес же Иретке келтирүү)',
+        DIFFICULTY: 'кыйынчылык туура эмес (Жеңил, Орто же Кыйын)',
       } as Record<string, string>,
       modeAppend: 'Бар суроолорго кошуу',
       modeReplace: 'Бардык эски суроолорду өчүрүп, алмаштыруу',
@@ -302,6 +547,19 @@ export const ky = {
       creating: 'Түзүлүүдө…',
       needPlayers: 'Жок дегенде 2 окуучуну тандаңыз',
       bankWarn: 'Суроолор жетишсиз — оюнду түзө аласыз, бирок баштоодон мурун суроолорду кошуңуз:',
+      modesTitle: 'Оюндун режимдери',
+      teamMode: 'Класс класска каршы (командалык)',
+      teamModeHint: 'Команда — окуучунун классы. Эч ким чыгарылбайт, бардыгы бардык турларды ойнойт. Команданын упайы — мүчөлөрүнүн упайларынын суммасы.',
+      speedBonus: 'Ылдам жооп бонусу (упай)',
+      speedBonusHint: 'Туура жоопту убакыттын алгачкы үчтөн биринде берген оюнчуга кошулат. 0 — өчүк.',
+      fiftyFifty: '«50/50» жардамы',
+      fiftyFiftyHint: 'Ар бир оюнчу бир оюнда бир жолу эки ката вариантты өчүрө алат (А/Б/В/Г суроолорунда).',
+      selection: 'Суроолорду тандоо',
+      selectionOrder: 'Турлар боюнча — банктагы тартипте',
+      selectionDifficulty: 'Кыйынчылык боюнча — 1-тур жеңил, 2-тур орто, финал кыйын',
+      categories: 'Темалар',
+      categoriesHint: 'Эч бири тандалбаса — бардык темалар колдонулат.',
+      bankTotal: (n: number) => `Банкта ${n} активдүү суроо`,
     },
 
     pins: {
@@ -345,8 +603,8 @@ export const ky = {
       settingsSummary: (p: number, s: number) => `Туура жооп = ${p} упай · ${s} сек`,
 
       // Оюн учурунда
-      roundProgress: (round: RoundKey, i: number, total: number) => `${ky.rounds[round]} · ${i}/${total}`,
-      roundIntro: (round: RoundKey) => `${ky.rounds[round]} башталды`,
+      roundProgress: (round: RoundKey, i: number, total: number) => `${kyDict.rounds[round]} · ${i}/${total}`,
+      roundIntro: (round: RoundKey) => `${kyDict.rounds[round]} башталды`,
       paused: 'ТЫНЫГУУ',
       nextStep: 'Кийинки кадам',
       btn: {
@@ -396,15 +654,15 @@ export const ky = {
       restore: 'Кайтаруу',
       adjust: 'Упайды оңдоо',
       adjustTitle: (name: string) => `${name}: упайды оңдоо`,
-      adjustHint: (round: RoundKey) => `Оңдоо ${ky.roundsGen[round]} упайына кошулат.`,
+      adjustHint: (round: RoundKey) => `Оңдоо ${kyDict.roundsGen[round]} упайына кошулат.`,
       adjusted: 'Упай оңдолду',
-      leaderboardTitle: (round: RoundKey) => `${ky.rounds[round]}: рейтинг`,
+      leaderboardTitle: (round: RoundKey) => `${kyDict.rounds[round]}: рейтинг`,
       score: 'Упай',
       time: 'Убакыт',
       rank: 'Орун',
       tie: 'тең',
 
-      advanceTitle: (round: RoundKey) => `${ky.rounds[round]} аяктады: кийинки турга өткөндөр`,
+      advanceTitle: (round: RoundKey) => `${kyDict.rounds[round]} аяктады: кийинки турга өткөндөр`,
       advanceHint: (n: number) =>
         `Эң көп упай топтогон ${n} оюнчу автоматтык түрдө белгиленди. Керек болсо белгини кол менен өзгөртүңүз.`,
       selected: (s: number, n: number) => `Тандалды: ${s}/${n}`,
@@ -415,6 +673,18 @@ export const ky = {
       finalRanking: 'Финалдын жыйынтыгы',
 
       soundToggle: 'Үн эффекттери',
+      audience: 'Зал',
+      audienceVotes: (n: number) => `Залдан ${n} добуш`,
+      bonus: (n: number) => `⚡+${n}`,
+      fiftyUsed: '50/50 колдонду',
+      teams: 'Командалар',
+      teamBoard: 'Командалык рейтинг',
+      members: (n: number) => `${n} оюнчу`,
+      average: 'орточо',
+      orderCorrect: 'Туура ирет',
+      replay: 'Оюнду кайталап көрүү',
+      watchLink: 'Көрүүчүлөр үчүн шилтеме',
+      teamModeOn: 'Командалык режим',
       screenLink: 'Экран',
       exportExcel: 'Excel’ге жүктөп алуу',
       results: 'Жыйынтык',
@@ -430,6 +700,8 @@ export const ky = {
       export: 'Толук жыйынтыкты Excel’ге жүктөп алуу',
       askedTitle: 'Суралган суроолор',
       askedStats: (c: number, a: number) => `${c}/${a} туура`,
+      teamsTitle: 'Командалардын жыйынтыгы',
+      replay: 'Оюнду кайталап көрүү',
       exportHint: 'Excel файлда ар бир суроо боюнча ким кандай жооп бергени көрсөтүлөт.',
     },
   },
@@ -439,6 +711,8 @@ export const ky = {
     templateCsv: 'суроолор-шаблон.csv',
     results: (code: string) => `тапкыч-ордо-${code}.xlsx`,
     rating: 'тапкыч-ордо-рейтинг.xlsx',
+    bank: 'тапкыч-ордо-суроолор.xlsx',
+    assignment: (code: string) => `тапшырма-${code}.xlsx`,
   },
 
   // ─────────────────────────── Оюнчу (телефон) ───────────────────────────
@@ -454,7 +728,7 @@ export const ky = {
     hello: (name: string) => `Салам, ${name}!`,
     waitingTitle: 'Оюн жакында башталат',
     waitingHint: 'Экранды караңыз. Суроо чыкканда бул жерде жооп баскычтары пайда болот.',
-    roundStarting: (round: RoundKey) => `${ky.rounds[round]} башталат`,
+    roundStarting: (round: RoundKey) => `${kyDict.rounds[round]} башталат`,
     getReady: 'Даярданыңыз! Суроо азыр чыгат',
     questionNo: (n: number, total: number) => `${n}-суроо · ${total} ичинен`,
     lookAtScreen: 'Туура деп эсептеген жоопту басыңыз',
@@ -473,7 +747,7 @@ export const ky = {
     pausedHint: 'Оюн бир аздан кийин уланат',
     roundEnd: 'Тур аяктады',
     roundEndHint: 'Алып баруучу жыйынтыкты жарыялайт…',
-    advanced: (round: RoundKey) => `Куттуктайбыз! Сиз ${ky.rounds[round]}га өттүңүз!`,
+    advanced: (round: RoundKey) => `Куттуктайбыз! Сиз ${kyDict.rounds[round]}га өттүңүз!`,
     eliminated: 'Сиз бул турдан өтө алган жоксуз, оюнду көрүүчү катары уланта аласыз',
     eliminatedHint: 'Катышканыңыз үчүн рахмат! Экрандан оюнду карап туруңуз.',
     spectating: 'Көрүүчү',
@@ -487,6 +761,17 @@ export const ky = {
     leave: 'Башка PIN менен кирүү',
     gameDeleted: 'Бул оюн алып баруучу тарабынан өчүрүлдү',
     alreadyAnswered: 'Сиз жооп бердиңиз — өзгөртүүгө болбойт',
+    fifty: '50/50',
+    fiftyHint: 'Эки ката вариантты өчүрүү (бир оюнда бир жолу)',
+    fiftyUsedNote: '50/50 колдонулду',
+    bonus: (n: number) => `⚡ Ылдам жооп: +${n}`,
+    orderHint: 'Элементтерди туура тартипте басыңыз: биринчиден акыркыга',
+    orderSubmit: 'Жөнөтүү',
+    orderReset: 'Кайра баштоо',
+    orderYour: 'Сиздин ирет',
+    watchAsAudience: 'Залдагы көрүүчү катары добуш берүү',
+    teamPlace: (team: string, p: number) => `${team} командасы: ${p}-орун`,
+    listen: 'Аудиону угуңуз',
   },
 
   // ─────────────────────────── Жалпы экран ───────────────────────────
@@ -501,8 +786,8 @@ export const ky = {
     ofTotal: (total: number) => `${total} суроонун ичинен`,
     answered: 'жооп берди',
     leaderboard: 'РЕЙТИНГ',
-    roundResults: (round: RoundKey) => `${ky.roundsUpper[round]}: ЖЫЙЫНТЫК`,
-    qualifiedTo: (round: RoundKey) => `${ky.roundsUpper[round]}ГА ӨТКӨНДӨР`,
+    roundResults: (round: RoundKey) => `${kyDict.roundsUpper[round]}: ЖЫЙЫНТЫК`,
+    qualifiedTo: (round: RoundKey) => `${kyDict.roundsUpper[round]}ГА ӨТКӨНДӨР`,
     paused: 'ТЫНЫГУУ',
     pausedHint: 'Оюн бир аздан кийин уланат',
     champion: 'ЖЕҢҮҮЧҮ',
@@ -513,21 +798,32 @@ export const ky = {
     notFound: 'Оюн табылган жок',
     score: 'упай',
     total: 'Жалпы',
+    audience: 'ЗАЛ',
+    audienceVotes: (n: number) => `Залдан ${n} добуш`,
+    watchQr: 'Көрүүчүлөр — телефондон добуш бериңиз',
+    teamsTitle: 'КОМАНДАЛАР',
+    teamChampion: 'ЖЕҢҮҮЧҮ КОМАНДА',
+    orderTitle: 'Туура ирет',
+    members: (n: number) => `${n} оюнчу`,
+    bestPlayer: 'Эң мыкты оюнчу',
   },
 };
 
-export type Ky = typeof ky;
+export type Ky = typeof kyDict;
+
+/** Тандалган тилдин тексттери (демейки — кыргызча) */
+export const ky: Ky = currentLang === 'ru' ? ruDict : kyDict;
 
 /**
  * Даталар: «2026-ж., 6-октябрь». Кыска форматты (ky-KG) колдонбойбуз —
  * кээ бир браузерлер айды жана күндү алмаштырып көрсөтөт (2026-06-10).
  */
-export const fmtDate = (d: string | Date) => new Date(d).toLocaleDateString('ky-KG', { dateStyle: 'long' });
-export const fmtDateTime = (d: string | Date) => new Date(d).toLocaleString('ky-KG', { dateStyle: 'long', timeStyle: 'short' });
+export const fmtDate = (d: string | Date) => new Date(d).toLocaleDateString(dateLocale, { dateStyle: 'long' });
+export const fmtDateTime = (d: string | Date) => new Date(d).toLocaleString(dateLocale, { dateStyle: 'long', timeStyle: 'short' });
 
 /** Сервердин ката кодун кыргызча текстке айлантуу */
 export function errorText(code: string | undefined, details?: unknown): string {
-  if (code === 'NOT_ENOUGH_QUESTIONS' && details && typeof details === 'object') {
+  if (code === 'NOT_ENOUGH_QUESTIONS' && details && typeof details === 'object' && 'round' in details) {
     const d = details as { round: RoundKey; need: number; have: number };
     return ky.notEnoughQuestions(d.round, d.need, d.have);
   }

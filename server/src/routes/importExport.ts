@@ -55,25 +55,26 @@ function parseRound(v: string): Round | null {
 
 function parseType(v: string): QuestionType | null {
   const s = v.trim().toLowerCase();
-  if (!s || s.startsWith('танд') || s === 'choice') return 'CHOICE';
-  if (s.startsWith('туура') || s === 'tf' || s.includes('true')) return 'TF';
-  if (s.startsWith('ирет') || s.startsWith('тартип') || s === 'order') return 'ORDER';
+  // Кыргызча, орусча жана англисче аталыштар кабыл алынат
+  if (!s || s.startsWith('танд') || s.startsWith('выбор') || s === 'choice') return 'CHOICE';
+  if (s.startsWith('туура') || s.startsWith('верно') || s === 'tf' || s.includes('true')) return 'TF';
+  if (s.startsWith('ирет') || s.startsWith('тартип') || s.startsWith('поряд') || s === 'order') return 'ORDER';
   return null;
 }
 
 function parseDifficulty(v: string): Difficulty | null {
   const s = v.trim().toLowerCase();
-  if (!s || s.startsWith('орто') || s === 'medium' || s === '2') return 'MEDIUM';
-  if (s.startsWith('жеңил') || s === 'easy' || s === '1') return 'EASY';
-  if (s.startsWith('кыйын') || s === 'hard' || s === '3') return 'HARD';
+  if (!s || s.startsWith('орто') || s.startsWith('сред') || s === 'medium' || s === '2') return 'MEDIUM';
+  if (s.startsWith('жеңил') || s.startsWith('л') || s === 'easy' || s === '1') return 'EASY';
+  if (s.startsWith('кыйын') || s.startsWith('слож') || s === 'hard' || s === '3') return 'HARD';
   return null;
 }
 
 function parseCorrect(type: QuestionType, v: string): string | null {
   const s = v.trim().toUpperCase();
   if (type === 'TF') {
-    if (['ТУУРА', 'А', 'A', 'TRUE', 'ООБА', '1'].includes(s)) return 'A';
-    if (['ТУУРА ЭМЕС', 'Б', 'B', 'FALSE', 'ЖОК', '2'].includes(s)) return 'B';
+    if (['ТУУРА', 'А', 'A', 'TRUE', 'ООБА', 'ВЕРНО', 'ДА', '1'].includes(s)) return 'A';
+    if (['ТУУРА ЭМЕС', 'Б', 'B', 'FALSE', 'ЖОК', 'НЕВЕРНО', 'НЕТ', '2'].includes(s)) return 'B';
     return null;
   }
   if (type === 'ORDER') {

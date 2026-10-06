@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Button, useDialogs } from '../../../components/ui';
-import { ky } from '../../../i18n/ky';
+import { ky, type OptionKey } from '../../../i18n/ky';
+import { useNavigate } from 'react-router-dom';
+import { TeamBoard } from '../../../components/game';
 import { downloadFile } from '../../../lib/api';
 import { ROUND_KEYS, type AdminState } from '../../../lib/types';
 import type { Act } from '../GameControl';
@@ -11,6 +13,7 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
   const { toast } = useDialogs();
   const [busy, setBusy] = useState(false);
   const top = state.standings.slice(0, 3);
+  const navigate = useNavigate();
 
   const exportXlsx = async () => {
     setBusy(true);
@@ -46,6 +49,19 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
           ))}
         </div>
       </section>
+
+      {state.game.teamMode && state.teams.length > 0 && (
+        <section className="card p-5">
+          <h2 className="mb-3 font-display text-lg font-bold">🏫 {t.teamsTitle}</h2>
+          <TeamBoard teams={state.teams} light />
+        </section>
+      )}
+
+      <div className="flex justify-end">
+        <Button variant="sky" icon="⏯" onClick={() => navigate(`/admin/games/${state.game.id}/replay`)}>
+          {t.replay}
+        </Button>
+      </div>
 
       <section className="card overflow-x-auto p-5">
         <table className="w-full min-w-[640px] text-left">
@@ -94,7 +110,7 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold">{q.text}</div>
                     <div className="text-sm text-emerald-700">
-                      ✓ {ky.options[q.correct]} — {q.correctText}
+                      ✓ {q.type === 'CHOICE' ? `${ky.options[q.correct as OptionKey]} — ${q.correctText}` : q.type === 'TF' ? ky.tf[q.correct] : q.correctText}
                     </div>
                   </div>
                   <div className="w-24 shrink-0 text-right">

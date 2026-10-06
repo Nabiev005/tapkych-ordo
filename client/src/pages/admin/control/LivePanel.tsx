@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
-import { LeaderboardList, OPTION_STYLE, RingTimer } from '../../../components/game';
+import { LeaderboardList, OPTION_STYLE, RingTimer, TeamBoard } from '../../../components/game';
 import { Button, Modal, useDialogs } from '../../../components/ui';
-import { ky, type RoundKey } from '../../../i18n/ky';
-import { OPTION_KEYS, type AdminState } from '../../../lib/types';
+import { ky, type OptionKey, type RoundKey } from '../../../i18n/ky';
+import { optionKeysFor, type AdminState } from '../../../lib/types';
+import { answerLabel } from '../../../lib/questions';
 import { useCountdown } from '../../../lib/useGameSocket';
 import { assetUrl } from '../../../lib/api';
 import type { Act } from '../GameControl';
@@ -145,25 +146,50 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                   {t.question} №{q.number}
                   {g.phase === 'READY' && <span className="rounded bg-ordo-gold/30 px-2 text-ordo-ink/70">{t.hiddenOnScreen}</span>}
                 </div>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {q.type !== 'CHOICE' && <span className="rounded-md bg-ordo-sky/15 px-2 py-0.5 text-xs font-bold text-ordo-sky">{ky.qtypesShort[q.type]}</span>}
+                  {q.category && <span className="rounded-md bg-ordo-ink/5 px-2 py-0.5 text-xs font-semibold text-ordo-ink/70">#{q.category}</span>}
+                </div>
                 <div className="flex gap-4">
                   {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="h-28 w-40 shrink-0 rounded-2xl object-cover" />}
                   <div className="text-xl font-semibold leading-snug">{q.text}</div>
                 </div>
+                {q.audioUrl && <audio controls src={assetUrl(q.audioUrl)} className="mt-3 w-full" />}
+                {q.type === 'ORDER' ? (
+                  <div className="mt-4">
+                    <div className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-700">✓ {t.orderCorrect}</div>
+                    <ol className="space-y-1.5">
+                      {[...q.correct].map((l, i) => (
+                        <li key={l} className="flex items-center gap-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 font-display font-black text-white">{i + 1}</span>
+                          <span className="font-semibold text-emerald-900">{q.options[l as OptionKey]}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : (
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  {OPTION_KEYS.map((k) => {
+                  {optionKeysFor(q.type).map((k) => {
                     const ok = q.correct === k;
                     return (
                       <div key={k} className={`flex items-center gap-3 rounded-2xl border-2 p-2.5 ${ok ? 'border-emerald-500 bg-emerald-50' : 'border-ordo-gold/20'}`}>
                         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display font-black text-white ${OPTION_STYLE[k].bg}`}>{ky.options[k]}</span>
-                        <span className={`flex-1 ${ok ? 'font-bold text-emerald-800' : ''}`}>{q.options[k]}</span>
+                        <span className={`flex-1 ${ok ? 'font-bold text-emerald-800' : ''}`}>{q.type === 'TF' ? ky.tf[k] : q.options[k]}</span>
                         {ok && <span className="text-xs font-bold uppercase text-emerald-700">✓ {t.correctAnswer}</span>}
-                        {(g.phase === 'QUESTION' || g.phase === 'REVEAL') && (
+                        {(g.phase === 'QUESTION' || g.phase === 'REVEAL') && q.stats && (
                           <span className="rounded-lg bg-ordo-ink/5 px-2 py-0.5 font-bold tabular-nums text-ordo-ink/60">{q.stats[k]}</span>
+                        )}
+                        {q.audience.total > 0 && (
+                          <span className="rounded-lg bg-violet-100 px-2 py-0.5 text-xs font-bold tabular-nums text-violet-700" title={t.audience}>
+                            👥 {q.audience.counts[k]}
+                          </span>
                         )}
                       </div>
                     );
                   })}
                 </div>
+                )}
+                {q.audience.total > 0 && <div className="mt-3 text-sm font-semibold text-violet-700">👥 {t.audienceVotes(q.audience.total)}</div>}
               </section>
             )}
 
@@ -188,11 +214,13 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                         <div className="flex items-center gap-1.5">
                           {!p.online && <span title={ky.common.offline}>📵</span>}
                           <span className="truncate font-semibold">{p.name}</span>
+                          {p.fiftyUsed && <span title={t.fiftyUsed} className="ml-auto text-xs font-bold opacity-80">½</span>}
                         </div>
                         <div className="mt-0.5 text-sm opacity-90">
                           {a ? (
                             <>
-                              {a.isCorrect ? '✓' : '✗'} {ky.options[a.choice]} · {ky.common.sec(a.responseMs)}
+                              {a.isCorrect ? '✓' : '✗'} {answerLabel(q.type, a.choice)} · {ky.common.sec(a.responseMs)}
+                              {a.bonus > 0 && <span className="ml-1 font-bold">{t.bonus(a.bonus)}</span>}
                             </>
                           ) : (
                             t.notAnswered
@@ -208,6 +236,12 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
 
           {/* Рейтинг + оюнчулар */}
           <aside className="space-y-5">
+            {g.teamMode && state.teams.length > 0 && (
+              <section className="card p-5">
+                <h3 className="mb-3 font-display text-lg font-bold">🏫 {t.teamBoard}</h3>
+                <TeamBoard teams={state.teams} light />
+              </section>
+            )}
             <section className="card p-5">
               <h3 className="mb-3 font-display text-lg font-bold">{t.leaderboardTitle(round)}</h3>
               <LeaderboardList rows={state.leaderboard} light />

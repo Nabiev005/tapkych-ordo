@@ -2,9 +2,10 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../../components/Ornament';
+import { LangSwitch } from '../../components/LangSwitch';
 import { Button } from '../../components/ui';
 import { ky } from '../../i18n/ky';
-import { ApiError, adminToken, api } from '../../lib/api';
+import { ApiError, adminToken, api, staffUser, type StaffUser } from '../../lib/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -18,8 +19,9 @@ export default function Login() {
     setBusy(true);
     setError('');
     try {
-      const { token } = await api.post<{ token: string }>('/api/auth/login', { username, password });
+      const { token, user } = await api.post<{ token: string; user: StaffUser }>('/api/auth/login', { username, password });
       adminToken.set(token);
+      staffUser.set(user);
       navigate('/admin', { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : ky.errors.UNKNOWN);
@@ -31,6 +33,9 @@ export default function Login() {
   return (
     <div className="bg-night flex min-h-dvh flex-col">
       <OrnamentBand />
+      <div className="flex justify-end px-4 pt-3">
+        <LangSwitch dark />
+      </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-10 p-6">
         <Logo size="lg" />
         <motion.form

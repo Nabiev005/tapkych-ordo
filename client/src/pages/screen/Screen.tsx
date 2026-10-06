@@ -2,13 +2,13 @@ import confetti from 'canvas-confetti';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { JoinQr, LeaderboardList, OptionCard, Podium, RingTimer } from '../../components/game';
+import { AudienceBars, JoinQr, LeaderboardList, OPTION_STYLE, OptionCard, Podium, RingTimer, TeamBoard } from '../../components/game';
 import { CornerOrnament, HornMotif, Logo, OrnamentBand, SunTunduk } from '../../components/Ornament';
 import { ConnBadge, FullCenter, Spinner } from '../../components/ui';
-import { ky, type RoundKey } from '../../i18n/ky';
+import { ky, type OptionKey, type RoundKey } from '../../i18n/ky';
 import { assetUrl, getJoinBase } from '../../lib/api';
 import { audioUnlocked, setSoundEnabled, sfx, unlockAudio } from '../../lib/sound';
-import { OPTION_KEYS, type ScreenState } from '../../lib/types';
+import { optionKeysFor, type ScreenState } from '../../lib/types';
 import { useCountdown, useGameSocket } from '../../lib/useGameSocket';
 
 const COLORS = ['#c8102e', '#f5b700', '#1ba4e3', '#ffffff'];
@@ -73,7 +73,7 @@ export default function Screen() {
         )}
       </AnimatePresence>
 
-      {!audioOk && state.game.soundEnabled && (
+      {!audioOk && state.game.soundEnabled && !['QUESTION', 'REVEAL', 'ROUND_END'].includes(state.game.phase) && !state.game.showLeaderboard && (
         <div className="absolute right-6 top-10 z-50 animate-pulse rounded-full bg-white/10 px-5 py-2 text-lg text-white/70">🔈 {ky.screen.enableSound}</div>
       )}
       <ConnBadge status={status} dark />
@@ -110,10 +110,10 @@ function Stage({ state, offset }: { state: ScreenState; offset: number }) {
     content = <Finale state={state} />;
   } else if (g.phase === 'ROUND_END' && state.leaderboard && round) {
     key = 'roundend';
-    content = <BoardView title={ky.screen.roundResults(round)} rows={state.leaderboard} />;
+    content = <BoardView title={ky.screen.roundResults(round)} rows={state.leaderboard} teams={state.teams} />;
   } else if (g.showLeaderboard && state.leaderboard) {
     key = 'board';
-    content = <BoardView title={ky.screen.leaderboard} subtitle={round ? ky.rounds[round] : undefined} rows={state.leaderboard} />;
+    content = <BoardView title={ky.screen.leaderboard} subtitle={round ? ky.rounds[round] : undefined} rows={state.leaderboard} teams={state.teams} />;
   } else if (g.phase === 'IDLE' && round) {
     key = `idle-${round}`;
     content = <RoundIntro round={round} qualifiers={state.qualifiers} />;
@@ -157,6 +157,12 @@ function Lobby({ state }: { state: ScreenState }) {
           </div>
           <div className="text-xl text-white/50">🔒 {ky.screen.pinNote}</div>
         </div>
+        {base && (
+          <div className="flex flex-col items-center gap-2 rounded-3xl bg-violet-600/20 p-4 ring-2 ring-violet-400/40">
+            <JoinQr url={`${base}/watch/${g.code}`} size={Math.min(130, window.innerHeight * 0.13)} />
+            <div className="max-w-40 text-center text-sm font-semibold text-violet-200">👥 {ky.screen.watchQr}</div>
+          </div>
+        )}
       </div>
       <div className="w-full max-w-6xl">
         <div className="mb-3 text-center font-display text-2xl text-white/70">
@@ -248,6 +254,8 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
   const msLeft = useCountdown(g.phase === 'QUESTION' ? g.endsAt : null, offset, g.phase === 'QUESTION' ? g.pausedRemainingMs : null);
   if (!q || !q.options) return null;
   const revealed = !!q.correct;
+  const keys = optionKeysFor(q.type);
+  const correctBadge = q.correct ? (q.type === 'TF' ? ky.tf[q.correct] : q.type === 'ORDER' ? '' : ky.options[q.correct as OptionKey]) : '';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-[2vh] px-[4vw] py-[2vh]">
@@ -268,7 +276,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
           <RingTimer msLeft={msLeft} totalSec={g.timerSeconds} size={Math.min(200, window.innerHeight * 0.2)} paused={g.paused} />
         ) : (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="rounded-3xl bg-emerald-500 px-8 py-5 font-display text-3xl font-black shadow-[0_0_50px_rgba(16,185,129,0.5)]">
-            ✓ {ky.admin.control.correctAnswer}: {q.correct && ky.options[q.correct]}
+            ✓ {q.type === 'ORDER' ? ky.screen.orderTitle : `${ky.admin.control.correctAnswer}: ${correctBadge}`}
           </motion.div>
         )}
       </div>
@@ -277,12 +285,52 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
         {q.imageUrl && (
           <motion.img initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} src={assetUrl(q.imageUrl)} alt="" className="max-h-full w-[34%] self-center rounded-3xl object-contain shadow-2xl ring-4 ring-ordo-gold/40" />
         )}
-        <div className="grid flex-1 auto-rows-fr grid-cols-2 content-center gap-[2vh]">
-          {OPTION_KEYS.map((k, i) => (
-            <OptionCard key={k} letter={k} text={q.options![k]} index={i} correct={revealed && q.correct === k} dim={revealed && q.correct !== k} count={revealed ? (q.stats?.[k] ?? 0) : null} />
-          ))}
-        </div>
+        {q.type === 'ORDER' ? (
+          // Иретке келтирүү: ачылгандан кийин элементтер туура тартипте номерленет
+          <div className="flex flex-1 flex-col justify-center gap-[1.6vh]">
+            {(revealed ? [...q.correct!].map((c) => c as OptionKey) : keys).map((k, i) => (
+              <motion.div
+                key={k}
+                layout
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08, layout: { type: 'spring', damping: 20 } }}
+                className={`flex items-center gap-5 rounded-3xl border-2 p-4 ${revealed ? 'border-emerald-400 bg-emerald-500/20' : 'border-white/15 bg-white/[0.07]'}`}
+              >
+                <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl font-display text-4xl font-black text-white ${revealed ? 'bg-emerald-500' : OPTION_STYLE[k].bg}`}>
+                  {revealed ? i + 1 : ky.options[k]}
+                </div>
+                <div className="text-[clamp(1.4rem,2.6vw,3rem)] font-semibold text-white">{q.options![k]}</div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className={`grid flex-1 auto-rows-fr content-center gap-[2vh] ${q.type === 'TF' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {keys.map((k, i) => (
+              <OptionCard
+                key={k}
+                letter={k}
+                text={q.type === 'TF' ? ky.tf[k] : q.options![k]}
+                tf={q.type === 'TF'}
+                index={i}
+                correct={revealed && q.correct === k}
+                dim={revealed && q.correct !== k}
+                count={revealed ? (q.stats?.[k] ?? 0) : null}
+              />
+            ))}
+          </div>
+        )}
+        {/* Залдын добушу — ачылгандан кийин */}
+        {revealed && q.audience.counts && q.audience.total > 0 && q.type !== 'ORDER' && (
+          <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} className="self-center rounded-3xl bg-violet-600/20 p-5 ring-2 ring-violet-400/40">
+            <div className="mb-3 text-center font-display text-2xl font-black text-violet-200">👥 {ky.screen.audience}</div>
+            <AudienceBars counts={q.audience.counts} total={q.audience.total} keys={keys} correct={q.correct} />
+            <div className="mt-2 text-center text-sm text-violet-200/80">{ky.screen.audienceVotes(q.audience.total)}</div>
+          </motion.div>
+        )}
       </div>
+      {q.audioUrl && g.phase === 'QUESTION' && <QuestionAudio src={assetUrl(q.audioUrl)!} />}
+      {!revealed && q.audience.total > 0 && <div className="text-center text-lg text-violet-200/70">👥 {ky.screen.audienceVotes(q.audience.total)}</div>}
 
       {/* Оюнчулар: ким жооп бергени (жооптун өзү көрүнбөйт), ачылгандан кийин ✓/✗ */}
       <div className="flex flex-wrap justify-center gap-2.5">
@@ -303,6 +351,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
               className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 font-display text-[clamp(1rem,1.5vw,1.6rem)] font-bold ring-2 ${cls}`}
             >
               {p.correct === true ? '✓' : p.correct === false ? '✗' : p.answered ? '●' : '○'} {p.name}
+              {p.bonus > 0 && <span className="rounded-lg bg-black/20 px-2 text-base">⚡+{p.bonus}</span>}
             </motion.div>
           );
         })}
@@ -313,7 +362,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
 
 // ─────────────────────────── Рейтинг ───────────────────────────
 
-function BoardView({ title, subtitle, rows }: { title: string; subtitle?: string; rows: ScreenState['leaderboard'] }) {
+function BoardView({ title, subtitle, rows, teams }: { title: string; subtitle?: string; rows: ScreenState['leaderboard']; teams?: ScreenState['teams'] }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center px-[6vw] py-[3vh]">
       <motion.div initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-[3vh] flex items-center gap-6">
@@ -324,9 +373,21 @@ function BoardView({ title, subtitle, rows }: { title: string; subtitle?: string
         </div>
         <span className="text-6xl">🏆</span>
       </motion.div>
-      <div className="min-h-0 w-full max-w-5xl flex-1 overflow-hidden">
-        <LeaderboardList rows={rows ?? []} big compact={(rows ?? []).length > 8} maxRows={12} highlight={(rows ?? []).filter((r) => r.rank <= 3).map((r) => r.playerId)} />
-      </div>
+      {teams && teams.length > 0 ? (
+        <div className="grid min-h-0 w-full max-w-7xl flex-1 grid-cols-5 gap-8 overflow-hidden">
+          <div className="col-span-3">
+            <div className="mb-3 font-display text-3xl font-black text-ordo-sky-light">🏫 {ky.screen.teamsTitle}</div>
+            <TeamBoard teams={teams} big />
+          </div>
+          <div className="col-span-2">
+            <LeaderboardList rows={rows ?? []} compact maxRows={10} />
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-0 w-full max-w-5xl flex-1 overflow-hidden">
+          <LeaderboardList rows={rows ?? []} big compact={(rows ?? []).length > 8} maxRows={12} highlight={(rows ?? []).filter((r) => r.rank <= 3).map((r) => r.playerId)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -344,7 +405,11 @@ function Finale({ state }: { state: ScreenState }) {
     };
   }, []);
   const totals = new Map((state.standings ?? []).map((s) => [s.playerId, s.total]));
-  const top = (state.finalRanking ?? []).slice(0, 3).map((r) => ({ name: r.name, score: r.score, total: totals.get(r.playerId) }));
+  const teamMode = state.game.teamMode && !!state.teams?.length;
+  const top = teamMode
+    ? state.teams!.slice(0, 3).map((t) => ({ name: t.team, score: t.total }))
+    : (state.finalRanking ?? []).slice(0, 3).map((r) => ({ name: r.name, score: r.score, total: totals.get(r.playerId) }));
+  const best = teamMode ? (state.standings ?? [])[0] : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[3vh] px-10" onDoubleClick={() => setShowTable((v) => !v)}>
@@ -355,8 +420,14 @@ function Finale({ state }: { state: ScreenState }) {
       </motion.div>
       <AnimatePresence mode="wait">
         {!showTable ? (
-          <motion.div key="podium" exit={{ opacity: 0 }}>
+          <motion.div key="podium" exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
+            {teamMode && <div className="font-display text-4xl font-black tracking-widest text-ordo-sky-light">🏫 {ky.screen.teamChampion}</div>}
             <Podium top={top} />
+            {best && (
+              <div className="rounded-full bg-white/10 px-6 py-2 font-display text-2xl text-ordo-gold-light">
+                ⭐ {ky.screen.bestPlayer}: {best.name} · {best.total}
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div key="table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-6xl">
@@ -433,4 +504,17 @@ function SoundDirector({ state, offset }: { state: ScreenState; offset: number }
   }, [msLeft, g.phase, g.paused, g.endsAt]);
 
   return null;
+}
+
+/** Музыкалык суроо: экранда автоматтык түрдө ойнойт (браузер уруксат берсе), болбосо баскыч менен */
+function QuestionAudio({ src }: { src: string }) {
+  const ref = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    ref.current?.play().catch(() => undefined);
+  }, [src]);
+  return (
+    <div className="flex justify-center">
+      <audio ref={ref} src={src} controls className="w-[40vw]" />
+    </div>
+  );
 }

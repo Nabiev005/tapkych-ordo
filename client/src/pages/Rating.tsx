@@ -1,18 +1,23 @@
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { OrnamentBand, SunTunduk } from '../components/Ornament';
+import { LangSwitch } from '../components/LangSwitch';
 import { Button, Spinner } from '../components/ui';
 import { ky } from '../i18n/ky';
 import { adminToken, api, downloadFile } from '../lib/api';
-import type { RatingRow } from '../lib/types';
+import type { RatingRow, Season } from '../lib/types';
 
 type SortKey = 'totalScore' | 'wins' | 'accuracy';
 
 /** Бардык оюндар боюнча эң акылдуу окуучулардын рейтинги — ачык бет */
 export default function Rating() {
   const t = ky.rating;
-  const [data, setData] = useState<{ rows: RatingRow[]; classes: string[]; games: number } | null>(null);
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const seasonId = params.get('season') ?? '';
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [data, setData] = useState<{ rows: RatingRow[]; classes: string[]; games: number; tasks: number } | null>(null);
   const [error, setError] = useState('');
   const [cls, setCls] = useState('');
   const [sort, setSort] = useState<SortKey>('totalScore');
@@ -20,10 +25,19 @@ export default function Rating() {
 
   useEffect(() => {
     api
-      .get<{ rows: RatingRow[]; classes: string[]; games: number }>('/api/rating')
+      .get<{ seasons: Season[] }>('/api/seasons')
+      .then((r) => setSeasons(r.seasons))
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    setData(null);
+    api
+      .get<{ rows: RatingRow[]; classes: string[]; games: number; tasks: number }>(`/api/rating${seasonId ? `?seasonId=${seasonId}` : ''}`)
       .then(setData)
       .catch((e) => setError(e.message));
-  }, []);
+  }, [seasonId]);
+  const openProfile = (id: number) => navigate(`/rating/student/${id}${seasonId ? `?season=${seasonId}` : ''}`);
 
   const rows = useMemo(() => {
     const list = (data?.rows ?? []).filter((r) => !cls || r.className === cls);
@@ -41,11 +55,27 @@ export default function Rating() {
   return (
     <div className="bg-night min-h-dvh text-white">
       <OrnamentBand />
+      <div className="flex justify-end px-4 pt-3">
+        <LangSwitch dark />
+      </div>
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <SunTunduk size={90} />
           <h1 className="font-display text-4xl font-black text-gold-gradient md:text-6xl">{t.title}</h1>
-          {data && <p className="text-lg text-ordo-sky-light">{t.subtitle(data.games)}</p>}
+          {data && <p className="text-lg text-ordo-sky-light">{data.tasks ? t.subtitleTasks(data.games, data.tasks) : t.subtitle(data.games)}</p>}
+          {seasons.length > 0 && (
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              {[{ id: '', name: t.allTime }, ...seasons.map((x) => ({ id: String(x.id), name: x.name }))].map((x) => (
+                <button
+                  key={x.id || 'all'}
+                  onClick={() => setParams(x.id ? { season: x.id } : {})}
+                  className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${seasonId === x.id ? 'bg-ordo-sky text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}
+                >
+                  📅 {x.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && <div className="rounded-2xl bg-ordo-red p-4 text-center">{error}</div>}
@@ -78,10 +108,11 @@ export default function Rating() {
                 {top.map((r, i) => (
                   <motion.div
                     key={r.studentId}
+                    onClick={() => openProfile(r.studentId)}
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.12, type: 'spring', damping: 16 }}
-                    className={`rounded-3xl p-6 text-center ring-2 ${
+                    className={`cursor-pointer rounded-3xl p-6 text-center ring-2 transition hover:brightness-125 ${
                       i === 0 ? 'bg-ordo-gold/20 ring-ordo-gold md:order-2 md:-translate-y-3' : i === 1 ? 'bg-white/10 ring-slate-300 md:order-1' : 'bg-orange-400/10 ring-orange-400 md:order-3'
                     }`}
                   >
@@ -111,9 +142,14 @@ export default function Rating() {
                 ))}
               </div>
               {isAdmin && (
-                <Button variant="gold" size="sm" icon="📊" onClick={() => downloadFile('/api/rating/export.xlsx', ky.files.rating).catch(() => undefined)}>
-                  {t.export}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" icon="📜" onClick={() => window.open(`/certificate?top=3${seasonId ? `&season=${seasonId}` : ''}`, '_blank')}>
+                    {ky.certificate.top3}
+                  </Button>
+                  <Button variant="gold" size="sm" icon="📊" onClick={() => downloadFile(`/api/rating/export.xlsx${seasonId ? `?seasonId=${seasonId}` : ''}`, ky.files.rating).catch(() => undefined)}>
+                    {t.export}
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -126,6 +162,7 @@ export default function Rating() {
                     <th className="p-3">{t.name}</th>
                     <th className="p-3">{t.className}</th>
                     <th className="p-3 text-center">{t.games}</th>
+                    <th className="p-3 text-center">{t.tasks}</th>
                     <th className="p-3 text-center">{t.wins}</th>
                     <th className="p-3 text-center">{t.podiums}</th>
                     <th className="p-3 text-center">{t.finals}</th>
@@ -140,12 +177,14 @@ export default function Rating() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: Math.min(i, 20) * 0.03 }}
-                      className={`border-t border-white/10 ${i < 3 ? 'text-ordo-gold-light' : ''}`}
+                      onClick={() => openProfile(r.studentId)}
+                      className={`cursor-pointer border-t border-white/10 transition hover:bg-white/5 ${i < 3 ? 'text-ordo-gold-light' : ''}`}
                     >
                       <td className="p-3 font-display text-lg font-black">{medal[i] ?? i + 1}</td>
                       <td className="p-3 text-lg font-semibold">{r.name}</td>
                       <td className="p-3 text-white/70">{r.className}</td>
                       <td className="p-3 text-center tabular-nums">{r.games}</td>
+                      <td className="p-3 text-center tabular-nums">{r.tasks}</td>
                       <td className="p-3 text-center tabular-nums">{r.wins}</td>
                       <td className="p-3 text-center tabular-nums">{r.podiums}</td>
                       <td className="p-3 text-center tabular-nums">{r.finals}</td>
@@ -163,7 +202,9 @@ export default function Rating() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-center text-sm text-white/40">{t.rule}</p>
+            <p className="mt-3 text-center text-sm text-white/40">
+              {t.rule} {t.profileHint}.
+            </p>
           </>
         )}
 

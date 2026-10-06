@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { ky, type OptionKey } from '../i18n/ky';
-import type { Ranked } from '../lib/types';
+import type { Ranked, TeamStanding } from '../lib/types';
 import { CornerOrnament } from './Ornament';
 
 export const OPTION_STYLE: Record<OptionKey, { bg: string; ring: string; glow: string; hex: string }> = {
@@ -57,6 +57,7 @@ export function OptionCard({
   dim,
   count,
   index = 0,
+  tf,
 }: {
   letter: OptionKey;
   text: string;
@@ -64,8 +65,10 @@ export function OptionCard({
   dim?: boolean;
   count?: number | null;
   index?: number;
+  /** «Туура / Туура эмес»: А — жашыл ✓, Б — кызыл ✗ (телефондогудай) */
+  tf?: boolean;
 }) {
-  const st = OPTION_STYLE[letter];
+  const st = OPTION_STYLE[tf ? (letter === 'A' ? 'D' : 'A') : letter];
   return (
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -76,7 +79,7 @@ export function OptionCard({
       }`}
     >
       <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl font-display text-4xl font-black text-white md:h-20 md:w-20 md:text-5xl ${st.bg}`}>
-        {ky.options[letter]}
+        {tf ? (letter === 'A' ? '✓' : '✗') : ky.options[letter]}
       </div>
       <div className="flex-1 text-2xl font-semibold leading-tight text-white md:text-4xl">{text}</div>
       {correct && (
@@ -188,6 +191,64 @@ export function JoinQr({ url, size = 220 }: { url: string; size?: number }) {
   return (
     <div className="rounded-3xl bg-white p-4 shadow-2xl ring-4 ring-ordo-gold">
       <QRCodeSVG value={url} size={size} level="M" fgColor="#0b1d3a" />
+    </div>
+  );
+}
+
+/** Командалык рейтинг (класс класска каршы) */
+export function TeamBoard({ teams, light, big }: { teams: TeamStanding[]; light?: boolean; big?: boolean }) {
+  const medal = ['🥇', '🥈', '🥉'];
+  const max = Math.max(1, ...teams.map((t) => t.total));
+  return (
+    <div className={`flex flex-col ${big ? 'gap-3' : 'gap-1.5'}`}>
+      {teams.map((t, i) => (
+        <motion.div
+          key={t.team}
+          layout
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.08 }}
+          className={`relative overflow-hidden rounded-2xl ${big ? 'px-6 py-4' : 'px-4 py-2'} ${light ? 'bg-white ring-1 ring-ordo-gold/20' : 'bg-white/[0.07] ring-1 ring-white/10'}`}
+        >
+          <div
+            className={`absolute inset-y-0 left-0 ${light ? 'bg-ordo-gold/15' : 'bg-gradient-to-r from-ordo-gold/30 to-ordo-gold/5'}`}
+            style={{ width: `${(t.total / max) * 100}%` }}
+          />
+          <div className="relative flex items-center gap-4">
+            <div className={`w-10 text-center font-display font-black ${big ? 'text-4xl' : 'text-xl'} ${light ? 'text-ordo-ink/60' : 'text-ordo-gold'}`}>{medal[i] ?? t.place}</div>
+            <div className={`flex-1 font-display font-black ${big ? 'text-4xl' : 'text-lg'} ${light ? 'text-ordo-ink' : 'text-white'}`}>{t.team}</div>
+            <div className={`${big ? 'text-xl' : 'text-xs'} ${light ? 'text-ordo-ink/50' : 'text-white/60'}`}>
+              {ky.screen.members(t.members)} · {ky.admin.control.average} {t.average}
+            </div>
+            <div className={`min-w-14 text-right font-display font-black tabular-nums ${big ? 'text-5xl' : 'text-2xl'} ${light ? 'text-ordo-red' : 'text-white'}`}>{t.total}</div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+/** Залдын добуштары: ар бир вариант канча пайыз */
+export function AudienceBars({ counts, total, keys, correct }: { counts: Record<OptionKey, number>; total: number; keys: OptionKey[]; correct?: string | null }) {
+  return (
+    <div className="flex items-end gap-3">
+      {keys.map((k) => {
+        const pct = total ? Math.round((counts[k] / total) * 100) : 0;
+        return (
+          <div key={k} className="flex w-16 flex-col items-center gap-1">
+            <div className="font-display text-lg font-black tabular-nums text-white">{pct}%</div>
+            <div className="flex h-24 w-10 items-end overflow-hidden rounded-lg bg-white/10">
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: `${pct}%` }}
+                transition={{ type: 'spring', damping: 18 }}
+                className={`w-full ${OPTION_STYLE[k].bg} ${correct === k ? 'ring-2 ring-white' : ''}`}
+              />
+            </div>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-lg font-display font-black text-white ${OPTION_STYLE[k].bg}`}>{ky.options[k]}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }

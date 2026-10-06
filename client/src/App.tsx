@@ -17,6 +17,15 @@ const Screen = lazy(() => import('./pages/screen/Screen'));
 const Students = lazy(() => import('./pages/admin/Students'));
 const History = lazy(() => import('./pages/admin/History'));
 const Rating = lazy(() => import('./pages/Rating'));
+const StudentProfile = lazy(() => import('./pages/StudentProfile'));
+const Certificate = lazy(() => import('./pages/Certificate'));
+const Watch = lazy(() => import('./pages/player/Watch'));
+const Homework = lazy(() => import('./pages/player/Homework'));
+const Teachers = lazy(() => import('./pages/admin/Teachers'));
+const Seasons = lazy(() => import('./pages/admin/Seasons'));
+const Assignments = lazy(() => import('./pages/admin/Assignments'));
+const AssignmentDetail = lazy(() => import('./pages/admin/AssignmentDetail'));
+const Replay = lazy(() => import('./pages/admin/Replay'));
 
 export default function App() {
   return (
@@ -32,6 +41,11 @@ export default function App() {
         <Route path="/join" element={<Join />} />
         <Route path="/screen/:code" element={<Screen />} />
         <Route path="/rating" element={<Rating />} />
+        <Route path="/rating/student/:id" element={<StudentProfile />} />
+        <Route path="/certificate" element={<Certificate />} />
+        <Route path="/watch/:code" element={<Watch />} />
+        <Route path="/hw/:code" element={<Homework />} />
+        <Route path="/admin/games/:id/replay" element={<Replay />} />
         <Route path="/admin/login" element={<Login />} />
         <Route path="/admin/games/:id/pins" element={<Pins />} />
         <Route path="/admin" element={<AdminLayout />}>
@@ -40,6 +54,10 @@ export default function App() {
           <Route path="import" element={<ImportPage />} />
           <Route path="students" element={<Students />} />
           <Route path="history" element={<History />} />
+          <Route path="teachers" element={<Teachers />} />
+          <Route path="seasons" element={<Seasons />} />
+          <Route path="assignments" element={<Assignments />} />
+          <Route path="assignments/:id" element={<AssignmentDetail />} />
           <Route path="games/new" element={<NewGame />} />
           <Route path="games/:id" element={<GameControl />} />
         </Route>

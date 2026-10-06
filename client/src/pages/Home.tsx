@@ -2,11 +2,15 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../components/Ornament';
 import { ky } from '../i18n/ky';
+import { LangSwitch } from '../components/LangSwitch';
 
 export default function Home() {
   return (
     <div className="bg-night flex min-h-dvh flex-col text-white">
       <OrnamentBand />
+      <div className="flex justify-end px-4 pt-3">
+        <LangSwitch dark />
+      </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-12 p-6">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
           <Logo size="lg" />
