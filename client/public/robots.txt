@@ -7,4 +7,4 @@ Disallow: /watch/
 Disallow: /hw/
 Disallow: /api/
 
-Sitemap: https://tapkych-ordo.onrender.com/sitemap.xml
+Sitemap: https://www.tapkych.com/sitemap.xml

@@ -84,7 +84,8 @@ cd server && npx tsc --noEmit
 ## Деплой
 
 - **GitHub:** https://github.com/Nabiev005/tapkych-ordo (ачык), `main` бутагы.
-- **Render (негизги дарек):** https://tapkych-ordo.onrender.com
+- **Негизги домен (2026-10-10):** https://www.tapkych.com. Домен Vercel'ден алынган, DNS да Vercel'де (`ns1/ns2.vercel-dns.com`). `tapkych.com` → `www.tapkych.com` (308). Сайтты Vercel берет, ал эми API жана Socket.IO Render'де (`VITE_API_URL`). Canonical, sitemap, robots жана JSON-LD ушул доменге жазылган (`client/index.html`, `client/public/`).
+- **Render (сервер, ошондой эле толук резервдик дарек):** https://tapkych-ordo.onrender.com
   - `render.yaml` боюнча API жана сайт бир сервисте иштейт. Сервер `client/dist`'ти өзү берет.
   - `main`'ге push кылынганда автоматтык түрдө жайгашат (`buildFilter`: `server/**`, `client/**`, `render.yaml`).
   - Жаңы версия чыкканын `/api/health` → `version` (коммиттин алгачкы 7 белгиси) аркылуу текшерсе болот.
@@ -116,7 +117,7 @@ cd server && npx tsc --noEmit
   Студенттер үчүн Google менен кирүү (үй тапшырмасы, жеке баракча) кийинчерээк кошулат.
 - [ ] Render'дин уктап калышы: UptimeRobot же GitHub Actions аркылуу `/api/health` дарегине ар 5–10 мүнөттө кайрылып туруу сунушталды (колдонуучу азырынча чечим кабыл ала элек).
 
-- [ ] **Домен:** колдонуучу домен тууралуу сураган (мис. `.kg` же `.com`), бирок азырынча чечим кабыл алына элек. Домен алынса, аны Render'дин Custom Domain бөлүмүнө туташтыруу керек.
+- [ ] **tapkych.com домени — колдонуучунун тарабы:** Google OAuth'тун JavaScript origins бөлүмүнө `https://www.tapkych.com` жана `https://tapkych.com` даректерин, Branding'ге `tapkych.com` доменин кошуу; Branding шилтемелерин жаңы доменге алмаштыруу; Search Console'до `tapkych.com` доменин (DNS TXT аркылуу) кошуу.
 - [ ] Админ панелинин башка беттери (Суроолор, Студенттер, Тарых ж.б.) жаңы каптал менюнун стилине толук ылайыкташтырыла элек. Аларды текшерип, керек болсо жаңыртуу керек.
 - [ ] Автоматтык тесттерди репозиторийге кошуу (`server/test/`) жана `npm test` буйругун түзүү.
 - [ ] `client/tsconfig.tsbuildinfo` git'те сакталып жатат. Аны `.gitignore`'го кошуу керек.
