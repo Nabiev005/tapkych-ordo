@@ -1,0 +1,10 @@
+# Издөө системалары үчүн: ачык беттер индекстелет, башкаруу жана оюн беттери жок
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /screen/
+Disallow: /watch/
+Disallow: /hw/
+Disallow: /api/
+
+Sitemap: https://tapkych-ordo.onrender.com/sitemap.xml
