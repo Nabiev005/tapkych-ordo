@@ -274,6 +274,7 @@ export interface Teacher {
   username: string;
   name: string;
   email: string | null;
+  approved: boolean;
   createdAt: string;
   _count: { questions: number; games: number; assignments: number };
 }

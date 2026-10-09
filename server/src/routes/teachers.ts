@@ -30,8 +30,9 @@ function parseId(raw: string): number {
 
 teachersRouter.get('/', async (_req, res) => {
   const teachers = await prisma.teacher.findMany({
-    orderBy: { name: 'asc' },
-    select: { id: true, username: true, name: true, email: true, createdAt: true, _count: { select: { questions: true, games: true, assignments: true } } },
+    // Ырастоону күтүп жаткандар — биринчи
+    orderBy: [{ approved: 'asc' }, { name: 'asc' }],
+    select: { id: true, username: true, name: true, email: true, approved: true, createdAt: true, _count: { select: { questions: true, games: true, assignments: true } } },
   });
   res.json({ teachers });
 });
@@ -59,7 +60,12 @@ teachersRouter.post('/', async (req, res) => {
 teachersRouter.patch('/:id', async (req, res) => {
   const id = parseId(req.params.id);
   const body = z
-    .object({ name: z.string().trim().min(1).max(80).optional(), password: passwordSchema.optional(), email: emailSchema.optional() })
+    .object({
+      name: z.string().trim().min(1).max(80).optional(),
+      password: passwordSchema.optional(),
+      email: emailSchema.optional(),
+      approved: z.boolean().optional(), // Google менен катталган мугалимдин өтүнмөсүн ырастоо
+    })
     .parse(req.body);
   if (body.email) await assertEmailFree(body.email, id);
   await prisma.teacher
@@ -69,6 +75,7 @@ teachersRouter.patch('/:id', async (req, res) => {
         ...(body.name ? { name: body.name } : {}),
         ...(body.password ? { passwordHash: hashPassword(body.password) } : {}),
         ...(body.email !== undefined ? { email: body.email || null } : {}),
+        ...(body.approved !== undefined ? { approved: body.approved } : {}),
       },
     })
     .catch(() => {

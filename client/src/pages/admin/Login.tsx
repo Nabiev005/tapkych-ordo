@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../../components/Ornament';
 import { LangSwitch } from '../../components/LangSwitch';
 import { GoogleButton } from '../../components/GoogleButton';
@@ -12,7 +12,8 @@ export default function Login() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // info — ката эмес, маалымат (мис. Google менен катталган мугалимдин өтүнмөсү кабыл алынды)
+  const [error, setError] = useState<{ text: string; info?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
 
@@ -25,14 +26,16 @@ export default function Login() {
 
   const signIn = async (path: string, body: unknown) => {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       const { token, user } = await api.post<{ token: string; user: StaffUser }>(path, body);
       adminToken.set(token);
       staffUser.set(user);
       navigate('/admin', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : ky.errors.UNKNOWN);
+      setError(
+        err instanceof ApiError ? { text: err.message, info: err.code === 'TEACHER_PENDING' } : { text: ky.errors.UNKNOWN },
+      );
     } finally {
       setBusy(false);
     }
@@ -58,9 +61,18 @@ export default function Login() {
           className="card w-full max-w-sm space-y-4 p-7"
         >
           <h1 className="text-center font-display text-xl font-bold">{ky.admin.loginTitle}</h1>
+          {error && (
+            <div
+              className={`rounded-xl px-4 py-3 text-center font-semibold ${error.info ? 'bg-ordo-sky/10 text-ordo-sky' : 'bg-ordo-red/10 text-ordo-red'}`}
+            >
+              {error.info ? '⏳ ' : ''}
+              {error.text}
+            </div>
+          )}
           {googleClientId && (
             <>
               <GoogleButton clientId={googleClientId} onCredential={(credential) => void signIn('/api/auth/google', { credential })} />
+              <p className="text-center text-xs leading-snug text-ordo-ink/50">{ky.admin.googleHint}</p>
               <div className="flex items-center gap-3 text-xs font-semibold text-ordo-ink/45">
                 <span className="h-px flex-1 bg-ordo-ink/15" />
                 {ky.admin.loginOr}
@@ -76,11 +88,18 @@ export default function Login() {
             <label className="label">{ky.admin.password}</label>
             <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          {error && <div className="rounded-xl bg-ordo-red/10 px-4 py-3 text-center font-semibold text-ordo-red">{error}</div>}
           <Button type="submit" size="lg" className="w-full" loading={busy} disabled={!username || !password}>
             {busy ? ky.admin.loggingIn : ky.admin.login}
           </Button>
         </motion.form>
+        <nav className="flex gap-4 text-xs font-semibold text-white/50">
+          <Link to="/privacy" className="hover:text-white">
+            {ky.legal.privacyTitle}
+          </Link>
+          <Link to="/terms" className="hover:text-white">
+            {ky.legal.termsTitle}
+          </Link>
+        </nav>
       </div>
       <OrnamentBand flip />
     </div>

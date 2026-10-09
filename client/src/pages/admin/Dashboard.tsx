@@ -73,6 +73,7 @@ export default function Dashboard() {
   const [games, setGames] = useState<GameRow[] | null>(null);
   const [students, setStudents] = useState<number | null>(null);
   const [openTasks, setOpenTasks] = useState<number | null>(null);
+  const [pendingTeachers, setPendingTeachers] = useState(0);
 
   const load = () => {
     api.get<{ summary: Summary[] }>('/api/questions/summary').then((r) => setSummary(r.summary)).catch((e) => toast(e.message, 'err'));
@@ -82,6 +83,12 @@ export default function Dashboard() {
       .get<{ assignments: { open: boolean }[] }>('/api/assignments')
       .then((r) => setOpenTasks(r.assignments.filter((a) => a.open).length))
       .catch(() => undefined);
+    // Google менен катталып, ырастоону күткөн мугалимдер (башкы алып баруучуга гана)
+    if (user?.role !== 'teacher')
+      api
+        .get<{ teachers: { approved: boolean }[] }>('/api/teachers')
+        .then((r) => setPendingTeachers(r.teachers.filter((x) => !x.approved).length))
+        .catch(() => undefined);
   };
   useEffect(load, [toast]);
 
@@ -147,6 +154,16 @@ export default function Dashboard() {
           </Button>
         </div>
       </motion.section>
+
+      {pendingTeachers > 0 && (
+        <Link
+          to="/admin/teachers"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ordo-gold/60 bg-ordo-gold/15 px-5 py-4 font-semibold transition hover:bg-ordo-gold/25"
+        >
+          <span>⏳ {d.pendingBanner(pendingTeachers)}</span>
+          <span className="text-ordo-sky">{d.pendingOpen}</span>
+        </Link>
+      )}
 
       {/* Сандар */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">

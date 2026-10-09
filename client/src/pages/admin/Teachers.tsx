@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
-import { ky } from '../../i18n/ky';
+import { fmtDateTime, ky } from '../../i18n/ky';
 import { api } from '../../lib/api';
 import type { Teacher } from '../../lib/types';
 
@@ -12,6 +12,7 @@ export default function Teachers() {
   // id бар болсо — оңдоо (аты жана Gmail), жок болсо — жаңы мугалим
   const [form, setForm] = useState<{ id?: number; name: string; username: string; password: string; email: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   const load = () =>
     api
@@ -52,6 +53,28 @@ export default function Teachers() {
       : /^[a-zA-Z0-9._-]{3,30}$/.test(form.username.trim()) &&
         (form.password.trim().length >= 6 || (!form.password.trim() && !!form.email.trim())));
 
+  const pending = list?.filter((x) => !x.approved) ?? [];
+  const approvedList = list?.filter((x) => x.approved) ?? [];
+
+  const approve = async (x: Teacher) => {
+    setBusyId(x.id);
+    try {
+      await api.patch(`/api/teachers/${x.id}`, { approved: true });
+      toast(t.approvedToast(x.name));
+      void load();
+    } catch (e) {
+      toast((e as Error).message, 'err');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reject = async (x: Teacher) => {
+    if (!(await confirm({ title: t.reject, message: t.rejectConfirm(x.name), danger: true, confirmText: t.reject }))) return;
+    await api.del(`/api/teachers/${x.id}`).catch((e) => toast(e.message, 'err'));
+    void load();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -64,13 +87,44 @@ export default function Teachers() {
         </Button>
       </div>
 
+      {pending.length > 0 && (
+        <section className="rounded-3xl border-2 border-ordo-gold/60 bg-ordo-gold/10 p-5">
+          <h2 className="font-display text-lg font-bold">
+            ⏳ {t.pendingTitle} <span className="text-ordo-gold-dark">({pending.length})</span>
+          </h2>
+          <p className="text-sm text-ordo-ink/60">{t.pendingHint}</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {pending.map((x) => (
+              <div key={x.id} className="card flex flex-wrap items-center gap-3 p-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ordo-gold font-display text-lg font-bold text-ordo-night">
+                  {x.name.slice(0, 1)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display font-bold">{x.name}</div>
+                  <div className="truncate text-sm font-semibold text-ordo-sky">✉ {x.email}</div>
+                  <div className="text-xs text-ordo-ink/45">{fmtDateTime(x.createdAt)}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="green" loading={busyId === x.id} onClick={() => void approve(x)}>
+                    ✓ {t.approve}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={busyId === x.id} onClick={() => void reject(x)}>
+                    ✕ {t.reject}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {!list ? (
         <Spinner />
-      ) : list.length === 0 ? (
+      ) : approvedList.length === 0 ? (
         <div className="card p-10 text-center text-ordo-ink/60">{t.empty}</div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {list.map((x) => (
+          {approvedList.map((x) => (
             <div key={x.id} className="card flex items-center gap-4 p-5">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ordo-sky font-display text-xl font-bold text-white">{x.name.slice(0, 1)}</div>
               <div className="min-w-0 flex-1">

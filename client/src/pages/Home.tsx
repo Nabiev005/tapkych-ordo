@@ -282,6 +282,12 @@ export default function Home() {
             <Link to="/admin" className="hover:text-white">
               {h.host}
             </Link>
+            <Link to="/privacy" className="hover:text-white">
+              {ky.legal.privacyTitle}
+            </Link>
+            <Link to="/terms" className="hover:text-white">
+              {ky.legal.termsTitle}
+            </Link>
           </div>
           <div className="text-sm text-white/40">© {new Date().getFullYear()} {ky.appName}</div>
         </div>

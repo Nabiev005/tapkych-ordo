@@ -18,6 +18,7 @@ model Teacher {
   name         String
   passwordHash String
   email        String?  @unique // Gmail — «Google менен кирүү» үчүн
+  approved     Boolean  @default(true) // Google менен өзү катталса — ырасталганга чейин false
   createdAt    DateTime @default(now())
 
   questions   Question[]

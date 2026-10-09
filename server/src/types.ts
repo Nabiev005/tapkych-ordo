@@ -58,6 +58,7 @@ export type ErrorCode =
   | 'GOOGLE_FAILED'
   | 'GOOGLE_NOT_ALLOWED'
   | 'DUPLICATE_EMAIL'
+  | 'TEACHER_PENDING'
   | 'SERVER_ERROR';
 
 export class AppError extends Error {

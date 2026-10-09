@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { config, getLanIp } from '../config.js';
-import { checkAdminCredentials, randomToken, requireAdmin, signStaffToken, staff, verifyPassword, type StaffUser } from '../auth.js';
+import { checkAdminCredentials, hashPassword, randomToken, requireAdmin, signStaffToken, staff, verifyPassword, type StaffUser } from '../auth.js';
 import { FailLimiter } from '../rateLimit.js';
 import { bus } from '../events.js';
 import { AppError } from '../types.js';
@@ -27,7 +27,10 @@ publicRouter.post('/auth/login', async (req, res) => {
   } else {
     // Мугалимдин аккаунту
     const teacher = await prisma.teacher.findUnique({ where: { username: u.toLowerCase() } });
-    if (teacher && verifyPassword(p, teacher.passwordHash)) user = { role: 'teacher', teacherId: teacher.id, name: teacher.name };
+    if (teacher && verifyPassword(p, teacher.passwordHash)) {
+      if (!teacher.approved) throw new AppError('TEACHER_PENDING', 403);
+      user = { role: 'teacher', teacherId: teacher.id, name: teacher.name };
+    }
   }
   if (!user) {
     loginLimiter.fail(key);
@@ -42,34 +45,61 @@ publicRouter.get('/auth/config', (_req, res) => {
   res.json({ googleClientId: config.googleClientId || null });
 });
 
+/** Ырастоону күтүп жаткан өтүнмөлөрдүн эң көп саны (спамдан коргоо) */
+const MAX_PENDING_TEACHERS = 50;
+
+/** Gmail'ден логин жасайбыз: «Aigul.T@gmail.com» → «aigul.t», бош эмес болсо «aigul.t2» … */
+async function uniqueUsername(email: string): Promise<string> {
+  const base = (email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'teacher').slice(0, 26).padEnd(3, '0');
+  for (let i = 1; ; i++) {
+    const candidate = i === 1 ? base : `${base}${i}`;
+    if (!(await prisma.teacher.findUnique({ where: { username: candidate } }))) return candidate;
+  }
+}
+
 /**
- * Google менен кирүү. Жаңы аккаунт түзүлбөйт — Gmail алдын ала кошулган болушу керек:
- * ADMIN_EMAILS ичинде болсо — башкы алып баруучу, мугалимдин email'ине дал келсе — мугалим.
+ * Google менен кирүү:
+ *  - Gmail ADMIN_EMAILS ичинде болсо — башкы алып баруучу;
+ *  - ырасталган мугалимдин Gmail'и болсо — мугалим;
+ *  - жаңы Gmail болсо — мугалим өзү катталат (өтүнмө), башкы алып баруучу «Мугалимдер» бөлүмүнөн ырастайт.
  */
 publicRouter.post('/auth/google', async (req, res) => {
   const key = req.ip ?? 'unknown';
   loginLimiter.check(key);
   const { credential } = z.object({ credential: z.string().min(10).max(5000) }).parse(req.body);
-  let email: string;
+  let google: { email: string; name: string };
   try {
-    ({ email } = await verifyGoogleCredential(credential));
+    google = await verifyGoogleCredential(credential);
   } catch (e) {
     loginLimiter.fail(key);
     throw e;
   }
-  let user: StaffUser | null = null;
-  if (config.adminEmails.includes(email)) {
-    user = { role: 'admin', teacherId: null, name: config.adminUser };
-  } else {
-    const teacher = await prisma.teacher.findUnique({ where: { email } });
-    if (teacher) user = { role: 'teacher', teacherId: teacher.id, name: teacher.name };
-  }
-  if (!user) {
-    loginLimiter.fail(key);
-    throw new AppError('GOOGLE_NOT_ALLOWED', 403);
-  }
   loginLimiter.reset(key);
-  res.json({ token: signStaffToken(user), user: { role: user.role, name: user.name } });
+
+  if (config.adminEmails.includes(google.email)) {
+    const user: StaffUser = { role: 'admin', teacherId: null, name: config.adminUser };
+    return res.json({ token: signStaffToken(user), user: { role: user.role, name: user.name } });
+  }
+
+  const teacher = await prisma.teacher.findUnique({ where: { email: google.email } });
+  if (teacher?.approved) {
+    const user: StaffUser = { role: 'teacher', teacherId: teacher.id, name: teacher.name };
+    return res.json({ token: signStaffToken(user), user: { role: user.role, name: user.name } });
+  }
+  if (!teacher) {
+    // Жаңы мугалим: өтүнмө түзүлөт (өтө көп болсо — жаңысы кабыл алынбайт)
+    if ((await prisma.teacher.count({ where: { approved: false } })) >= MAX_PENDING_TEACHERS) throw new AppError('TOO_MANY_ATTEMPTS', 429);
+    await prisma.teacher.create({
+      data: {
+        username: await uniqueUsername(google.email),
+        name: google.name.trim().slice(0, 80) || google.email,
+        email: google.email,
+        approved: false,
+        passwordHash: hashPassword(randomToken()),
+      },
+    });
+  }
+  throw new AppError('TEACHER_PENDING', 403);
 });
 
 publicRouter.get('/auth/me', requireAdmin, (_req, res) => {
