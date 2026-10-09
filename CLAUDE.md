@@ -108,16 +108,11 @@ cd server && npx tsc --noEmit
 
 ## Калган иштер жана идеялар
 
-- [ ] **Google менен кирүү — колдонуучунун тарабы (2026-10-09):** OAuth Client ID «My Project 5063» (`clear-destiny-500409-u9`) долбоорунда түзүлдү («peak-bricolage-6mn89» Starter Tier болгондуктан колдонулбайт). Калганы:
-  - Branding'ге home page, `/privacy`, `/terms` шилтемелерин жана authorized domain'ди кошуу;
-  - **Publish app** баскычы менен In production абалына өткөрүү;
-  - Render'ге `GOOGLE_CLIENT_ID` жана `ADMIN_EMAILS` өзгөрмөлөрүн кошуу;
-  - Client secret скриншотто көрүнүп калган — аны Reset кылуу (биз аны колдонбойбуз).
-
-  Студенттер үчүн Google менен кирүү (үй тапшырмасы, жеке баракча) кийинчерээк кошулат.
+- [x] **Google менен кирүү иштейт (2026-10-10, www.tapkych.com'до сыналды).** OAuth Client ID «My Project 5063» (`clear-destiny-500409-u9`) долбоорунда түзүлгөн («peak-bricolage-6mn89» Starter Tier болгондуктан колдонулбайт). Колдонмо жарыяланган (In production). Origins: onrender, vercel.app, www.tapkych.com, tapkych.com, localhost:3000/5173. Render'де `GOOGLE_CLIENT_ID` жана `ADMIN_EMAILS` коюлган.
+- [ ] Google: **Verify branding** (кирүү терезесинде «Тапкыч ордо» деген ат көрүнүшү үчүн) — адегенде Search Console'до `tapkych.com` ырасталышы керек. Client secret скриншотто көрүнүп калган, аны Reset кылуу сунушталды (биз аны колдонбойбуз).
+- [ ] Search Console: `tapkych.com` доменин ырастоо жана `https://www.tapkych.com/sitemap.xml` дарегин жөнөтүү.
+- [ ] Студенттер үчүн Google менен кирүү (үй тапшырмасы, жеке баракча) — кийинчерээк.
 - [ ] Render'дин уктап калышы: UptimeRobot же GitHub Actions аркылуу `/api/health` дарегине ар 5–10 мүнөттө кайрылып туруу сунушталды (колдонуучу азырынча чечим кабыл ала элек).
-
-- [ ] **tapkych.com домени — колдонуучунун тарабы:** Google OAuth'тун JavaScript origins бөлүмүнө `https://www.tapkych.com` жана `https://tapkych.com` даректерин, Branding'ге `tapkych.com` доменин кошуу; Branding шилтемелерин жаңы доменге алмаштыруу; Search Console'до `tapkych.com` доменин (DNS TXT аркылуу) кошуу.
 - [ ] Админ панелинин башка беттери (Суроолор, Студенттер, Тарых ж.б.) жаңы каптал менюнун стилине толук ылайыкташтырыла элек. Аларды текшерип, керек болсо жаңыртуу керек.
 - [ ] Автоматтык тесттерди репозиторийге кошуу (`server/test/`) жана `npm test` буйругун түзүү.
 - [ ] `client/tsconfig.tsbuildinfo` git'те сакталып жатат. Аны `.gitignore`'го кошуу керек.
