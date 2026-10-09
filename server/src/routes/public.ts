@@ -6,6 +6,7 @@ import { checkAdminCredentials, randomToken, requireAdmin, signStaffToken, staff
 import { FailLimiter } from '../rateLimit.js';
 import { bus } from '../events.js';
 import { AppError } from '../types.js';
+import { verifyGoogleCredential } from '../google.js';
 
 export const publicRouter = Router();
 
@@ -31,6 +32,41 @@ publicRouter.post('/auth/login', async (req, res) => {
   if (!user) {
     loginLimiter.fail(key);
     throw new AppError('INVALID_CREDENTIALS', 401);
+  }
+  loginLimiter.reset(key);
+  res.json({ token: signStaffToken(user), user: { role: user.role, name: user.name } });
+});
+
+/** Кирүү бети үчүн: «Google менен кирүү» баскычын көрсөтүү керекпи */
+publicRouter.get('/auth/config', (_req, res) => {
+  res.json({ googleClientId: config.googleClientId || null });
+});
+
+/**
+ * Google менен кирүү. Жаңы аккаунт түзүлбөйт — Gmail алдын ала кошулган болушу керек:
+ * ADMIN_EMAILS ичинде болсо — башкы алып баруучу, мугалимдин email'ине дал келсе — мугалим.
+ */
+publicRouter.post('/auth/google', async (req, res) => {
+  const key = req.ip ?? 'unknown';
+  loginLimiter.check(key);
+  const { credential } = z.object({ credential: z.string().min(10).max(5000) }).parse(req.body);
+  let email: string;
+  try {
+    ({ email } = await verifyGoogleCredential(credential));
+  } catch (e) {
+    loginLimiter.fail(key);
+    throw e;
+  }
+  let user: StaffUser | null = null;
+  if (config.adminEmails.includes(email)) {
+    user = { role: 'admin', teacherId: null, name: config.adminUser };
+  } else {
+    const teacher = await prisma.teacher.findUnique({ where: { email } });
+    if (teacher) user = { role: 'teacher', teacherId: teacher.id, name: teacher.name };
+  }
+  if (!user) {
+    loginLimiter.fail(key);
+    throw new AppError('GOOGLE_NOT_ALLOWED', 403);
   }
   loginLimiter.reset(key);
   res.json({ token: signStaffToken(user), user: { role: user.role, name: user.name } });

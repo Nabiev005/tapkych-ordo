@@ -40,3 +40,8 @@ services:
         sync: false
       - key: TURSO_AUTH_TOKEN
         sync: false
+      # «Google менен кирүү» (милдеттүү эмес): OAuth Client ID жана админдин Gmail'дери (README, 6.1)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false

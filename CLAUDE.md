@@ -37,11 +37,12 @@ server/
   prisma/schema.prisma Teacher, Question, Game, Player, GameQuestion, Answer, AudienceVote,
                        ScoreAdjustment, Student, Season, Assignment, AssignmentQuestion,
                        Submission, Upload
-  prisma/migrations/   init, phases, archive_students_rating, school_features
+  prisma/migrations/   init, phases, archive_students_rating, school_features, teacher_google
   prisma/seed.ts       база бош болсо, 25 мисал суроо кошот
   src/index.ts         Express + Socket.IO; client/dist'ти да берет
   src/migrate.ts       өзүнчө жазылган migrator (`_ordo_migrations` таблицасы; Turso'до да иштейт)
   src/config.ts        .env; Render'де демейки сыр сөзгө тыюу салынат
+  src/google.ts        «Google менен кирүү»: ID-токенди tokeninfo аркылуу текшерүү (aud, iss, exp, email_verified)
   src/auth.ts          requireAdmin / requireSuper / ownedWhere / assertOwner (ownerId: null = башкы алып баруучу)
   src/game/engine.ts   оюндун логикасы (startGame, showQuestion, submitAnswer, 50/50, добуш берүү…)
   src/game/state.ts    ролдор боюнча snapshot'тор: admin, screen, player, audience
@@ -89,7 +90,7 @@ cd server && npx tsc --noEmit
   - Жаңы версия чыкканын `/api/health` → `version` (коммиттин алгачкы 7 белгиси) аркылуу текшерсе болот.
   - Акысыз план: бир аз убакыт колдонулбаса, сервер «уктап калат». Биринчи ачылышы ~1 мүнөт созулушу мүмкүн.
 - **Turso:** `TURSO_DATABASE_URL` жана `TURSO_AUTH_TOKEN` Render'де коюлган, туташуу иштейт. Булар болбосо, ар бир кайра жайгаштырууда база тазаланат.
-- **Vercel** (https://tapkych-ordo.vercel.app) — кошумча фронтенд, `VITE_API_URL` аркылуу Render'ге туташат. Учурда жаңыланбай калган.
+- **Vercel** (https://tapkych-ordo.vercel.app) — кошумча фронтенд, `VITE_API_URL` аркылуу Render'ге туташат. Production домени жаңы версияларга өзү өтпөй калган учурлар болгон (Rollback'тан кийин) — Deployments → Promote аркылуу оңдолот.
 
 ## Аткарылган иштер (хронология)
 
@@ -101,10 +102,14 @@ cd server && npx tsc --noEmit
 6. 14 кошумча функция: суроо түрлөрү (Тандоо / Туура-Туура эмес / Иретке келтирүү), темалар жана кыйынчылык, сүрөт жана аудио, топ топко каршы режими, ылдам жооп бонусу, 50/50, залдагы көрүүчүлөрдүн добушу, оюнду кайталап көрүү, мугалимдердин аккаунттары, сезондор, грамоталар, студенттин баракчасы, үй тапшырмалары, орус тили.
 7. Лендинг башкы бет (эмне үчүн, кантип колдонулат, мүмкүнчүлүктөр, ким үчүн, көп берилүүчү суроолор). Header бет жылганда ордунда турат.
 8. Админ панелинин жаңы дизайны: каптал меню (телефондо ачылма меню), Dashboard'до саламдашуу, сандар, тез аракеттер, жүрүп жаткан жана акыркы оюндар.
+9. Терминдер: «окуучу» → «студент», «класс» → «топ», «мектеп» → «окуу жайы».
+10. «Google менен кирүү» мугалимдер жана алып баруучу үчүн. Жаңы аккаунт өзү түзүлбөйт: админдин Gmail'дери `ADMIN_EMAILS` өзгөрмөсүндө, ал эми мугалимдин Gmail'и `Teacher.email` талаасында сакталат (аны «Мугалимдер» бетинен кошушат). Жөндөө тартиби README'нин 6.1-бөлүмүндө.
 
 ## Калган иштер жана идеялар
 
-- [ ] **Vercel жаңыланбай калган.** Vercel'дин жөндөөлөрүн (Root Directory = `client`, Git туташуусу) колдонуучу өзү текшериши керек. Же болбосо Vercel'ден баш тартып, Render'ди гана калтыруу керек.
+- [ ] **Google менен кирүү:** колдонуучу Google Cloud'да OAuth Client ID түзүп, Render'ге `GOOGLE_CLIENT_ID` жана `ADMIN_EMAILS` өзгөрмөлөрүн кошушу керек (README 6.1). Студенттер үчүн Google менен кирүү (үй тапшырмасы, жеке баракча) кийинчерээк кошулат.
+- [ ] Render'дин уктап калышы: UptimeRobot же GitHub Actions аркылуу `/api/health` дарегине ар 5–10 мүнөттө кайрылып туруу сунушталды (колдонуучу азырынча чечим кабыл ала элек).
+
 - [ ] **Домен:** колдонуучу домен тууралуу сураган (мис. `.kg` же `.com`), бирок азырынча чечим кабыл алына элек. Домен алынса, аны Render'дин Custom Domain бөлүмүнө туташтыруу керек.
 - [ ] Админ панелинин башка беттери (Суроолор, Студенттер, Тарых ж.б.) жаңы каптал менюнун стилине толук ылайыкташтырыла элек. Аларды текшерип, керек болсо жаңыртуу керек.
 - [ ] Автоматтык тесттерди репозиторийге кошуу (`server/test/`) жана `npm test` буйругун түзүү.

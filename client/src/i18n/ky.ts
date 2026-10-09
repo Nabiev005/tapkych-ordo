@@ -331,6 +331,10 @@ const kyDict = {
     ASSIGNMENT_CLOSED: 'Бул тапшырма жабылган',
     ALREADY_SUBMITTED: 'Сиз бул тапшырманы аткаргансыз',
     LIFELINE_USED: '«50/50» бул оюнда колдонулган',
+    GOOGLE_DISABLED: 'Google менен кирүү бул серверде жөндөлгөн эмес',
+    GOOGLE_FAILED: 'Google аркылуу текшерүү ишке ашкан жок. Кайра аракет кылыңыз',
+    GOOGLE_NOT_ALLOWED: 'Бул Gmail системада катталган эмес. Башкы алып баруучудан Gmail дарегиңизди «Мугалимдер» бөлүмүнө кошууну сураныңыз',
+    DUPLICATE_EMAIL: 'Бул Gmail башка мугалимге берилген',
     NETWORK: 'Сервер менен байланыш жок. Интернетти же Wi-Fi’ды текшериңиз',
     UNKNOWN: 'Белгисиз ката кетти',
   } as Record<string, string>,
@@ -345,6 +349,7 @@ const kyDict = {
     password: 'Пароль',
     login: 'Кирүү',
     loggingIn: 'Кирүүдө…',
+    loginOr: 'же логин жана сыр сөз менен',
 
     nav: {
       dashboard: 'Башкы бет',
@@ -377,6 +382,11 @@ const kyDict = {
       stats: (q: number, g: number, a: number) => `${q} суроо · ${g} оюн · ${a} тапшырма`,
       deleteConfirm: (n: string) => `${n} өчүрүлсүнбү? Анын суроолор банкы да өчөт. Оюндары жана тапшырмалары тарыхта калат.`,
       created: 'Мугалим кошулду. Логин жана сыр сөздү ага бериңиз.',
+      email: 'Gmail (Google менен кирүү үчүн)',
+      emailHint: 'Мугалим ушул Gmail менен кирүү бетиндеги «Google менен кирүү» баскычы аркылуу кире алат.',
+      passwordOptional: 'Сыр сөз (Gmail коюлса — милдеттүү эмес)',
+      edit: 'Оңдоо',
+      saved: 'Сакталды',
     },
 
     seasons: {

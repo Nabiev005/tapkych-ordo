@@ -273,6 +273,7 @@ export interface Teacher {
   id: number;
   username: string;
   name: string;
+  email: string | null;
   createdAt: string;
   _count: { questions: number; games: number; assignments: number };
 }

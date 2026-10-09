@@ -21,6 +21,13 @@ export const config = {
   jwtSecret: required('JWT_SECRET', 'dev-secret-change-me'),
   publicUrl: (process.env.PUBLIC_URL ?? '').replace(/\/$/, ''),
   isProd: process.env.NODE_ENV === 'production',
+  // «Google менен кирүү»: Google Cloud'дагы OAuth Client ID. Бош болсо — баскыч көрсөтүлбөйт.
+  googleClientId: (process.env.GOOGLE_CLIENT_ID ?? '').trim(),
+  // Башкы алып баруучу катары кире турган Gmail даректери (үтүр менен)
+  adminEmails: (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
 };
 
 // Интернетке чыгарылган серверде (Render) демейки пароль менен иштөөгө тыюу салабыз — репозиторий ачык

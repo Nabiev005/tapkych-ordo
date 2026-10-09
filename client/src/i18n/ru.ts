@@ -275,6 +275,10 @@ export const ruDict: Ky = {
     ASSIGNMENT_CLOSED: 'Задание закрыто',
     ALREADY_SUBMITTED: 'Вы уже выполнили это задание',
     LIFELINE_USED: '«50/50» уже использована в этой игре',
+    GOOGLE_DISABLED: 'Вход через Google на этом сервере не настроен',
+    GOOGLE_FAILED: 'Не удалось проверить вход через Google. Попробуйте ещё раз',
+    GOOGLE_NOT_ALLOWED: 'Этот Gmail не зарегистрирован. Попросите главного ведущего добавить ваш Gmail в разделе «Учителя»',
+    DUPLICATE_EMAIL: 'Этот Gmail уже указан у другого учителя',
     NETWORK: 'Нет связи с сервером. Проверьте интернет или Wi-Fi',
     UNKNOWN: 'Неизвестная ошибка',
   } as Record<string, string>,
@@ -288,6 +292,7 @@ export const ruDict: Ky = {
     password: 'Пароль',
     login: 'Войти',
     loggingIn: 'Вход…',
+    loginOr: 'или по логину и паролю',
 
     nav: {
       dashboard: 'Главная',
@@ -320,6 +325,11 @@ export const ruDict: Ky = {
       stats: (q: number, g: number, a: number) => `${q} вопр. · ${g} игр · ${a} заданий`,
       deleteConfirm: (n: string) => `Удалить ${n}? Банк вопросов учителя тоже удалится. Игры и задания останутся в истории.`,
       created: 'Учитель добавлен. Передайте ему логин и пароль.',
+      email: 'Gmail (для входа через Google)',
+      emailHint: 'Учитель сможет войти с этим Gmail кнопкой «Войти через Google» на странице входа.',
+      passwordOptional: 'Пароль (если указан Gmail — необязательно)',
+      edit: 'Изменить',
+      saved: 'Сохранено',
     },
 
     seasons: {

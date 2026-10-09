@@ -54,6 +54,10 @@ export type ErrorCode =
   | 'ASSIGNMENT_CLOSED'
   | 'ALREADY_SUBMITTED'
   | 'LIFELINE_USED'
+  | 'GOOGLE_DISABLED'
+  | 'GOOGLE_FAILED'
+  | 'GOOGLE_NOT_ALLOWED'
+  | 'DUPLICATE_EMAIL'
   | 'SERVER_ERROR';
 
 export class AppError extends Error {

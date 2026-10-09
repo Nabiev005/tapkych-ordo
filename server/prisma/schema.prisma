@@ -17,6 +17,7 @@ model Teacher {
   username     String   @unique
   name         String
   passwordHash String
+  email        String?  @unique // Gmail — «Google менен кирүү» үчүн
   createdAt    DateTime @default(now())
 
   questions   Question[]
