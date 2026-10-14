@@ -10,8 +10,11 @@ import type { RatingRow, Season } from '../lib/types';
 
 type SortKey = 'totalScore' | 'wins' | 'accuracy';
 
-/** Бардык оюндар боюнча эң акылдуу студенттердин рейтинги — ачык бет */
-export default function Rating() {
+/**
+ * Бардык оюндар боюнча эң акылдуу студенттердин рейтинги.
+ * Ачык бет (/rating) же админ панелинин ичинде (/admin/rating, embedded) көрсөтүлөт.
+ */
+export default function Rating({ embedded = false }: { embedded?: boolean }) {
   const t = ky.rating;
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -37,7 +40,7 @@ export default function Rating() {
       .then(setData)
       .catch((e) => setError(e.message));
   }, [seasonId]);
-  const openProfile = (id: number) => navigate(`/rating/student/${id}${seasonId ? `?season=${seasonId}` : ''}`);
+  const openProfile = (id: number) => navigate(`${embedded ? '/admin' : ''}/rating/student/${id}${seasonId ? `?season=${seasonId}` : ''}`);
 
   const rows = useMemo(() => {
     const list = (data?.rows ?? []).filter((r) => !cls || r.className === cls);
@@ -53,10 +56,16 @@ export default function Rating() {
   const medal = ['🥇', '🥈', '🥉'];
 
   return (
-    <div className="bg-night min-h-dvh text-white">
+    <div className={`bg-night text-white ${embedded ? 'overflow-hidden rounded-3xl' : 'min-h-dvh'}`}>
       <OrnamentBand />
       <div className="flex justify-end px-4 pt-3">
-        <LangSwitch dark />
+        {embedded ? (
+          <a href={`/rating${seasonId ? `?season=${seasonId}` : ''}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ordo-sky-light hover:underline">
+            {t.openPublic} ↗
+          </a>
+        ) : (
+          <LangSwitch dark />
+        )}
       </div>
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
@@ -208,11 +217,13 @@ export default function Rating() {
           </>
         )}
 
-        <div className="mt-8 text-center">
-          <Link to="/" className="text-ordo-sky-light hover:underline">
-            ← {t.back}
-          </Link>
-        </div>
+        {!embedded && (
+          <div className="mt-8 text-center">
+            <Link to="/" className="text-ordo-sky-light hover:underline">
+              ← {t.back}
+            </Link>
+          </div>
+        )}
       </div>
       <OrnamentBand flip />
     </div>

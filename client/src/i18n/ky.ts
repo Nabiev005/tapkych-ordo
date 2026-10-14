@@ -196,6 +196,7 @@ const kyDict = {
     rule: 'Иреттөө эрежеси: жалпы упай → жеңиштер → туура жооптордун пайызы.',
     export: 'Excel’ге жүктөп алуу',
     back: 'Башкы бетке',
+    openPublic: 'Ачык бетти ачуу',
     top3: 'Алдыңкы үчтүк',
     gamesCount: (n: number) => `${n} оюн`,
     winsCount: (n: number) => `${n} жеңиш`,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
 import { fmtDate, ky } from '../../i18n/ky';
 import { api } from '../../lib/api';
@@ -9,6 +10,7 @@ const day = (d: string) => d.slice(0, 10);
 /** Рейтингдин сезондору (башкы алып баруучу гана түзөт) */
 export default function Seasons() {
   const t = ky.admin.seasons;
+  const navigate = useNavigate();
   const { confirm, toast } = useDialogs();
   const [list, setList] = useState<Season[] | null>(null);
   const [form, setForm] = useState<{ id?: number; name: string; startsAt: string; endsAt: string } | null>(null);
@@ -93,7 +95,7 @@ export default function Seasons() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button size="sm" variant="sky" onClick={() => window.open(`/rating?season=${x.id}`, '_blank')}>
+                  <Button size="sm" variant="sky" onClick={() => navigate(`/admin/rating?season=${x.id}`)}>
                     🏆 {t.openRating}
                   </Button>
                   <Button size="sm" variant="gold" onClick={() => window.open(`/certificate?season=${x.id}&top=3`, '_blank')}>

@@ -187,15 +187,13 @@ export default function Dashboard() {
               <span className="text-sm">{q.label}</span>
             </Link>
           ))}
-          <a
-            href="/rating"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            to="/admin/rating"
             className="col-span-2 flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-ordo-gold/40 bg-white/70 p-4 text-center font-semibold text-ordo-ink/80 transition hover:border-ordo-gold hover:bg-white hover:text-ordo-ink md:col-span-1"
           >
             <span className="text-3xl">🏆</span>
             <span className="text-sm">{d.quickRating}</span>
-          </a>
+          </Link>
         </div>
       </section>
 

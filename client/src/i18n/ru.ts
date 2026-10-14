@@ -150,6 +150,7 @@ export const ruDict: Ky = {
     rule: 'Порядок: сумма баллов → победы → процент верных ответов.',
     export: 'Скачать в Excel',
     back: 'На главную',
+    openPublic: 'Открыть публичную страницу',
     top3: 'Тройка лидеров',
     gamesCount: (n: number) => `${n} ${plural(n, 'игра', 'игры', 'игр')}`,
     winsCount: (n: number) => `${n} ${plural(n, 'победа', 'победы', 'побед')}`,

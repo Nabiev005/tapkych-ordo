@@ -61,6 +61,8 @@ export default function App() {
           <Route path="seasons" element={<Seasons />} />
           <Route path="assignments" element={<Assignments />} />
           <Route path="assignments/:id" element={<AssignmentDetail />} />
+          <Route path="rating" element={<Rating embedded />} />
+          <Route path="rating/student/:id" element={<StudentProfile embedded />} />
           <Route path="games/new" element={<NewGame />} />
           <Route path="games/:id" element={<GameControl />} />
         </Route>

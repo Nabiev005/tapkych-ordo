@@ -7,8 +7,8 @@ import { fmtDate, ky } from '../i18n/ky';
 import { api } from '../lib/api';
 import type { StudentProfile as Profile } from '../lib/types';
 
-/** Студенттин жеке баракчасы — ачык бет */
-export default function StudentProfile() {
+/** Студенттин жеке баракчасы — ачык бет же админ панелинин ичинде (embedded) */
+export default function StudentProfile({ embedded = false }: { embedded?: boolean }) {
   const t = ky.profile;
   const { id } = useParams();
   const [params] = useSearchParams();
@@ -23,10 +23,11 @@ export default function StudentProfile() {
       .catch((e) => setError(e.message));
   }, [id, seasonId]);
 
-  if (error) return <div className="bg-night flex min-h-dvh items-center justify-center p-6 text-white">{error}</div>;
+  const box = embedded ? 'min-h-[50vh] rounded-3xl' : 'min-h-dvh';
+  if (error) return <div className={`bg-night flex items-center justify-center p-6 text-white ${box}`}>{error}</div>;
   if (!data)
     return (
-      <div className="bg-night flex min-h-dvh items-center justify-center">
+      <div className={`bg-night flex items-center justify-center ${box}`}>
         <Spinner className="h-12 w-12 text-ordo-gold" />
       </div>
     );
@@ -41,10 +42,10 @@ export default function StudentProfile() {
   ];
 
   return (
-    <div className="bg-night min-h-dvh text-white">
+    <div className={`bg-night text-white ${embedded ? 'overflow-hidden rounded-3xl' : 'min-h-dvh'}`}>
       <OrnamentBand />
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
-        <Link to={`/rating${seasonId ? `?season=${seasonId}` : ''}`} className="text-ordo-sky-light hover:underline">
+        <Link to={`${embedded ? '/admin' : ''}/rating${seasonId ? `?season=${seasonId}` : ''}`} className="text-ordo-sky-light hover:underline">
           ← {t.back}
         </Link>
 

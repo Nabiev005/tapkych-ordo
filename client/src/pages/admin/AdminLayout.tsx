@@ -48,7 +48,7 @@ export default function AdminLayout() {
       items: [
         { to: '/admin/students', icon: '🎓', label: n.students },
         { to: '/admin/assignments', icon: '📝', label: n.assignments },
-        { to: '/rating', icon: '🏆', label: n.rating, external: true },
+        { to: '/admin/rating', icon: '🏆', label: n.rating },
       ],
     },
     ...(isAdmin
