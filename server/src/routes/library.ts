@@ -7,7 +7,7 @@ import { ownerKey, requireAdmin, requireSuper, staff, type StaffUser } from '../
 import { AppError, DIFFICULTIES, QUESTION_TYPES, ROUNDS, type Round } from '../types.js';
 import { nextOrder, questionSchema } from './questions.js';
 import { parseQuestionRows, readRows } from './importExport.js';
-import { STARTER_LIBRARY } from '../library/starter.js';
+import { STARTER_LIBRARY, STARTER_PACKS, buildPack } from '../library/starter.js';
 
 /**
  * Жалпы суроолор китепканасы.
@@ -92,20 +92,22 @@ libraryRouter.get('/', async (req, res) => {
   });
 });
 
-/** Ырасталган суроолорду өз банкына көчүрүү. Мурун көчүрүлгөндөр өткөрүлүп жиберилет. */
-libraryRouter.post('/copy', async (req, res) => {
-  const { ids, round } = z.object({ ids: idsSchema, round: z.union([z.literal('AUTO'), z.enum(ROUNDS)]).default('AUTO') }).parse(req.body);
-  const ownerId = ownerKey(staff(res));
-  const items = await prisma.libraryQuestion.findMany({ where: { id: { in: ids }, status: 'APPROVED' }, orderBy: { id: 'asc' } });
+/**
+ * Китепкана суроолорун ээсинин банкына көчүрөт (ар бири көрсөтүлгөн турга).
+ * Ырасталбаган жана мурун көчүрүлгөн суроолор өткөрүлүп жиберилет.
+ */
+async function copyToBank(ownerId: number | null, wanted: { id: number; round: Round }[]) {
+  const items = await prisma.libraryQuestion.findMany({ where: { id: { in: wanted.map((w) => w.id) }, status: 'APPROVED' } });
   const already = new Set(
     (await prisma.question.findMany({ where: { ownerId, libraryId: { in: items.map((x) => x.id) } }, select: { libraryId: true } })).map((x) => x.libraryId),
   );
-  const fresh = items.filter((x) => !already.has(x.id));
+  // Сурам кылынган тартип сакталат
+  const fresh = wanted.map((w) => ({ w, x: items.find((i) => i.id === w.id) })).filter(({ x }) => x && !already.has(x.id)) as { w: (typeof wanted)[number]; x: (typeof items)[number] }[];
 
   const orders = new Map<Round, number>();
   for (const r of ROUNDS) orders.set(r, await nextOrder(ownerId, r));
-  const data: Prisma.QuestionCreateManyInput[] = fresh.map((x) => {
-    const r = round === 'AUTO' ? (AUTO_ROUND[x.difficulty] ?? 'ROUND1') : round;
+  const data: Prisma.QuestionCreateManyInput[] = fresh.map(({ w, x }) => {
+    const r = w.round;
     const order = orders.get(r)!;
     orders.set(r, order + 1);
     return {
@@ -129,11 +131,97 @@ libraryRouter.post('/copy', async (req, res) => {
   if (data.length) {
     await prisma.$transaction([
       prisma.question.createMany({ data }),
-      prisma.libraryQuestion.updateMany({ where: { id: { in: fresh.map((x) => x.id) } }, data: { copiedCount: { increment: 1 } } }),
+      prisma.libraryQuestion.updateMany({ where: { id: { in: fresh.map(({ x }) => x.id) } }, data: { copiedCount: { increment: 1 } } }),
     ]);
   }
   const counts = Object.fromEntries(ROUNDS.map((r) => [r, data.filter((d) => d.round === r).length]));
-  res.json({ copied: data.length, skipped: ids.length - data.length, counts });
+  return { copied: data.length, skipped: wanted.length - data.length, counts };
+}
+
+/** Ырасталган суроолорду өз банкына көчүрүү. AUTO — кыйынчылыгына жараша тур. */
+libraryRouter.post('/copy', async (req, res) => {
+  const { ids, round } = z.object({ ids: idsSchema, round: z.union([z.literal('AUTO'), z.enum(ROUNDS)]).default('AUTO') }).parse(req.body);
+  const difficulty = new Map((await prisma.libraryQuestion.findMany({ where: { id: { in: ids } }, select: { id: true, difficulty: true } })).map((x) => [x.id, x.difficulty]));
+  const wanted = [...new Set(ids)].sort((a, b) => a - b).map((id) => ({ id, round: round === 'AUTO' ? (AUTO_ROUND[difficulty.get(id) ?? ''] ?? 'ROUND1') : round }));
+  res.json(await copyToBank(ownerKey(staff(res)), wanted));
+});
+
+// ───────────────────────── Оюн пакеттери ─────────────────────────
+
+/** Пакеттер. Мугалим ырасталган суроолору бар пакеттерди гана көрөт. */
+libraryRouter.get('/packs', async (_req, res) => {
+  const user = staff(res);
+  const packs = await prisma.libraryPack.findMany({
+    orderBy: { createdAt: 'asc' },
+    include: { items: { include: { question: { select: { status: true } } }, orderBy: [{ round: 'asc' }, { order: 'asc' }] } },
+  });
+  const inBank = new Set(
+    (await prisma.question.findMany({ where: { ownerId: ownerKey(user), libraryId: { not: null } }, select: { libraryId: true } })).map((x) => x.libraryId),
+  );
+  const list = packs.map((p) => {
+    const approved = p.items.filter((i) => i.question.status === 'APPROVED');
+    return {
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      icon: p.icon,
+      counts: Object.fromEntries(ROUNDS.map((r) => [r, approved.filter((i) => i.round === r).length])),
+      total: approved.length,
+      pending: p.items.length - approved.length,
+      inBank: approved.filter((i) => inBank.has(i.questionId)).length,
+    };
+  });
+  res.json({ packs: isSuper(user) ? list : list.filter((p) => p.total > 0).map((p) => ({ ...p, pending: 0 })) });
+});
+
+/** Пакеттин бардык (ырасталган) суроолорун өз турлары менен банкка көчүрүү */
+libraryRouter.post('/packs/:id/copy', async (req, res) => {
+  const id = Number(req.params.id);
+  const pack = Number.isInteger(id) ? await prisma.libraryPack.findUnique({ where: { id }, include: { items: { orderBy: [{ round: 'asc' }, { order: 'asc' }] } } }) : null;
+  if (!pack) throw new AppError('NOT_FOUND', 404);
+  const wanted = [...pack.items]
+    .sort((a, b) => ROUNDS.indexOf(a.round as Round) - ROUNDS.indexOf(b.round as Round) || a.order - b.order)
+    .map((i) => ({ id: i.questionId, round: i.round as Round }));
+  res.json(await copyToBank(ownerKey(staff(res)), wanted));
+});
+
+const packSchema = z.object({
+  title: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(300).default(''),
+  icon: z.string().trim().min(1).max(8).default('🎁'),
+  items: z.array(z.object({ id: z.number().int(), round: z.enum(ROUNDS) })).min(1).max(150),
+});
+
+libraryRouter.post('/packs', requireSuper, async (req, res) => {
+  const body = packSchema.parse(req.body);
+  if (await prisma.libraryPack.findUnique({ where: { title: body.title } })) throw new AppError('DUPLICATE_NAME');
+  const existing = new Set((await prisma.libraryQuestion.findMany({ where: { id: { in: body.items.map((i) => i.id) } }, select: { id: true } })).map((x) => x.id));
+  const items = [...new Map(body.items.filter((i) => existing.has(i.id)).map((i) => [i.id, i])).values()];
+  if (!items.length) throw new AppError('BAD_REQUEST');
+  const order = new Map<Round, number>();
+  const pack = await prisma.libraryPack.create({
+    data: {
+      title: body.title,
+      description: body.description,
+      icon: body.icon,
+      items: {
+        create: items.map((i) => {
+          const n = order.get(i.round) ?? 0;
+          order.set(i.round, n + 1);
+          return { questionId: i.id, round: i.round, order: n };
+        }),
+      },
+    },
+  });
+  res.status(201).json({ pack });
+});
+
+libraryRouter.delete('/packs/:id', requireSuper, async (req, res) => {
+  const id = Number(req.params.id);
+  await prisma.libraryPack.delete({ where: { id: Number.isInteger(id) ? id : -1 } }).catch(() => {
+    throw new AppError('NOT_FOUND', 404);
+  });
+  res.json({ ok: true });
 });
 
 /** Өз банкындагы суроолорду китепканага бөлүшүү (мугалимдики — модерацияга) */
@@ -233,5 +321,31 @@ libraryRouter.post('/starter', requireSuper, async (_req, res) => {
   const seen = await existingTexts();
   const data = STARTER_LIBRARY.filter((q) => !seen.has(norm(q.text))).map((q) => ({ ...parseLibraryQuestion(q), status: 'PENDING' }));
   if (data.length) await prisma.libraryQuestion.createMany({ data });
-  res.json({ added: data.length, skipped: STARTER_LIBRARY.length - data.length });
+
+  // Даяр пакеттер: баштапкы топтомдун суроолорунан (тексти боюнча табылат; мурун түзүлгөн пакет кайра түзүлбөйт)
+  const starterTexts = new Set(STARTER_LIBRARY.map((q) => norm(q.text)));
+  const pool = (await prisma.libraryQuestion.findMany({ orderBy: { id: 'asc' } })).filter((q) => starterTexts.has(norm(q.text)));
+  let packs = 0;
+  for (const p of STARTER_PACKS) {
+    if (await prisma.libraryPack.findUnique({ where: { title: p.title } })) continue;
+    const items = buildPack(pool, p.categories);
+    if (!items.length) continue;
+    const order = new Map<string, number>();
+    await prisma.libraryPack.create({
+      data: {
+        title: p.title,
+        description: p.description,
+        icon: p.icon,
+        items: {
+          create: items.map((i) => {
+            const n = order.get(i.round) ?? 0;
+            order.set(i.round, n + 1);
+            return { questionId: i.id, round: i.round, order: n };
+          }),
+        },
+      },
+    });
+    packs++;
+  }
+  res.json({ added: data.length, skipped: STARTER_LIBRARY.length - data.length, packs });
 });

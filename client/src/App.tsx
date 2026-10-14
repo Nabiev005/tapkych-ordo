@@ -28,6 +28,7 @@ const AssignmentDetail = lazy(() => import('./pages/admin/AssignmentDetail'));
 const Replay = lazy(() => import('./pages/admin/Replay'));
 const Legal = lazy(() => import('./pages/Legal'));
 const Library = lazy(() => import('./pages/admin/Library'));
+const Me = lazy(() => import('./pages/student/Me'));
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/certificate" element={<Certificate />} />
         <Route path="/watch/:code" element={<Watch />} />
         <Route path="/hw/:code" element={<Homework />} />
+        <Route path="/me" element={<Me />} />
         <Route path="/privacy" element={<Legal kind="privacy" />} />
         <Route path="/terms" element={<Legal kind="terms" />} />
         <Route path="/admin/games/:id/replay" element={<Replay />} />

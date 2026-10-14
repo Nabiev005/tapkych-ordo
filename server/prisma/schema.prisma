@@ -80,9 +80,51 @@ model LibraryQuestion {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  author Teacher? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author    Teacher?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  packItems LibraryPackItem[]
 
   @@index([status, category])
+}
+
+/// Даяр оюн пакети: бүтүндөй оюнга керектүү китепкана суроолору (ар бири өз турунда)
+model LibraryPack {
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  description String   @default("")
+  icon        String   @default("🎁")
+  createdAt   DateTime @default(now())
+
+  items LibraryPackItem[]
+}
+
+model LibraryPackItem {
+  id         Int    @id @default(autoincrement())
+  packId     Int
+  questionId Int
+  round      String // ROUND1 | ROUND2 | FINAL
+  order      Int
+
+  pack     LibraryPack     @relation(fields: [packId], references: [id], onDelete: Cascade)
+  question LibraryQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([packId, questionId])
+}
+
+/// Студенттин өз алдынча машыгуусу: «Күндүн суроолору» (күнүнө бир жолу) же тема боюнча машыгуу
+model PracticeAttempt {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  kind      String // DAILY | PRACTICE
+  day       String // YYYY-MM-DD, Бишкек убактысы боюнча
+  category  String   @default("")
+  correct   Int
+  total     Int
+  details   String   @default("[]") // JSON: [{ id, choice, correct }] — кайра карап чыгуу үчүн
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, kind, day])
 }
 
 model Game {
@@ -233,13 +275,16 @@ model ScoreAdjustment {
 
 /// Студенттердин туруктуу тизмеси — бардык оюндар боюнча рейтинг ушул аркылуу эсептелет
 model Student {
-  id        Int      @id @default(autoincrement())
-  name      String
-  className String   @default("") // мис. 9А
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  name       String
+  className  String   @default("") // мис. 9А
+  /// Студенттин кабинетине (/me) кирүү коду — мугалим берет
+  accessCode String?  @unique
+  createdAt  DateTime @default(now())
 
   players     Player[]
   submissions Submission[]
+  practice    PracticeAttempt[]
 
   @@unique([name, className])
 }

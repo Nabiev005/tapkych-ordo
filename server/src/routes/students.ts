@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
-import { requireAdmin } from '../auth.js';
+import { randomAccessCode, requireAdmin } from '../auth.js';
 import { AppError } from '../types.js';
 
 export const studentsRouter = Router();
@@ -67,6 +68,35 @@ studentsRouter.post('/', async (req, res) => {
   }
   res.status(201).json({ created, students });
 });
+
+/** Кабинетке кирүү коду жок студенттерге (же ids'деги студенттерге) код түзөт */
+studentsRouter.post('/codes', async (req, res) => {
+  const { ids } = z.object({ ids: z.array(z.number().int()).max(2000).optional() }).parse(req.body);
+  const list = await prisma.student.findMany({ where: { accessCode: null, ...(ids ? { id: { in: ids } } : {}) }, select: { id: true } });
+  for (const s of list) await setNewCode(s.id);
+  res.json({ generated: list.length });
+});
+
+/** Кодду жаңылоо (эски код иштебей калат) */
+studentsRouter.post('/:id/code', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!(await prisma.student.findUnique({ where: { id } }))) throw new AppError('NOT_FOUND', 404);
+  res.json({ accessCode: await setNewCode(id) });
+});
+
+async function setNewCode(id: number): Promise<string> {
+  // Кайталанса (өтө сейрек) — кайра аракет
+  for (let i = 0; i < 10; i++) {
+    const accessCode = randomAccessCode();
+    try {
+      await prisma.student.update({ where: { id }, data: { accessCode } });
+      return accessCode;
+    } catch (e) {
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')) throw e;
+    }
+  }
+  throw new AppError('SERVER_ERROR', 500);
+}
 
 studentsRouter.patch('/:id', async (req, res) => {
   const id = parseId(req.params.id);

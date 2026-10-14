@@ -36,9 +36,10 @@ render.yaml            Render Blueprint (бир сервис: API + сайт)
 server/
   prisma/schema.prisma Teacher, Question, Game, Player, GameQuestion, Answer, AudienceVote,
                        ScoreAdjustment, Student, Season, Assignment, AssignmentQuestion,
-                       Submission, Upload, LibraryQuestion (Question.libraryId — көчүрмөнүн булагы)
+                       Submission, Upload, LibraryQuestion (Question.libraryId — көчүрмөнүн булагы),
+                       LibraryPack + LibraryPackItem, PracticeAttempt (Student.accessCode)
   prisma/migrations/   init, phases, archive_students_rating, school_features, teacher_google,
-                       teacher_approval, library
+                       teacher_approval, library, packs_student_practice
   prisma/seed.ts       база бош болсо, 25 мисал суроо кошот
   src/index.ts         Express + Socket.IO; client/dist'ти да берет
   src/migrate.ts       өзүнчө жазылган migrator (`_ordo_migrations` таблицасы; Turso'до да иштейт)
@@ -51,9 +52,9 @@ server/
   src/sockets/index.ts socket окуялары
   src/routes/          questions, games, public (login), importExport (parseQuestionRows — банк
                        жана китепкана үчүн жалпы), uploads, students, rating, teachers, seasons,
-                       assignments (+ ачык /api/hw), library
-  src/library/starter.ts китепкананын баштапкы топтому (~130 суроо, POST /api/library/starter → PENDING)
-  test/                npm test: unit, auth, game, library
+                       assignments (+ ачык /api/hw), library (+ /packs), me (студенттин кабинети)
+  src/library/starter.ts китепкананын баштапкы топтому (~130 суроо → PENDING) + STARTER_PACKS, buildPack
+  test/                npm test: unit, auth, game, library, me (пакеттер + студенттин кабинети)
 client/src/
   i18n/                ky.ts, ru.ts, lang.ts (localStorage `ordo_lang`)
   lib/                 api.ts (API_BASE, assetUrl, adminToken, staffUser), types.ts,
@@ -62,6 +63,7 @@ client/src/
                        RingTimer…), Ornament.tsx (Logo, OrnamentBand, SunTunduk), LangSwitch.tsx
   pages/Home.tsx       лендинг (sticky header)
   pages/player/        Join (PIN), Play, Watch (залдагы көрүүчүлөр), Homework
+  pages/student/       Me — студенттин кабинети (Login, Cabinet, Quiz, Result); studentApi/studentToken (lib/api.ts)
   pages/screen/        Screen (проектор)
   pages/admin/         AdminLayout (каптал меню), Dashboard, Questions (QuestionForm, OptionsPreview —
                        Library да колдонот; library=true режими), Library, Import, NewGame,
@@ -69,7 +71,7 @@ client/src/
                        History, Replay, Teachers, Seasons, Assignments, AssignmentDetail
 ```
 
-Маршруттар: `/`, `/join`, `/screen/:code`, `/watch/:code`, `/hw/:code`, `/rating`, `/rating/student/:id`, `/certificate`, `/admin/*`. Рейтинг жана студенттин баракчасы админ панелинин ичинде да ачылат: `/admin/rating`, `/admin/rating/student/:id` (`Rating` / `StudentProfile` компоненттеринин `embedded` режими; ачык `/rating` бети студенттер жана проектор үчүн калат).
+Маршруттар: `/`, `/join`, `/me`, `/screen/:code`, `/watch/:code`, `/hw/:code`, `/rating`, `/rating/student/:id`, `/certificate`, `/admin/*`. Рейтинг жана студенттин баракчасы админ панелинин ичинде да ачылат: `/admin/rating`, `/admin/rating/student/:id` (`Rating` / `StudentProfile` компоненттеринин `embedded` режими; ачык `/rating` бети студенттер жана проектор үчүн калат).
 
 ## Буйруктар
 
@@ -112,6 +114,8 @@ cd server && npx tsc --noEmit
 10. «Google менен кирүү» мугалимдер жана алып баруучу үчүн. Админдин Gmail'дери `ADMIN_EMAILS` өзгөрмөсүндө. Мугалимдер Google менен **өздөрү катталат**: жаңы Gmail кирсе, `Teacher` жазуусу `approved = false` абалында түзүлөт, кирүүгө `TEACHER_PENDING` катасы кайтат (эң көп 50 өтүнмө). Башкы алып баруучу «Мугалимдер» бетинен ырастайт же четке кагат (четке кагуу = жазууну өчүрүү). Dashboard'до өтүнмөлөр тууралуу эскертүү чыгат. Google'дун талабы боюнча `/privacy` жана `/terms` беттери кошулду (`pages/Legal.tsx`, тексттер `ky.legal`). Жөндөө тартиби README'нин 6.1-бөлүмүндө.
 11. (2026-10-14) Автоматтык тесттер (`npm test`), рейтинг админ панелинин ичинде (`/admin/rating`), UptimeRobot.
 12. (2026-10-14) **Суроолор китепканасы** (`/admin/library`, `LibraryQuestion`). Статустар: PENDING → APPROVED, четке кагуу = өчүрүү. Мугалим ырасталгандарды көрөт жана көчүрөт (`POST /api/library/copy`, round: AUTO = кыйынчылыгына жараша же белгилүү тур; кайра көчүрүлбөйт — `Question.libraryId` боюнча). Мугалим «Суроолор» бетинен бөлүшөт (`/share` → PENDING; админ бөлүшсө — дароо APPROVED; китепканадан алынган же китепканада бар текст бөлүшүлбөйт). Башкы алып баруучу гана: түз кошуу/оңдоо, approve/reject, Excel импорт («Тур» мамычасы милдеттүү эмес), баштапкы топтом. Тексттин кайталанышы `norm()` менен текшерилет (боштуктар, чоң/кичине тамга). Dashboard'до модерация тууралуу эскертүү.
+13. (2026-10-14) **Оюн пакеттери** (`LibraryPack`, `/api/library/packs`, `/packs/:id/copy` — `copyToBank` аркылуу, ар бир суроо өз турунда). Баштапкы топтом 3 пакет түзөт (`buildPack`: финалдан баштап кыйын → орто → жеңил, темалар аралаштырылат; аталышы уникалдуу, кайра түзүлбөйт). Мугалим ырасталган суроолору бар пакеттерди гана көрөт. Пакет түзүү/өчүрүү — башкы алып баруучу гана.
+14. (2026-10-14) **Студенттин кабинети** (`/me`, `/api/me`). Кирүү — `Student.accessCode` (6 белги, 0/O/1/I жок; `POST /api/students/codes`, `/:id/code`), JWT `role: 'student'` (30 күн; staff токендери менен аралашпайт — `verifyStaffToken` студенттикин кабыл албайт жана тескерисинче). «Күндүн суроолору»: ырасталган китепканадан `seededShuffle('daily:'+күн)` менен 5 суроо, күн Бишкек убактысы (UTC+6) боюнча, күнүнө бир жолу (`PracticeAttempt` kind=DAILY), серия (streak) катар күндөр боюнча. Машыгуу: тема боюнча 10 кокус суроо; **бүгүнкү күндүн суроолору машыгууда чыкпайт жана текшерилбейт** (антпесе жоопторду алдын ала билип алса болот). Жоопторду сервер гана текшерет; туура жооп тапшыргандан кийин гана кайтат. «Студенттер» бетинде коддор жана басып чыгаруучу карточкалар (`print:` класстары).
 
 ## Калган иштер жана идеялар
 
@@ -119,8 +123,8 @@ cd server && npx tsc --noEmit
 - [ ] Google: **Verify branding** (кирүү терезесинде «Тапкыч ордо» деген ат көрүнүшү үчүн) — адегенде Search Console'до `tapkych.com` ырасталышы керек. Client secret скриншотто көрүнүп калган, аны Reset кылуу сунушталды (биз аны колдонбойбуз).
 - [ ] Search Console: `tapkych.com` доменин ырастоо жана `https://www.tapkych.com/sitemap.xml` дарегин жөнөтүү.
 - [ ] **Китепкананын баштапкы топтомун текшерүү:** ~130 суроону Claude жазган — продакшнда «Баштапкы топтомду кошуу» басылгандан кийин башкы алып баруучу ар бирин фактысы боюнча текшерип ырастоосу керек.
-- [ ] Китепкананын кийинки кадамдары: даяр оюн пакеттери (бир басуу менен бүтүндөй оюн), ЖРТ даярдоо режими, суроолор боюнча статистика (канча % туура жооп берилди).
-- [ ] Студенттер үчүн Google менен кирүү (үй тапшырмасы, жеке баракча) — кийинчерээк.
+- [ ] Кийинки идеялар: ЖРТ даярдоо режими, суроолор боюнча статистика (канча % туура жооп берилди), студенттин кабинетинде топтун серия рейтинги, мугалимге студенттердин машыгуу активдүүлүгү.
+- [ ] Студенттер үчүн Google менен кирүү — азыр код менен кирет (`/me`); керек болсо кийинчерээк.
 - [x] **Render'дин уктап калышы (2026-10-14):** UptimeRobot (бекер план) ар 5 мүнөттө `https://tapkych-ordo.onrender.com/api/health` дарегин текшерет, иштебей калса ajbeknabiev90@gmail.com'го кат келет. Акылуу планга азыр каражат жок. Келечекте Oracle Cloud Always Free'ге көчүү варианты бар. Эскертүү: `www.tapkych.com/api/health` серверди ойготпойт — ал Vercel'дин index.html'ин берет.
 - [ ] Админ панелинин башка беттери (Суроолор, Студенттер, Тарых ж.б.) жаңы каптал менюнун стилине толук ылайыкташтырыла элек. Аларды текшерип, керек болсо жаңыртуу керек.
 - [x] **Автоматтык тесттер (2026-10-14):** 50 тест — unit (rankScores, validChoice, questionSchema, FailLimiter), auth (логин, 401/403, мугалимдердин бөлүнүшү, PIN бөгөтү), game (толук агым, жооп REVEAL чейин ачылбайт, тыныгуу, 50/50, таймер, kick, session:replaced, өчүрүү). Студенттер, рейтинг, сезондор, тапшырмалар, импорт/экспорт үчүн тесттер али жок.

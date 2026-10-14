@@ -66,6 +66,25 @@ export default function Students() {
     }
   };
 
+  const makeCodes = async () => {
+    setBusy(true);
+    try {
+      const r = await api.post<{ generated: number }>('/api/students/codes', {});
+      toast(t.codesMade(r.generated));
+      void load();
+    } catch (e) {
+      toast((e as Error).message, 'err');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const newCode = async (s: Student) => {
+    if (!(await confirm({ title: t.newCode, message: t.newCodeConfirm(s.name), confirmText: t.newCode }))) return;
+    await api.post(`/api/students/${s.id}/code`).catch((e) => toast(e.message, 'err'));
+    void load();
+  };
+
   const remove = async (s: Student) => {
     if (!(await confirm({ title: ky.common.delete, message: t.deleteConfirm(s.name), danger: true, confirmText: ky.common.delete }))) return;
     await api.del(`/api/students/${s.id}`).catch((e) => toast(e.message, 'err'));
@@ -74,12 +93,36 @@ export default function Students() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Басып чыгаруу үчүн: ар бир студенттин кирүү коду бар карточка (экранда көрүнбөйт) */}
+      <div className="hidden print:grid print:grid-cols-3 print:gap-2">
+        {filtered
+          .filter((s) => s.accessCode)
+          .map((s) => (
+            <div key={s.id} className="break-inside-avoid rounded-lg border border-dashed border-black p-3 text-black">
+              <div className="text-[10px] font-bold uppercase">{t.cardTitle}</div>
+              <div className="mt-1 font-semibold">{s.name}</div>
+              <div className="text-xs">{s.className}</div>
+              <div className="my-1 font-mono text-2xl font-black tracking-[0.25em]">{s.accessCode}</div>
+              <div className="text-[10px]">{t.cardHow(`${location.origin}/me`)}</div>
+            </div>
+          ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
           <h1 className="font-display text-2xl font-black">{t.title}</h1>
           <p className="max-w-2xl text-ordo-ink/60">{t.hint}</p>
+          <p className="mt-1 max-w-2xl text-sm text-ordo-sky">🎓 {t.codesHint}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" icon="🔑" loading={busy} onClick={makeCodes}>
+            {t.makeCodes}
+          </Button>
+          {(students ?? []).some((s) => s.accessCode) && (
+            <Button variant="outline" icon="🖨" onClick={() => window.print()}>
+              {t.printCodes}
+            </Button>
+          )}
           <Button variant="outline" icon="📋" onClick={() => setBulk(true)}>
             {t.bulkTitle}
           </Button>
@@ -89,7 +132,7 @@ export default function Students() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 print:hidden">
         <input className="input max-w-xs py-2" placeholder={t.search} value={query} onChange={(e) => setQuery(e.target.value)} />
         <div className="flex flex-wrap gap-1.5">
           {['', ...classes].map((c) => (
@@ -110,7 +153,7 @@ export default function Students() {
       ) : students.length === 0 ? (
         <div className="card p-10 text-center text-ordo-ink/60">{t.empty}</div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 print:hidden">
           {grouped.map(([c, list]) => (
             <section key={c || 'none'}>
               <h2 className="mb-2 font-display text-lg font-bold">
@@ -125,9 +168,17 @@ export default function Students() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-semibold">{s.name}</div>
-                        <div className="text-xs text-ordo-ink/50">{t.games(s._count?.players ?? 0)}</div>
+                        <div className="flex items-center gap-2 text-xs text-ordo-ink/50">
+                          <span>{t.games(s._count?.players ?? 0)}</span>
+                          <span title={t.code} className={`rounded-md px-1.5 py-0.5 font-mono font-bold tracking-wider ${s.accessCode ? 'bg-ordo-sky/10 text-ordo-sky' : 'bg-ordo-ink/5'}`}>
+                            🔑 {s.accessCode ?? t.noCode}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex opacity-50 transition group-hover:opacity-100">
+                        <button title={t.newCode} className="rounded-lg p-1.5 hover:bg-ordo-sky/15" onClick={() => newCode(s)}>
+                          🔑
+                        </button>
                         <button title={t.edit} className="rounded-lg p-1.5 hover:bg-ordo-gold/20" onClick={() => setEdit({ id: s.id, name: s.name, className: s.className })}>
                           ✏️
                         </button>

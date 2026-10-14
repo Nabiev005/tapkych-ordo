@@ -60,6 +60,8 @@ export type ErrorCode =
   | 'DUPLICATE_EMAIL'
   | 'TEACHER_PENDING'
   | 'DUPLICATE_QUESTION'
+  | 'INVALID_CODE'
+  | 'NO_QUESTIONS'
   | 'SERVER_ERROR';
 
 export class AppError extends Error {

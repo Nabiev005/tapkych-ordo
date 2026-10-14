@@ -67,9 +67,35 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown, isForm = false): Promise<T> {
+/** Студенттин кабинетинин (/me) токени — алып баруучунукунан өзүнчө сакталат */
+const STUDENT_KEY = 'ordo_student_token';
+export const studentToken = {
+  get: () => {
+    try {
+      return localStorage.getItem(STUDENT_KEY);
+    } catch {
+      return null;
+    }
+  },
+  set: (t: string) => {
+    try {
+      localStorage.setItem(STUDENT_KEY, t);
+    } catch {
+      /* жеке режим */
+    }
+  },
+  clear: () => {
+    try {
+      localStorage.removeItem(STUDENT_KEY);
+    } catch {
+      /* жеке режим */
+    }
+  },
+};
+
+async function request<T>(method: string, path: string, body?: unknown, isForm = false, asStudent = false): Promise<T> {
   const headers: Record<string, string> = {};
-  const token = adminToken.get();
+  const token = asStudent ? studentToken.get() : adminToken.get();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
 
@@ -85,7 +111,9 @@ async function request<T>(method: string, path: string, body?: unknown, isForm =
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && data.error === 'UNAUTHORIZED') {
+    if (res.status === 401 && data.error === 'UNAUTHORIZED' && asStudent) {
+      studentToken.clear();
+    } else if (res.status === 401 && data.error === 'UNAUTHORIZED') {
       adminToken.clear();
       if (location.pathname.startsWith('/admin') && location.pathname !== '/admin/login') {
         location.href = '/admin/login';
@@ -103,6 +131,12 @@ export const api = {
   patch: <T>(p: string, b?: unknown) => request<T>('PATCH', p, b ?? {}),
   del: <T>(p: string) => request<T>('DELETE', p),
   upload: <T>(p: string, form: FormData) => request<T>('POST', p, form, true),
+};
+
+/** Студенттин кабинети үчүн (/api/me) — студенттин токени менен */
+export const studentApi = {
+  get: <T>(p: string) => request<T>('GET', p, undefined, false, true),
+  post: <T>(p: string, b?: unknown) => request<T>('POST', p, b ?? {}, false, true),
 };
 
 /** Авторизация менен файл жүктөп алуу (Excel экспорт, шаблон) */

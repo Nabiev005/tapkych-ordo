@@ -68,6 +68,59 @@ const MATH = 'Математика';
 const WORLD = 'Дүйнө';
 const SPORT = 'Спорт';
 
+/** Баштапкы топтом менен кошо түзүлүүчү даяр оюн пакеттери (темалар боюнча) */
+export const STARTER_PACKS = [
+  {
+    title: 'Кыргызстан таануу',
+    icon: '🏔️',
+    description: 'Кыргызстандын тарыхы, географиясы жана маданияты боюнча толук оюн.',
+    categories: [HISTORY, GEO, CULTURE],
+  },
+  {
+    title: '«Манас» жана кыргыз тили',
+    icon: '📜',
+    description: '«Манас» эпосу, кыргыз адабияты жана кыргыз тили боюнча толук оюн.',
+    categories: [MANAS, LIT, LANG],
+  },
+  {
+    title: 'Жалпы билим',
+    icon: '🔬',
+    description: 'Илим, математика, дүйнө жана спорт боюнча толук оюн.',
+    categories: [SCIENCE, MATH, WORLD, SPORT],
+  },
+];
+
+type Round = 'ROUND1' | 'ROUND2' | 'FINAL';
+export const PACK_SIZES: Record<Round, number> = { ROUND1: 10, ROUND2: 10, FINAL: 5 };
+
+/**
+ * Пакетке суроо тандоо: 1-тур — жеңил, 2-тур — орто, финал — кыйын (жетпесе башка деңгээлден толукталат).
+ * Темалар аралаштырылат (ар бир темадан кезек менен).
+ */
+export function buildPack<Q extends { id: number; category: string; difficulty: string }>(questions: Q[], categories: string[]) {
+  const byCat = categories.map((c) => questions.filter((q) => q.category === c));
+  const mixed: Q[] = [];
+  for (let i = 0; byCat.some((l) => i < l.length); i++) for (const l of byCat) if (l[i]) mixed.push(l[i]);
+  const prefer: Record<Round, string[]> = { ROUND1: ['EASY', 'MEDIUM', 'HARD'], ROUND2: ['MEDIUM', 'EASY', 'HARD'], FINAL: ['HARD', 'MEDIUM', 'EASY'] };
+  const used = new Set<number>();
+  const items: { id: number; round: Round }[] = [];
+  // Финалдан баштайбыз — кыйын суроолор ага жетиши үчүн
+  for (const round of ['FINAL', 'ROUND2', 'ROUND1'] as Round[]) {
+    const list: { id: number; round: Round }[] = [];
+    for (const level of prefer[round]) {
+      for (const q of mixed) {
+        if (list.length >= PACK_SIZES[round]) break;
+        if (q.difficulty === level && !used.has(q.id)) {
+          list.push({ id: q.id, round });
+          used.add(q.id);
+        }
+      }
+    }
+    items.unshift(...list);
+  }
+  return items;
+}
+
 export const STARTER_LIBRARY: StarterQuestion[] = [
   // ─────────────── Тарых ───────────────
   c(HISTORY, 'EASY', 'Кыргыз Республикасынын биринчи Президенти ким болгон?', ['Аскар Акаев', 'Курманбек Бакиев', 'Алмазбек Атамбаев', 'Роза Отунбаева'], 'A'),

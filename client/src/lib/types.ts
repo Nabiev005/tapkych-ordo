@@ -241,7 +241,55 @@ export interface Student {
   id: number;
   name: string;
   className: string;
+  /** Студенттин кабинетине кирүү коду */
+  accessCode?: string | null;
   _count?: { players: number };
+}
+
+/** Даяр оюн пакети (китепканадан) */
+export interface LibraryPackInfo {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  counts: Record<RoundKey, number>;
+  total: number;
+  pending: number;
+  inBank: number;
+}
+
+// ─────────────── Студенттин кабинети ───────────────
+
+/** Студентке көрсөтүлүүчү суроо (туура жообу жок) */
+export interface PracticeQuestion {
+  id: number;
+  type: QuestionType;
+  category: string;
+  difficulty: Difficulty;
+  text: string;
+  imageUrl: string | null;
+  audioUrl: string | null;
+  options: Options;
+}
+
+export interface PracticeResult {
+  correct: number;
+  total: number;
+  items: (PracticeQuestion & { correct: string; choice: string | null; isCorrect: boolean })[];
+  streak?: number;
+}
+
+export interface MeInfo {
+  student: { id: number; name: string; className: string };
+  today: string;
+  todayDone: boolean;
+  streak: number;
+  best: number;
+  calendar: { day: string; done: boolean; correct: number; total: number }[];
+  totals: { dailyDays: number; practiceRuns: number; correct: number; answered: number };
+  recentPractice: { category: string; correct: number; total: number; createdAt: string }[];
+  categories: { name: string; count: number }[];
+  libraryTotal: number;
 }
 
 export interface RatingRow {

@@ -91,6 +91,9 @@ export default function Home() {
               <Link to="/rating" className="w-full rounded-2xl bg-gradient-to-b from-ordo-gold-light to-ordo-gold px-6 py-4 text-center sm:w-auto font-display text-lg font-bold text-ordo-ink shadow-[0_6px_0_#a07800] transition hover:brightness-105">
                 🏆 {h.rating}
               </Link>
+              <Link to="/me" className="w-full rounded-2xl bg-gradient-to-b from-[#3cb8ef] to-[#0d86c0] px-6 py-4 text-center font-display text-lg font-bold shadow-[0_6px_0_#075e88] sm:w-auto transition hover:brightness-110">
+                🎓 {h.student}
+              </Link>
               <Link to="/admin" className="w-full rounded-2xl bg-white/10 px-6 py-4 text-center font-display text-lg font-bold ring-2 ring-white/25 sm:w-auto transition hover:bg-white/20">
                 🎙️ {h.host}
               </Link>

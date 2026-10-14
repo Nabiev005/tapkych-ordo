@@ -60,6 +60,40 @@ export function verifyStaffToken(token: string | undefined): StaffUser | null {
   }
 }
 
+// ───────────────────────── Студенттин кабинети (/me) ─────────────────────────
+
+const STUDENT_TOKEN_TTL = '30d';
+
+export function signStudentToken(studentId: number): string {
+  return jwt.sign({ role: 'student', sid: studentId }, config.jwtSecret, { expiresIn: STUDENT_TOKEN_TTL });
+}
+
+/** Студенттин токени гана кабыл алынат (алып баруучунуку эмес — жана тескерисинче) */
+export function verifyStudentToken(token: string | undefined): number | null {
+  if (!token) return null;
+  try {
+    const p = jwt.verify(token, config.jwtSecret) as { role?: string; sid?: number };
+    return p.role === 'student' && typeof p.sid === 'number' ? p.sid : null;
+  } catch {
+    return null;
+  }
+}
+
+export function requireStudent(req: Request, res: Response, next: NextFunction) {
+  const header = req.headers.authorization ?? '';
+  const sid = verifyStudentToken(header.startsWith('Bearer ') ? header.slice(7) : undefined);
+  if (sid === null) throw new AppError('UNAUTHORIZED', 401);
+  res.locals.studentId = sid;
+  next();
+}
+
+/** Кирүү коду: окууга жеңил, окшош белгилер жок (0/O, 1/I) */
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export function randomAccessCode(): string {
+  const bytes = crypto.randomBytes(6);
+  return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('');
+}
+
 /** Мурунку код үчүн шайкештик */
 export const verifyAdminToken = (token: string | undefined) => verifyStaffToken(token) !== null;
 
