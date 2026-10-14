@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Dices, ListChecks, NotebookPen } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
@@ -108,7 +109,7 @@ export default function Assignments() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="font-display text-lg font-bold">📝 {a.title}</div>
+                  <div className="font-display text-lg font-bold"><NotebookPen className="ico text-ordo-red" /> {a.title}</div>
                   <div className="text-sm text-ordo-ink/50">{fmtDateTime(a.createdAt)}</div>
                 </div>
                 <span className={`rounded-full px-3 py-0.5 text-xs font-bold ${a.open ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
@@ -180,7 +181,7 @@ export default function Assignments() {
                     onClick={() => setForm({ ...form, mode: m })}
                     className={`rounded-2xl border-2 py-2.5 font-semibold ${form.mode === m ? 'border-ordo-sky bg-ordo-sky/10' : 'border-ordo-gold/20'}`}
                   >
-                    {m === 'auto' ? `🎲 ${t.modeAuto}` : `☑️ ${t.modeManual}`}
+                    {m === 'auto' ? <><Dices className="ico" /> {t.modeAuto}</> : <><ListChecks className="ico" /> {t.modeManual}</>}
                   </button>
                 ))}
               </div>

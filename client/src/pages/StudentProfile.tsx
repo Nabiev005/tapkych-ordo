@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { RankMedal } from '../components/game';
+import { Dumbbell, Gamepad2, Medal, NotebookPen, Star, Target, TrendingUp, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { OrnamentBand, SunTunduk } from '../components/Ornament';
@@ -35,10 +37,10 @@ export default function StudentProfile({ embedded = false }: { embedded?: boolea
   const s = data.stats;
   const strongest = data.categories.filter((c) => c.answered >= 2)[0];
   const medals = [
-    { icon: '🏆', label: t.medal.wins, value: s?.wins ?? 0 },
-    { icon: '🥉', label: t.medal.podiums, value: s?.podiums ?? 0 },
-    { icon: '⭐', label: t.medal.finals, value: s?.finals ?? 0 },
-    { icon: '📝', label: t.medal.tasks, value: s?.tasks ?? 0 },
+    { icon: <Trophy className="ico mx-auto" />, label: t.medal.wins, value: s?.wins ?? 0 },
+    { icon: <Medal className="ico mx-auto" />, label: t.medal.podiums, value: s?.podiums ?? 0 },
+    { icon: <Star className="ico mx-auto" />, label: t.medal.finals, value: s?.finals ?? 0 },
+    { icon: <NotebookPen className="ico mx-auto" />, label: t.medal.tasks, value: s?.tasks ?? 0 },
   ];
 
   return (
@@ -53,7 +55,7 @@ export default function StudentProfile({ embedded = false }: { embedded?: boolea
         <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-4 rounded-3xl bg-white/[0.06] p-6 text-center ring-1 ring-white/10 md:flex-row md:text-left">
           <div className="relative">
             <SunTunduk size={110} spin={false} />
-            {data.rank && data.rank <= 3 && <div className="absolute -right-2 -top-2 text-4xl">{['🥇', '🥈', '🥉'][data.rank - 1]}</div>}
+            {data.rank && data.rank <= 3 && <div className="absolute -right-2 -top-2 text-4xl"><RankMedal rank={data.rank} className="ico" /></div>}
           </div>
           <div className="flex-1">
             <h1 className="font-display text-4xl font-black text-gold-gradient">{data.student.name}</h1>
@@ -80,7 +82,7 @@ export default function StudentProfile({ embedded = false }: { embedded?: boolea
                 transition={{ delay: i * 0.08 }}
                 className={`rounded-3xl p-4 text-center ring-1 ${m.value > 0 ? 'bg-ordo-gold/15 ring-ordo-gold/50' : 'bg-white/5 ring-white/10 opacity-60'}`}
               >
-                <div className="text-4xl">{m.icon}</div>
+                <div className="text-4xl text-ordo-gold">{m.icon}</div>
                 <div className="mt-1 font-display text-3xl font-black">{m.value}</div>
                 <div className="text-sm text-white/60">{m.label}</div>
               </motion.div>
@@ -91,18 +93,18 @@ export default function StudentProfile({ embedded = false }: { embedded?: boolea
         <div className="grid gap-6 md:grid-cols-2">
           {/* Упайдын өсүшү */}
           <section className="rounded-3xl bg-white/[0.06] p-5 ring-1 ring-white/10">
-            <h2 className="font-display text-xl font-bold">📈 {t.growth}</h2>
+            <h2 className="font-display text-xl font-bold"><TrendingUp className="ico text-ordo-gold" /> {t.growth}</h2>
             <p className="mb-3 text-sm text-white/50">{t.growthHint}</p>
             {data.timeline.length ? <GrowthChart points={data.timeline} /> : <p className="text-white/50">{t.empty}</p>}
           </section>
 
           {/* Темалар */}
           <section className="rounded-3xl bg-white/[0.06] p-5 ring-1 ring-white/10">
-            <h2 className="font-display text-xl font-bold">🎯 {t.strengths}</h2>
+            <h2 className="font-display text-xl font-bold"><Target className="ico text-ordo-gold" /> {t.strengths}</h2>
             <p className="mb-3 text-sm text-white/50">{t.strengthsHint}</p>
             {strongest && (
               <div className="mb-3 rounded-2xl bg-emerald-500/15 px-4 py-2 text-emerald-200">
-                💪 {t.strongest}: <b>{strongest.category || ky.noCategory}</b> — {strongest.accuracy}%
+                <Dumbbell className="ico" /> {t.strongest}: <b>{strongest.category || ky.noCategory}</b> — {strongest.accuracy}%
               </div>
             )}
             <div className="space-y-2">
@@ -131,14 +133,14 @@ export default function StudentProfile({ embedded = false }: { embedded?: boolea
 
         {/* Оюндар */}
         <section className="rounded-3xl bg-white/[0.06] p-5 ring-1 ring-white/10">
-          <h2 className="mb-3 font-display text-xl font-bold">🎮 {t.gamesTitle}</h2>
+          <h2 className="mb-3 font-display text-xl font-bold"><Gamepad2 className="ico text-ordo-gold" /> {t.gamesTitle}</h2>
           {data.games.length === 0 ? (
             <p className="text-white/50">{t.empty}</p>
           ) : (
             <div className="space-y-2">
               {data.games.map((g) => (
                 <div key={g.gameId} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
-                  <span className="text-2xl">{g.place <= 3 ? ['🥇', '🥈', '🥉'][g.place - 1] : '🎖'}</span>
+                  <span className="text-2xl">{g.place <= 3 ? <RankMedal rank={g.place} className="ico" /> : <Medal className="ico text-ordo-sky-light" />}</span>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold">{g.title || t.untitled}</div>
                     <div className="text-sm text-white/50">
@@ -157,7 +159,7 @@ export default function StudentProfile({ embedded = false }: { embedded?: boolea
 
         {data.tasks.length > 0 && (
           <section className="rounded-3xl bg-white/[0.06] p-5 ring-1 ring-white/10">
-            <h2 className="mb-3 font-display text-xl font-bold">📝 {t.tasksTitle}</h2>
+            <h2 className="mb-3 font-display text-xl font-bold"><NotebookPen className="ico text-ordo-gold" /> {t.tasksTitle}</h2>
             <div className="space-y-2">
               {data.tasks.map((x) => (
                 <div key={x.assignmentId} className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">

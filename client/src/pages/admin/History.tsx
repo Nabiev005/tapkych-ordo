@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { RankMedal } from '../../components/game';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spinner, useDialogs } from '../../components/ui';
@@ -52,7 +53,7 @@ export default function History() {
               <div className="mt-4 flex flex-wrap gap-2">
                 {g.top.map((p, k) => (
                   <span key={k} className={`rounded-full px-3 py-1 text-sm font-semibold ${k === 0 ? 'bg-ordo-gold/30' : 'bg-ordo-ink/5'}`}>
-                    {['🥇', '🥈', '🥉'][k]} {p.name} · {p.total}
+                    <RankMedal rank={k + 1} className="ico" /> {p.name} · {p.total}
                   </span>
                 ))}
               </div>

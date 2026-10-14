@@ -1,5 +1,7 @@
 import confetti from 'canvas-confetti';
+import { RankMedal } from '../../components/game';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Ban, Crown, Eye, Flag, Hourglass, Lock, Medal, Music, PartyPopper, Pause, School, Smartphone, User, Users, Zap } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
@@ -34,7 +36,7 @@ export default function Play({ session, onLeave }: { session: PlayerSession; onL
   if (ended)
     return (
       <Shell>
-        <div className="text-6xl">{ended === 'replaced' ? '📱' : '⛔'}</div>
+        <div className="text-6xl text-white/80">{ended === 'replaced' ? <Smartphone className="ico mx-auto" /> : <Ban className="ico mx-auto text-ordo-red" />}</div>
         <p className="max-w-sm text-xl font-semibold">{ended === 'kicked' ? t.kicked : ended === 'replaced' ? t.replaced : t.gameDeleted}</p>
         <Button variant="gold" size="lg" onClick={() => onLeave()}>
           {ended === 'replaced' ? t.rejoin : t.leave}
@@ -62,7 +64,7 @@ function Shell({ children, name }: { children: ReactNode; name?: string }) {
   return (
     <div className="bg-night flex min-h-dvh flex-col text-white">
       <OrnamentBand height={16} />
-      {name && <div className="px-5 pt-3 text-center text-sm font-semibold text-white/50">👤 {name}</div>}
+      {name && <div className="px-5 pt-3 text-center text-sm font-semibold text-white/50"><User className="ico" /> {name}</div>}
       <div className="flex flex-1 flex-col items-center justify-center gap-5 p-6 text-center">{children}</div>
       <OrnamentBand height={16} flip />
     </div>
@@ -83,7 +85,7 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
       <Shell>
         <SunTunduk size={130} />
         <h1 className="font-display text-3xl font-black text-gold-gradient">{t.hello(me.name)}</h1>
-        {me.team && g.teamMode && <div className="rounded-full bg-white/10 px-4 py-1 font-semibold text-ordo-sky-light">🏫 {me.team}</div>}
+        {me.team && g.teamMode && <div className="rounded-full bg-white/10 px-4 py-1 font-semibold text-ordo-sky-light"><School className="ico" /> {me.team}</div>}
         <motion.div animate={{ opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 2 }} className="font-display text-xl font-bold">
           {t.waitingTitle}
         </motion.div>
@@ -96,7 +98,7 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
   if (!state.inRound)
     return (
       <Shell name={me.name}>
-        <div className="text-6xl">👀</div>
+        <div className="text-6xl text-white/70"><Eye className="ico mx-auto" /></div>
         <p className="max-w-sm text-xl font-semibold leading-relaxed">{t.eliminated}</p>
         <p className="text-white/60">{t.eliminatedHint}</p>
         {round && (
@@ -107,7 +109,7 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
         )}
         {/* Турдан чыккандар залдагы көрүүчү катары добуш бере алат */}
         <Link to={`/watch/${g.code}`} className="rounded-2xl bg-violet-600 px-6 py-3 font-semibold shadow-lg hover:bg-violet-500">
-          👥 {t.watchAsAudience}
+          <Users className="ico" /> {t.watchAsAudience}
         </Link>
       </Shell>
     );
@@ -115,7 +117,7 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
   if (g.paused && g.phase !== 'QUESTION')
     return (
       <Shell name={me.name}>
-        <div className="text-7xl">⏸</div>
+        <div className="text-7xl text-ordo-gold"><Pause className="ico mx-auto" /></div>
         <div className="font-display text-3xl font-black">{t.paused}</div>
         <p className="text-white/60">{t.pausedHint}</p>
       </Shell>
@@ -125,8 +127,8 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
     return (
       <Shell name={me.name}>
         {round !== 'ROUND1' && !g.teamMode && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl">
-            🎉
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-6xl text-ordo-gold">
+            <PartyPopper className="ico mx-auto" />
           </motion.div>
         )}
         {round !== 'ROUND1' && !g.teamMode && <div className="max-w-sm font-display text-2xl font-bold text-ordo-gold-light">{t.advanced(round)}</div>}
@@ -152,7 +154,7 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
   if (g.phase === 'ROUND_END')
     return (
       <Shell name={me.name}>
-        <div className="text-6xl">🏁</div>
+        <div className="text-6xl text-ordo-gold"><Flag className="ico mx-auto" /></div>
         <div className="font-display text-3xl font-black">{t.roundEnd}</div>
         <ScoreLine state={state} />
         <motion.p animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }} className="text-white/60">
@@ -229,7 +231,7 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
           </button>
         )}
         {q.hidden.length > 0 && <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/60">{t.fiftyUsedNote}</span>}
-        <div className={`font-display text-3xl font-black tabular-nums ${msLeft <= 5000 && msLeft > 0 ? 'text-opt-a' : ''}`}>{g.paused ? '⏸' : Math.ceil(msLeft / 1000)}</div>
+        <div className={`font-display text-3xl font-black tabular-nums ${msLeft <= 5000 && msLeft > 0 ? 'text-opt-a' : ''}`}>{g.paused ? <Pause className="ico" /> : Math.ceil(msLeft / 1000)}</div>
       </div>
       <div className="mb-4 h-3 overflow-hidden rounded-full bg-white/10">
         <div
@@ -245,7 +247,7 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
           <div className="text-xl font-semibold leading-snug">{q.text}</div>
           {q.audioUrl && (
             <div className="mt-3">
-              <div className="mb-1 text-sm text-white/60">🎵 {t.listen}</div>
+              <div className="mb-1 text-sm text-white/60"><Music className="ico" /> {t.listen}</div>
               <audio controls src={assetUrl(q.audioUrl)} className="w-full" />
             </div>
           )}
@@ -265,11 +267,11 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
             <div className="max-w-sm text-2xl font-semibold">{q.type === 'CHOICE' ? q.options?.[choice as OptionKey] : answerText(q.type, choice, q.options)}</div>
             <div className="font-display text-2xl font-bold">✓ {t.answered}</div>
             <div className="text-white/60">{t.waitReveal}</div>
-            <div className="text-sm text-white/40">🔒 {t.alreadyAnswered}</div>
+            <div className="text-sm text-white/40"><Lock className="ico" /> {t.alreadyAnswered}</div>
           </motion.div>
         ) : msLeft <= 0 ? (
           <motion.div key="up" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-            <div className="text-7xl">⌛</div>
+            <div className="text-7xl text-white/70"><Hourglass className="ico mx-auto" /></div>
             <div className="font-display text-3xl font-black">{t.timeUp}</div>
             <div className="text-white/60">{t.noAnswer}</div>
           </motion.div>
@@ -385,7 +387,7 @@ function RevealView({ state }: { state: PlayerState }) {
       </motion.div>
       <div className="font-display text-5xl font-black">{ok ? t.correct : t.wrong}</div>
       {ok && q.myPoints ? <div className="font-display text-3xl font-bold text-ordo-gold-light">{t.plusPoints(q.myPoints)}</div> : null}
-      {ok && q.myBonus ? <div className="rounded-full bg-black/20 px-4 py-1 font-bold text-ordo-gold-light">{t.bonus(q.myBonus)}</div> : null}
+      {ok && q.myBonus ? <div className="rounded-full bg-black/20 px-4 py-1 font-bold text-ordo-gold-light"><Zap className="ico" /> {t.bonus(q.myBonus)}</div> : null}
       {!q.myChoice && <div className="text-xl text-white/80">{t.noAnswer}</div>}
       {q.text && <div className="max-w-sm text-lg text-white/80">{q.text}</div>}
       {q.correct && (
@@ -429,9 +431,9 @@ function Finished({ state }: { state: PlayerState }) {
   }, [f, team, winner, state.game.teamMode]);
   return (
     <Shell name={state.me?.name}>
-      <div className="text-7xl">{winner ? '👑' : f && f.place <= 3 ? ['🥇', '🥈', '🥉'][f.place - 1] : '🎖'}</div>
+      <div className="text-7xl">{winner ? <Crown className="ico mx-auto text-ordo-gold" fill="currentColor" /> : f && f.place <= 3 ? <RankMedal rank={f.place} className="ico mx-auto" /> : <Medal className="ico mx-auto text-ordo-sky-light" />}</div>
       <div className="font-display text-3xl font-black text-gold-gradient">{winner && !state.game.teamMode ? t.winner : t.finishedTitle}</div>
-      {team && <div className="rounded-2xl bg-white/10 px-5 py-3 font-display text-xl font-bold text-ordo-gold-light">🏫 {t.teamPlace(team.team, team.place)}</div>}
+      {team && <div className="rounded-2xl bg-white/10 px-5 py-3 font-display text-xl font-bold text-ordo-gold-light"><School className="ico" /> {t.teamPlace(team.team, team.place)}</div>}
       {f && (
         <>
           <div className="font-display text-2xl font-bold">{t.yourPlace(f.place)}</div>

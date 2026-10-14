@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Award, Calendar, Pencil, Trash2, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
 import { fmtDate, ky } from '../../i18n/ky';
@@ -71,7 +72,7 @@ export default function Seasons() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-display text-lg font-bold">
-                      📅 {x.name} {current && <span className="ml-1 rounded bg-emerald-100 px-2 text-xs font-bold text-emerald-700">{t.current}</span>}
+                      <Calendar className="ico" /> {x.name} {current && <span className="ml-1 rounded bg-emerald-100 px-2 text-xs font-bold text-emerald-700">{t.current}</span>}
                     </div>
                     <div className="text-sm text-ordo-ink/55">
                       {fmtDate(x.startsAt)} — {fmtDate(x.endsAt)}
@@ -79,7 +80,7 @@ export default function Seasons() {
                   </div>
                   <div className="flex gap-1">
                     <button className="rounded-lg p-1.5 hover:bg-ordo-gold/20" title={ky.common.edit} onClick={() => setForm({ id: x.id, name: x.name, startsAt: day(x.startsAt), endsAt: day(x.endsAt) })}>
-                      ✏️
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       className="rounded-lg p-1.5 hover:bg-ordo-red/10"
@@ -90,16 +91,16 @@ export default function Seasons() {
                         void load();
                       }}
                     >
-                      🗑
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button size="sm" variant="sky" onClick={() => navigate(`/admin/rating?season=${x.id}`)}>
-                    🏆 {t.openRating}
+                    <Trophy className="ico" /> {t.openRating}
                   </Button>
                   <Button size="sm" variant="gold" onClick={() => window.open(`/certificate?season=${x.id}&top=3`, '_blank')}>
-                    📜 {t.certificates}
+                    <Award className="ico" /> {t.certificates}
                   </Button>
                 </div>
               </div>

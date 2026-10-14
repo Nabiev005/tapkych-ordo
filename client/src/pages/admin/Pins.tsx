@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Lock, Printer } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { CornerOrnament, SunTunduk } from '../../components/Ornament';
@@ -41,7 +42,7 @@ export default function Pins() {
           <h1 className="font-display text-2xl font-black">{t.title}</h1>
           <p className="max-w-2xl text-ordo-ink/60">{t.hint}</p>
         </div>
-        <Button size="lg" icon="🖨" onClick={() => window.print()}>
+        <Button size="lg" icon={<Printer />} onClick={() => window.print()}>
           {ky.common.print}
         </Button>
       </div>
@@ -69,7 +70,7 @@ export default function Pins() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 text-center text-xs text-ordo-ink/50">🔒 {t.card.secret}</div>
+            <div className="mt-2 text-center text-xs text-ordo-ink/50"><Lock className="ico" /> {t.card.secret}</div>
           </div>
         ))}
       </div>

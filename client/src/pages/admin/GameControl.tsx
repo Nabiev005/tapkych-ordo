@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Monitor, Volume2, VolumeX } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, ConnBadge, Spinner, useDialogs } from '../../components/ui';
 import { ky } from '../../i18n/ky';
@@ -65,7 +66,7 @@ export default function GameControl() {
         </div>
         <div className="flex-1" />
         <Button variant="outline" size="sm" onClick={() => window.open(`/screen/${g.code}`, '_blank')}>
-          🖥 {ky.admin.control.screenLink}
+          <Monitor className="ico" /> {ky.admin.control.screenLink}
         </Button>
         <Button
           variant={g.soundEnabled ? 'gold' : 'outline'}
@@ -73,7 +74,7 @@ export default function GameControl() {
           onClick={() => act({ type: 'setSound', enabled: !g.soundEnabled })}
           title={ky.admin.control.soundToggle}
         >
-          {g.soundEnabled ? '🔊' : '🔇'} {g.soundEnabled ? ky.common.soundOn : ky.common.soundOff}
+          {g.soundEnabled ? <Volume2 className="ico" /> : <VolumeX className="ico" />} {g.soundEnabled ? ky.common.soundOn : ky.common.soundOff}
         </Button>
       </div>
 

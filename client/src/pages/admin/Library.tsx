@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PackIcon, PACK_ICON_MAP } from '../../components/PackIcon';
+import type { LucideIcon } from 'lucide-react';
+import { Download, Gift, Hourglass, Import, Info, Library as LibraryIcon, PenLine, Pencil, Sprout, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
 import { ky, type Difficulty, type QuestionType, type RoundKey } from '../../i18n/ky';
@@ -158,10 +161,10 @@ export default function Library() {
       await load();
     });
 
-  const tabs: { key: Tab; label: string; badge?: number }[] = [
-    { key: 'LIBRARY', label: `📚 ${t.tabLibrary}` },
-    { key: 'PACKS', label: `🎁 ${t.tabPacks}` },
-    ...(isAdmin ? [{ key: 'PENDING' as Tab, label: `⏳ ${t.tabPending}`, badge: data?.pendingCount }] : [{ key: 'MINE' as Tab, label: `✍️ ${t.tabMine}` }]),
+  const tabs: { key: Tab; label: string; icon: LucideIcon; badge?: number }[] = [
+    { key: 'LIBRARY', label: t.tabLibrary, icon: LibraryIcon },
+    { key: 'PACKS', label: t.tabPacks, icon: Gift },
+    ...(isAdmin ? [{ key: 'PENDING' as Tab, label: t.tabPending, icon: Hourglass, badge: data?.pendingCount }] : [{ key: 'MINE' as Tab, label: t.tabMine, icon: PenLine }]),
   ];
   const chip = (on: boolean) => `rounded-full px-3 py-1 font-semibold transition ${on ? 'bg-ordo-night text-white' : 'bg-white ring-1 ring-ordo-gold/30 hover:bg-ordo-gold/10'}`;
   const emptyText = tab === 'PENDING' ? t.emptyPending : tab === 'MINE' ? t.emptyMine : q || category || difficulty || type ? t.empty : isAdmin ? t.emptyLibraryAdmin : t.emptyLibrary;
@@ -170,12 +173,12 @@ export default function Library() {
     <div className="space-y-6 pb-24">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <h1 className="font-display text-2xl font-black">📚 {t.title}</h1>
+          <h1 className="font-display text-2xl font-black"><LibraryIcon className="ico text-ordo-red" /> {t.title}</h1>
           <p className="mt-1 text-ordo-ink/60">{t.subtitle}</p>
         </div>
         {isAdmin && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" icon="🌱" onClick={addStarter} disabled={busy}>
+            <Button variant="outline" icon={<Sprout />} onClick={addStarter} disabled={busy}>
               {t.starter}
             </Button>
             <input
@@ -189,7 +192,7 @@ export default function Library() {
                 if (file) void importFile(file);
               }}
             />
-            <Button variant="outline" icon="📥" title={t.importHint} onClick={() => fileRef.current?.click()} disabled={busy}>
+            <Button variant="outline" icon={<Import />} title={t.importHint} onClick={() => fileRef.current?.click()} disabled={busy}>
               {t.importExcel}
             </Button>
             <Button variant="red" icon="＋" onClick={() => setDraft({ ...emptyDraft('ROUND1') })}>
@@ -207,13 +210,13 @@ export default function Library() {
             onClick={() => setTab(x.key)}
             className={`relative rounded-2xl border-2 px-4 py-2.5 font-semibold transition ${tab === x.key ? 'border-ordo-red bg-white shadow-lg' : 'border-transparent bg-white/60 hover:bg-white'}`}
           >
-            {x.label}
+            <x.icon className="ico" /> {x.label}
             {!!x.badge && <span className="ml-2 rounded-full bg-ordo-red px-2 py-0.5 text-xs font-bold text-white">{x.badge}</span>}
           </button>
         ))}
       </div>
 
-      {tab === 'PENDING' && <div className="rounded-2xl bg-ordo-gold/15 p-4 text-ordo-ink/80">ℹ️ {t.pendingHint}</div>}
+      {tab === 'PENDING' && <div className="rounded-2xl bg-ordo-gold/15 p-4 text-ordo-ink/80"><Info className="ico" /> {t.pendingHint}</div>}
 
       {tab === 'PACKS' ? (
         <Packs isAdmin={isAdmin} />
@@ -308,11 +311,11 @@ export default function Library() {
                         <div className="flex shrink-0 flex-col gap-1" onClick={(e) => e.stopPropagation()}>
                           {isAdmin && (
                             <Button size="sm" variant="outline" onClick={() => setDraft({ ...emptyDraft('ROUND1'), ...x, round: 'ROUND1' })}>
-                              ✏️ {ky.common.edit}
+                              <Pencil className="ico" /> {ky.common.edit}
                             </Button>
                           )}
                           <Button size="sm" variant="danger" onClick={() => remove(x)}>
-                            🗑 {isAdmin ? ky.common.delete : t.withdraw}
+                            <Trash2 className="ico" /> {isAdmin ? ky.common.delete : t.withdraw}
                           </Button>
                         </div>
                       )}
@@ -355,7 +358,7 @@ export default function Library() {
                 <div className="flex-1" />
                 {isAdmin && (
                   <Button variant="outline" size="sm" onClick={() => setPackItems((data?.items ?? []).filter((x) => selected.has(x.id)))}>
-                    {t.createPack(selected.size)}
+                    <Gift className="ico" /> {t.createPack(selected.size)}
                   </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={() => navigate('/admin/questions')}>
@@ -404,7 +407,7 @@ export default function Library() {
   );
 }
 
-const PACK_ICONS = ['🎁', '🏔️', '📜', '🔬', '📚', '🧠', '🌍', '⚽', '🎨', '🧮', '🎵', '🏛️'];
+const PACK_ICONS = Object.keys(PACK_ICON_MAP);
 const AUTO_ROUND: Record<Difficulty, RoundKey> = { EASY: 'ROUND1', MEDIUM: 'ROUND2', HARD: 'FINAL' };
 
 /** Даяр оюн пакеттери: бир басуу менен бүтүндөй оюнга керектүү суроолор банкка кошулат */
@@ -452,7 +455,7 @@ function Packs({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-ordo-sky/10 p-4 text-ordo-ink/80">ℹ️ {t.packsHint}</div>
+      <div className="rounded-2xl bg-ordo-sky/10 p-4 text-ordo-ink/80"><Info className="ico" /> {t.packsHint}</div>
       {packs.length === 0 ? (
         <div className="card p-10 text-center text-ordo-ink/60">{isAdmin ? t.packsEmptyAdmin : t.packsEmpty}</div>
       ) : (
@@ -462,14 +465,16 @@ function Packs({ isAdmin }: { isAdmin: boolean }) {
             return (
               <div key={p.id} className="card flex flex-col gap-3 p-5">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-ordo-night text-3xl">{p.icon}</div>
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-ordo-night text-ordo-gold">
+                    <PackIcon name={p.icon} className="h-7 w-7" />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-display text-lg leading-tight font-bold">{p.title}</h3>
                     <div className="text-sm text-ordo-ink/50">{t.packTotal(p.total)}</div>
                   </div>
                   {isAdmin && (
                     <button title={ky.common.delete} className="rounded-lg p-1.5 text-ordo-ink/40 hover:bg-ordo-red/10 hover:text-ordo-red" onClick={() => remove(p)}>
-                      🗑
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                 </div>
@@ -481,7 +486,7 @@ function Packs({ isAdmin }: { isAdmin: boolean }) {
                     </span>
                   ))}
                 </div>
-                {p.pending > 0 && <div className="text-xs font-semibold text-amber-700">⏳ {t.packPending(p.pending)}</div>}
+                {p.pending > 0 && <div className="text-xs font-semibold text-amber-700"><Hourglass className="ico" /> {t.packPending(p.pending)}</div>}
                 <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
                   {p.inBank > 0 && <span className="text-xs font-semibold text-emerald-700">✓ {t.packInBank(p.inBank, p.total)}</span>}
                   <div className="flex-1" />
@@ -491,7 +496,7 @@ function Packs({ isAdmin }: { isAdmin: boolean }) {
                     </Button>
                   ) : (
                     <Button size="sm" variant="green" loading={busy === p.id} disabled={!p.total} onClick={() => copy(p)}>
-                      📥 {t.packCopy}
+                      <Download className="ico" /> {t.packCopy}
                     </Button>
                   )}
                 </div>
@@ -551,8 +556,8 @@ function PackModal({ items, onClose, onCreated }: { items: LibraryItem[] | null;
               <label className="label">{t.packIcon}</label>
               <div className="flex max-w-xs flex-wrap gap-1">
                 {PACK_ICONS.map((i) => (
-                  <button key={i} onClick={() => setIcon(i)} className={`h-9 w-9 rounded-lg text-xl ${icon === i ? 'bg-ordo-gold/40 ring-2 ring-ordo-gold' : 'hover:bg-ordo-gold/15'}`}>
-                    {i}
+                  <button key={i} onClick={() => setIcon(i)} className={`flex h-9 w-9 items-center justify-center rounded-lg ${icon === i ? 'bg-ordo-gold/40 ring-2 ring-ordo-gold' : 'hover:bg-ordo-gold/15'}`}>
+                    <PackIcon name={i} className="h-5 w-5" />
                   </button>
                 ))}
               </div>

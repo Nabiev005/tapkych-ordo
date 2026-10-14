@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { RankMedal } from '../components/game';
+import { Award, Calendar, ExternalLink, FileSpreadsheet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { OrnamentBand, SunTunduk } from '../components/Ornament';
@@ -53,7 +55,6 @@ export default function Rating({ embedded = false }: { embedded?: boolean }) {
   }, [data, cls, sort]);
 
   const top = rows.slice(0, 3);
-  const medal = ['🥇', '🥈', '🥉'];
 
   return (
     <div className={`bg-night text-white ${embedded ? 'overflow-hidden rounded-3xl' : 'min-h-dvh'}`}>
@@ -61,7 +62,7 @@ export default function Rating({ embedded = false }: { embedded?: boolean }) {
       <div className="flex justify-end px-4 pt-3">
         {embedded ? (
           <a href={`/rating${seasonId ? `?season=${seasonId}` : ''}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-ordo-sky-light hover:underline">
-            {t.openPublic} ↗
+            {t.openPublic} <ExternalLink className="ico" />
           </a>
         ) : (
           <LangSwitch dark />
@@ -80,7 +81,7 @@ export default function Rating({ embedded = false }: { embedded?: boolean }) {
                   onClick={() => setParams(x.id ? { season: x.id } : {})}
                   className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${seasonId === x.id ? 'bg-ordo-sky text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}
                 >
-                  📅 {x.name}
+                  <Calendar className="ico" /> {x.name}
                 </button>
               ))}
             </div>
@@ -125,7 +126,7 @@ export default function Rating({ embedded = false }: { embedded?: boolean }) {
                       i === 0 ? 'bg-ordo-gold/20 ring-ordo-gold md:order-2 md:-translate-y-3' : i === 1 ? 'bg-white/10 ring-slate-300 md:order-1' : 'bg-orange-400/10 ring-orange-400 md:order-3'
                     }`}
                   >
-                    <div className="text-6xl">{medal[i]}</div>
+                    <div className="text-6xl"><RankMedal rank={i + 1} className="ico mx-auto" /></div>
                     <div className="mt-2 font-display text-2xl font-black">{r.name}</div>
                     {r.className && <div className="text-ordo-sky-light">{r.className}</div>}
                     <div className="mt-3 font-display text-4xl font-black text-ordo-gold-light">{r.totalScore}</div>
@@ -152,10 +153,10 @@ export default function Rating({ embedded = false }: { embedded?: boolean }) {
               </div>
               {isAdmin && (
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" icon="📜" onClick={() => window.open(`/certificate?top=3${seasonId ? `&season=${seasonId}` : ''}`, '_blank')}>
+                  <Button variant="outline" size="sm" icon={<Award />} onClick={() => window.open(`/certificate?top=3${seasonId ? `&season=${seasonId}` : ''}`, '_blank')}>
                     {ky.certificate.top3}
                   </Button>
-                  <Button variant="gold" size="sm" icon="📊" onClick={() => downloadFile(`/api/rating/export.xlsx${seasonId ? `?seasonId=${seasonId}` : ''}`, ky.files.rating).catch(() => undefined)}>
+                  <Button variant="gold" size="sm" icon={<FileSpreadsheet />} onClick={() => downloadFile(`/api/rating/export.xlsx${seasonId ? `?seasonId=${seasonId}` : ''}`, ky.files.rating).catch(() => undefined)}>
                     {t.export}
                   </Button>
                 </div>
@@ -189,7 +190,7 @@ export default function Rating({ embedded = false }: { embedded?: boolean }) {
                       onClick={() => openProfile(r.studentId)}
                       className={`cursor-pointer border-t border-white/10 transition hover:bg-white/5 ${i < 3 ? 'text-ordo-gold-light' : ''}`}
                     >
-                      <td className="p-3 font-display text-lg font-black">{medal[i] ?? i + 1}</td>
+                      <td className="p-3 font-display text-lg font-black">{i < 3 ? <RankMedal rank={i + 1} className="ico" /> : i + 1}</td>
                       <td className="p-3 text-lg font-semibold">{r.name}</td>
                       <td className="p-3 text-white/70">{r.className}</td>
                       <td className="p-3 text-center tabular-nums">{r.games}</td>

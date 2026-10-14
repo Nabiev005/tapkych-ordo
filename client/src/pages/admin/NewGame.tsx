@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { Gamepad2, Settings as SettingsIcon, Tag, Target, TriangleAlert, Users, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, useDialogs } from '../../components/ui';
@@ -121,7 +122,7 @@ export default function NewGame() {
         {/* Студенттерди тандоо */}
         <section className="card space-y-4 p-5 lg:col-span-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-lg font-bold">👥 {t.pickTitle}</h2>
+            <h2 className="font-display text-lg font-bold"><Users className="ico" /> {t.pickTitle}</h2>
             <Link to="/admin/students" className="text-sm font-semibold text-ordo-sky hover:underline">
               {t.manageStudents} →
             </Link>
@@ -230,18 +231,18 @@ export default function NewGame() {
           </section>
 
           <section className="card space-y-4 p-5">
-            <h2 className="font-display text-lg font-bold">🎮 {t.modesTitle}</h2>
+            <h2 className="font-display text-lg font-bold"><Gamepad2 className="ico" /> {t.modesTitle}</h2>
             <Toggle checked={s.teamMode} onChange={(v) => setS({ ...s, teamMode: v })} label={t.teamMode} hint={t.teamModeHint} />
             <Toggle checked={s.fiftyFifty} onChange={(v) => setS({ ...s, fiftyFifty: v })} label={t.fiftyFifty} hint={t.fiftyFiftyHint} />
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-ordo-ink/80">⚡ {t.speedBonus}</div>
+                <div className="text-sm font-semibold text-ordo-ink/80"><Zap className="ico" /> {t.speedBonus}</div>
                 <div className="text-xs text-ordo-ink/50">{t.speedBonusHint}</div>
               </div>
               <input type="number" className="input w-20 py-2 text-center" min={0} max={10} value={s.speedBonus} onChange={(e) => setS({ ...s, speedBonus: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} />
             </div>
             <div>
-              <div className="mb-1.5 text-sm font-semibold text-ordo-ink/80">🎯 {t.selection}</div>
+              <div className="mb-1.5 text-sm font-semibold text-ordo-ink/80"><Target className="ico" /> {t.selection}</div>
               {(['ORDER', 'DIFFICULTY'] as const).map((m) => (
                 <label key={m} className={`mb-1.5 flex cursor-pointer items-center gap-2 rounded-xl border-2 p-2.5 text-sm ${s.selectionMode === m ? 'border-ordo-sky bg-ordo-sky/5' : 'border-ordo-gold/20'}`}>
                   <input type="radio" checked={s.selectionMode === m} onChange={() => setS({ ...s, selectionMode: m })} />
@@ -251,7 +252,7 @@ export default function NewGame() {
             </div>
             {bankInfo && bankInfo.categories.length > 0 && (
               <div>
-                <div className="text-sm font-semibold text-ordo-ink/80">🏷 {t.categories}</div>
+                <div className="text-sm font-semibold text-ordo-ink/80"><Tag className="ico" /> {t.categories}</div>
                 <div className="mb-1.5 text-xs text-ordo-ink/50">{t.categoriesHint}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {bankInfo.categories.map((c) => {
@@ -274,7 +275,7 @@ export default function NewGame() {
           </section>
 
           <section className="card space-y-4 p-5">
-            <h2 className="font-display text-lg font-bold">⚙️ {t.settings}</h2>
+            <h2 className="font-display text-lg font-bold"><SettingsIcon className="ico" /> {t.settings}</h2>
             <p className="text-sm text-ordo-ink/60">{t.settingsHint}</p>
             <div className="space-y-3">
               {FIELDS.map((f) => (
@@ -297,7 +298,7 @@ export default function NewGame() {
 
       {lacking.length > 0 && (
         <div className="rounded-2xl bg-ordo-gold/20 p-4 text-ordo-ink">
-          ⚠ {t.bankWarn}
+          <TriangleAlert className="ico" /> {t.bankWarn}
           <ul className="mt-1 list-disc pl-6">
             {lacking.map((r) => (
               <li key={r}>{ky.notEnoughQuestions(r, need[r], bank![r])}</li>

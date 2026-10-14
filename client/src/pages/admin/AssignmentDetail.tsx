@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { FileSpreadsheet, Hourglass, Link2, Lock, LockOpen, NotebookPen, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { JoinQr } from '../../components/game';
+import { RankMedal } from '../../components/game';
 import { Button, Spinner, useDialogs } from '../../components/ui';
 import { fmtDateTime, ky } from '../../i18n/ky';
 import { api, downloadFile, getJoinBase } from '../../lib/api';
@@ -43,7 +45,7 @@ export default function AssignmentDetail() {
         <Button variant="ghost" onClick={() => navigate('/admin/assignments')}>
           ← {ky.common.back}
         </Button>
-        <h1 className="flex-1 font-display text-2xl font-black">📝 {a.title}</h1>
+        <h1 className="flex-1 font-display text-2xl font-black"><NotebookPen className="ico text-ordo-red" /> {a.title}</h1>
         <span className={`rounded-full px-3 py-1 text-sm font-bold ${a.open ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
           {a.open ? ky.common.active : ky.common.closed}
         </span>
@@ -66,7 +68,7 @@ export default function AssignmentDetail() {
                   .catch(() => undefined)
               }
             >
-              🔗 {ky.common.copyLink}
+              <Link2 className="ico" /> {ky.common.copyLink}
             </Button>
             <Button
               variant={a.active ? 'outline' : 'green'}
@@ -76,7 +78,7 @@ export default function AssignmentDetail() {
                 void load();
               }}
             >
-              {a.active ? `🔒 ${t.close}` : `🔓 ${t.reopen}`}
+              {a.active ? <><Lock className="ico" /> {t.close}</> : <><LockOpen className="ico" /> {t.reopen}</>}
             </Button>
           </div>
           {a.closesAt && <div className="text-sm text-white/60">{ky.homework.closesAt(fmtDateTime(a.closesAt))}</div>}
@@ -86,7 +88,7 @@ export default function AssignmentDetail() {
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-lg font-bold">{t.results}</h2>
             <div className="flex gap-2">
-              <Button size="sm" variant="green" icon="📊" onClick={() => downloadFile(`/api/assignments/${a.id}/export.xlsx`, ky.files.assignment(a.code)).catch((e) => toast(e.message, 'err'))}>
+              <Button size="sm" variant="green" icon={<FileSpreadsheet />} onClick={() => downloadFile(`/api/assignments/${a.id}/export.xlsx`, ky.files.assignment(a.code)).catch((e) => toast(e.message, 'err'))}>
                 {t.export}
               </Button>
               <Button
@@ -98,7 +100,7 @@ export default function AssignmentDetail() {
                   navigate('/admin/assignments');
                 }}
               >
-                🗑
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -121,7 +123,7 @@ export default function AssignmentDetail() {
                 <tbody>
                   {a.submissions.map((s, i) => (
                     <tr key={s.id} className="border-b border-ordo-gold/10">
-                      <td className="p-2 font-display font-bold">{s.finishedAt ? (i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1) : '…'}</td>
+                      <td className="p-2 font-display font-bold">{s.finishedAt ? (i < 3 ? <RankMedal rank={i + 1} className="ico" /> : i + 1) : '…'}</td>
                       <td className="p-2 font-semibold">{s.name}</td>
                       <td className="p-2 text-ordo-ink/60">{s.className}</td>
                       <td className="p-2 text-center font-display font-black text-ordo-red">
@@ -133,7 +135,7 @@ export default function AssignmentDetail() {
                           <span className="text-emerald-700">✓ {t.done}</span>
                         ) : (
                           <span className="text-amber-700">
-                            ⏳ {t.inProgress} ({s.answered}/{s.total})
+                            <Hourglass className="ico" /> {t.inProgress} ({s.answered}/{s.total})
                           </span>
                         )}
                       </td>

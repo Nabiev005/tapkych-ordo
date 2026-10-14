@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Users } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AudienceBars, OPTION_STYLE } from '../../components/game';
@@ -70,7 +71,7 @@ export default function Watch() {
       <OrnamentBand height={16} />
       <div className="flex items-center justify-between px-4 pt-3">
         <Logo size="sm" />
-        <span className="rounded-full bg-violet-600/40 px-3 py-1 text-sm font-semibold">👥 {t.title}</span>
+        <span className="rounded-full bg-violet-600/40 px-3 py-1 text-sm font-semibold"><Users className="ico" /> {t.title}</span>
       </div>
       <div className="flex flex-1 flex-col p-4">
         {g.status === 'FINISHED' ? (

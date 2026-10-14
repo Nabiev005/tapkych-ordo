@@ -38,7 +38,7 @@ export function Button({ variant = 'red', size = 'md', loading, icon, pulse, cla
   return (
     <motion.button
       whileTap={off ? undefined : { scale: 0.96, y: 3 }}
-      className={`relative inline-flex select-none items-center justify-center font-semibold transition-[filter,background-color,opacity] ${VARIANTS[variant]} ${SIZES[size]} ${off ? 'opacity-40 shadow-none saturate-50' : ''} ${className}`}
+      className={`relative inline-flex select-none items-center justify-center font-semibold transition-[filter,background-color,opacity] [&_svg]:h-[1.15em] [&_svg]:w-[1.15em] [&_svg]:shrink-0 ${VARIANTS[variant]} ${SIZES[size]} ${off ? 'opacity-40 shadow-none saturate-50' : ''} ${className}`}
       disabled={off}
       {...rest}
     >

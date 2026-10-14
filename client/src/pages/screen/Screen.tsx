@@ -1,5 +1,6 @@
 import confetti from 'canvas-confetti';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Lock, School, Star, Trophy, Users, Volume1, Zap } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { AudienceBars, JoinQr, LeaderboardList, OPTION_STYLE, OptionCard, Podium, RingTimer, TeamBoard } from '../../components/game';
@@ -74,7 +75,7 @@ export default function Screen() {
       </AnimatePresence>
 
       {!audioOk && state.game.soundEnabled && !['QUESTION', 'REVEAL', 'ROUND_END'].includes(state.game.phase) && !state.game.showLeaderboard && (
-        <div className="absolute right-6 top-10 z-50 animate-pulse rounded-full bg-white/10 px-5 py-2 text-lg text-white/70">🔈 {ky.screen.enableSound}</div>
+        <div className="absolute right-6 top-10 z-50 animate-pulse rounded-full bg-white/10 px-5 py-2 text-lg text-white/70"><Volume1 className="ico" /> {ky.screen.enableSound}</div>
       )}
       <ConnBadge status={status} dark />
       <SoundDirector state={state} offset={offset} />
@@ -155,12 +156,12 @@ function Lobby({ state }: { state: ScreenState }) {
             <span className="text-3xl text-white/70">{ky.screen.code}:</span>
             <span className="font-display text-[clamp(4rem,8vw,8rem)] font-black leading-none tracking-[0.12em] text-gold-gradient">{g.code}</span>
           </div>
-          <div className="text-xl text-white/50">🔒 {ky.screen.pinNote}</div>
+          <div className="text-xl text-white/50"><Lock className="ico" /> {ky.screen.pinNote}</div>
         </div>
         {base && (
           <div className="flex flex-col items-center gap-2 rounded-3xl bg-violet-600/20 p-4 ring-2 ring-violet-400/40">
             <JoinQr url={`${base}/watch/${g.code}`} size={Math.min(130, window.innerHeight * 0.13)} />
-            <div className="max-w-40 text-center text-sm font-semibold text-violet-200">👥 {ky.screen.watchQr}</div>
+            <div className="max-w-40 text-center text-sm font-semibold text-violet-200"><Users className="ico" /> {ky.screen.watchQr}</div>
           </div>
         )}
       </div>
@@ -219,7 +220,7 @@ function RoundIntro({ round, qualifiers }: { round: RoundKey; qualifiers: { id: 
                 transition={{ delay: 1 + i * 0.35, type: 'spring', damping: 12 }}
                 className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-ordo-gold-light to-ordo-gold-dark px-10 py-6 font-display text-4xl font-black text-ordo-night shadow-[0_0_50px_rgba(245,183,0,0.45)]"
               >
-                ⭐ {p.name}
+                <Star className="ico text-ordo-gold" /> {p.name}
               </motion.div>
             ))}
           </div>
@@ -323,14 +324,14 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
         {/* Залдын добушу — ачылгандан кийин */}
         {revealed && q.audience.counts && q.audience.total > 0 && q.type !== 'ORDER' && (
           <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} className="self-center rounded-3xl bg-violet-600/20 p-5 ring-2 ring-violet-400/40">
-            <div className="mb-3 text-center font-display text-2xl font-black text-violet-200">👥 {ky.screen.audience}</div>
+            <div className="mb-3 text-center font-display text-2xl font-black text-violet-200"><Users className="ico" /> {ky.screen.audience}</div>
             <AudienceBars counts={q.audience.counts} total={q.audience.total} keys={keys} correct={q.correct} />
             <div className="mt-2 text-center text-sm text-violet-200/80">{ky.screen.audienceVotes(q.audience.total)}</div>
           </motion.div>
         )}
       </div>
       {q.audioUrl && g.phase === 'QUESTION' && <QuestionAudio src={assetUrl(q.audioUrl)!} />}
-      {!revealed && q.audience.total > 0 && <div className="text-center text-lg text-violet-200/70">👥 {ky.screen.audienceVotes(q.audience.total)}</div>}
+      {!revealed && q.audience.total > 0 && <div className="text-center text-lg text-violet-200/70"><Users className="ico" /> {ky.screen.audienceVotes(q.audience.total)}</div>}
 
       {/* Оюнчулар: ким жооп бергени (жооптун өзү көрүнбөйт), ачылгандан кийин ✓/✗ */}
       <div className="flex flex-wrap justify-center gap-2.5">
@@ -351,7 +352,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
               className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 font-display text-[clamp(1rem,1.5vw,1.6rem)] font-bold ring-2 ${cls}`}
             >
               {p.correct === true ? '✓' : p.correct === false ? '✗' : p.answered ? '●' : '○'} {p.name}
-              {p.bonus > 0 && <span className="rounded-lg bg-black/20 px-2 text-base">⚡+{p.bonus}</span>}
+              {p.bonus > 0 && <span className="rounded-lg bg-black/20 px-2 text-base"><Zap className="ico" />+{p.bonus}</span>}
             </motion.div>
           );
         })}
@@ -366,17 +367,17 @@ function BoardView({ title, subtitle, rows, teams }: { title: string; subtitle?:
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center px-[6vw] py-[3vh]">
       <motion.div initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-[3vh] flex items-center gap-6">
-        <span className="text-6xl">🏆</span>
+        <Trophy className="h-16 w-16 text-ordo-gold" />
         <div className="text-center">
           <div className="font-display text-[clamp(3rem,5vw,5.5rem)] font-black leading-none text-gold-gradient">{title}</div>
           {subtitle && <div className="mt-2 font-display text-2xl text-ordo-sky-light">{subtitle}</div>}
         </div>
-        <span className="text-6xl">🏆</span>
+        <Trophy className="h-16 w-16 text-ordo-gold" />
       </motion.div>
       {teams && teams.length > 0 ? (
         <div className="grid min-h-0 w-full max-w-7xl flex-1 grid-cols-5 gap-8 overflow-hidden">
           <div className="col-span-3">
-            <div className="mb-3 font-display text-3xl font-black text-ordo-sky-light">🏫 {ky.screen.teamsTitle}</div>
+            <div className="mb-3 font-display text-3xl font-black text-ordo-sky-light"><School className="ico" /> {ky.screen.teamsTitle}</div>
             <TeamBoard teams={teams} big />
           </div>
           <div className="col-span-2">
@@ -421,11 +422,11 @@ function Finale({ state }: { state: ScreenState }) {
       <AnimatePresence mode="wait">
         {!showTable ? (
           <motion.div key="podium" exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
-            {teamMode && <div className="font-display text-4xl font-black tracking-widest text-ordo-sky-light">🏫 {ky.screen.teamChampion}</div>}
+            {teamMode && <div className="font-display text-4xl font-black tracking-widest text-ordo-sky-light"><School className="ico" /> {ky.screen.teamChampion}</div>}
             <Podium top={top} />
             {best && (
               <div className="rounded-full bg-white/10 px-6 py-2 font-display text-2xl text-ordo-gold-light">
-                ⭐ {ky.screen.bestPlayer}: {best.name} · {best.total}
+                <Star className="ico text-ordo-gold" /> {ky.screen.bestPlayer}: {best.name} · {best.total}
               </div>
             )}
           </motion.div>

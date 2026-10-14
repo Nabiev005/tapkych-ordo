@@ -213,7 +213,7 @@ assignmentsRouter.get('/:id/export.xlsx', async (req, res) => {
       ...a.questions.map((q, k) => {
         const x = answers[k];
         if (!x) return '—';
-        return x.choice ? `${correctLabel(q.type, x.choice)} ${x.correct ? '✓' : '✗'}` : '⌛';
+        return x.choice ? `${correctLabel(q.type, x.choice)} ${x.correct ? '✓' : '✗'}` : '—';
       }),
     ]);
   });

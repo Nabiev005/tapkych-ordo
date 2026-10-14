@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { Calendar, ExternalLink, GraduationCap, House, Library, Menu, NotebookPen, Presentation, ScrollText, CircleHelp, Trophy, X, type LucideIcon } from 'lucide-react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../../components/Ornament';
 import { LangSwitch } from '../../components/LangSwitch';
 import { ky } from '../../i18n/ky';
 import { adminToken, api, staffUser, type StaffUser } from '../../lib/api';
 
-type Item = { to: string; icon: string; label: string; end?: boolean; external?: boolean };
+type Item = { to: string; icon: LucideIcon; label: string; end?: boolean; external?: boolean };
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -38,18 +39,18 @@ export default function AdminLayout() {
     {
       title: ky.admin.navGroups.play,
       items: [
-        { to: '/admin', icon: '🏠', label: n.dashboard, end: true },
-        { to: '/admin/questions', icon: '❓', label: n.questions },
-        { to: '/admin/library', icon: '📚', label: n.library },
-        { to: '/admin/history', icon: '📜', label: n.history },
+        { to: '/admin', icon: House, label: n.dashboard, end: true },
+        { to: '/admin/questions', icon: CircleHelp, label: n.questions },
+        { to: '/admin/library', icon: Library, label: n.library },
+        { to: '/admin/history', icon: ScrollText, label: n.history },
       ],
     },
     {
       title: ky.admin.navGroups.school,
       items: [
-        { to: '/admin/students', icon: '🎓', label: n.students },
-        { to: '/admin/assignments', icon: '📝', label: n.assignments },
-        { to: '/admin/rating', icon: '🏆', label: n.rating },
+        { to: '/admin/students', icon: GraduationCap, label: n.students },
+        { to: '/admin/assignments', icon: NotebookPen, label: n.assignments },
+        { to: '/admin/rating', icon: Trophy, label: n.rating },
       ],
     },
     ...(isAdmin
@@ -57,8 +58,8 @@ export default function AdminLayout() {
           {
             title: ky.admin.navGroups.manage,
             items: [
-              { to: '/admin/seasons', icon: '📅', label: n.seasons },
-              { to: '/admin/teachers', icon: '👩‍🏫', label: n.teachers },
+              { to: '/admin/seasons', icon: Calendar, label: n.seasons },
+              { to: '/admin/teachers', icon: Presentation, label: n.teachers },
             ],
           },
         ]
@@ -90,13 +91,13 @@ export default function AdminLayout() {
               {g.items.map((it) =>
                 it.external ? (
                   <a key={it.to} href={it.to} target="_blank" rel="noreferrer" className={itemClass(false)}>
-                    <span className="w-6 text-center text-lg">{it.icon}</span>
+                    <it.icon className="h-5 w-5 shrink-0" />
                     <span className="flex-1">{it.label}</span>
-                    <span className="text-xs opacity-50">↗</span>
+                    <ExternalLink className="h-3.5 w-3.5 opacity-50" />
                   </a>
                 ) : (
                   <NavLink key={it.to} to={it.to} end={it.end} className={({ isActive }) => itemClass(isActive)}>
-                    <span className="w-6 text-center text-lg">{it.icon}</span>
+                    <it.icon className="h-5 w-5 shrink-0" />
                     <span className="flex-1">{it.label}</span>
                   </NavLink>
                 ),
@@ -109,8 +110,8 @@ export default function AdminLayout() {
       <div className="space-y-3 border-t border-white/10 p-4">
         <div className="flex items-center justify-between gap-2">
           <LangSwitch dark />
-          <a href="/" target="_blank" rel="noreferrer" className="text-xs font-semibold text-white/50 hover:text-white">
-            {ky.admin.openSite} ↗
+          <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-white/50 hover:text-white">
+            {ky.admin.openSite} <ExternalLink className="h-3 w-3" />
           </a>
         </div>
         {user && (
@@ -149,7 +150,7 @@ export default function AdminLayout() {
           onClick={() => setMenuOpen(true)}
           aria-label={ky.admin.menu}
         >
-          ☰ {ky.admin.menu}
+          <Menu className="inline h-5 w-5 align-[-4px]" /> {ky.admin.menu}
         </button>
       </header>
       <AnimatePresence>
@@ -172,9 +173,9 @@ export default function AdminLayout() {
               <button
                 className="absolute top-4 right-4 z-10 rounded-lg px-2 text-2xl text-white/60 hover:text-white"
                 onClick={() => setMenuOpen(false)}
-                aria-label="✕"
+                aria-label={ky.common.close}
               >
-                ✕
+                <X className="h-6 w-6" />
               </button>
               {sidebar}
             </motion.aside>

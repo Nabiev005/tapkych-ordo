@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { RankMedal } from '../../../components/game';
+import { CircleHelp, CirclePlay, FileSpreadsheet, School } from 'lucide-react';
 import { useState } from 'react';
 import { Button, useDialogs } from '../../../components/ui';
 import { ky, type OptionKey } from '../../../i18n/ky';
@@ -39,7 +41,7 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
               transition={{ delay: i * 0.15 }}
               className={`rounded-3xl p-5 text-center ring-2 ${i === 0 ? 'bg-ordo-gold/20 ring-ordo-gold md:order-2 md:scale-105' : i === 1 ? 'bg-white/10 ring-slate-300 md:order-1' : 'bg-orange-400/10 ring-orange-400 md:order-3'}`}
             >
-              <div className="text-5xl">{['🥇', '🥈', '🥉'][i]}</div>
+              <div className="text-5xl"><RankMedal rank={i + 1} className="ico" /></div>
               <div className="mt-2 font-display text-2xl font-bold">{s.name}</div>
               <div className="text-white/60">{ky.screen.places[i]}</div>
               <div className="mt-2 font-display text-xl text-ordo-gold-light">
@@ -52,13 +54,13 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
 
       {state.game.teamMode && state.teams.length > 0 && (
         <section className="card p-5">
-          <h2 className="mb-3 font-display text-lg font-bold">🏫 {t.teamsTitle}</h2>
+          <h2 className="mb-3 font-display text-lg font-bold"><School className="ico" /> {t.teamsTitle}</h2>
           <TeamBoard teams={state.teams} light />
         </section>
       )}
 
       <div className="flex justify-end">
-        <Button variant="sky" icon="⏯" onClick={() => navigate(`/admin/games/${state.game.id}/replay`)}>
+        <Button variant="sky" icon={<CirclePlay />} onClick={() => navigate(`/admin/games/${state.game.id}/replay`)}>
           {t.replay}
         </Button>
       </div>
@@ -98,7 +100,7 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
 
       {state.askedQuestions.length > 0 && (
         <section className="card p-5">
-          <h2 className="mb-3 font-display text-lg font-bold">❓ {t.askedTitle}</h2>
+          <h2 className="mb-3 font-display text-lg font-bold"><CircleHelp className="ico" /> {t.askedTitle}</h2>
           <div className="space-y-1.5">
             {state.askedQuestions.map((q) => {
               const pct = q.answered ? Math.round((q.correctCount / q.answered) * 100) : 0;
@@ -127,7 +129,7 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
       )}
 
       <section className="card flex flex-col items-center gap-3 p-6 text-center">
-        <Button size="xl" variant="green" icon="📊" loading={busy} onClick={exportXlsx}>
+        <Button size="xl" variant="green" icon={<FileSpreadsheet />} loading={busy} onClick={exportXlsx}>
           {t.export}
         </Button>
         <p className="text-ordo-ink/60">{t.exportHint}</p>

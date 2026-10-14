@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Hourglass } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../../components/Ornament';
@@ -65,7 +66,7 @@ export default function Login() {
             <div
               className={`rounded-xl px-4 py-3 text-center font-semibold ${error.info ? 'bg-ordo-sky/10 text-ordo-sky' : 'bg-ordo-red/10 text-ordo-red'}`}
             >
-              {error.info ? '⏳ ' : ''}
+              {error.info ? <><Hourglass className="ico" /> </> : ''}
               {error.text}
             </div>
           )}

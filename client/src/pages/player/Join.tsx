@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../../components/Ornament';
@@ -130,7 +131,7 @@ function JoinForm({ initialCode, notice, onJoined }: { initialCode: string; noti
               value={pin}
               onChange={(e) => setPin(digits(e.target.value, 4))}
             />
-            <p className="mt-1.5 text-center text-sm text-white/50">🔒 {t.pinHint}</p>
+            <p className="mt-1.5 text-center text-sm text-white/50"><Lock className="ico" /> {t.pinHint}</p>
           </div>
           {error && (
             <motion.div initial={{ x: -10 }} animate={{ x: [10, -10, 6, 0] }} className="rounded-2xl bg-ordo-red p-4 text-center font-semibold">

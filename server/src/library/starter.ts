@@ -72,19 +72,19 @@ const SPORT = 'Спорт';
 export const STARTER_PACKS = [
   {
     title: 'Кыргызстан таануу',
-    icon: '🏔️',
+    icon: 'mountain',
     description: 'Кыргызстандын тарыхы, географиясы жана маданияты боюнча толук оюн.',
     categories: [HISTORY, GEO, CULTURE],
   },
   {
     title: '«Манас» жана кыргыз тили',
-    icon: '📜',
+    icon: 'scroll',
     description: '«Манас» эпосу, кыргыз адабияты жана кыргыз тили боюнча толук оюн.',
     categories: [MANAS, LIT, LANG],
   },
   {
     title: 'Жалпы билим',
-    icon: '🔬',
+    icon: 'flask',
     description: 'Илим, математика, дүйнө жана спорт боюнча толук оюн.',
     categories: [SCIENCE, MATH, WORLD, SPORT],
   },

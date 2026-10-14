@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { Ban, Check, CircleCheckBig, Eye, Flag, Monitor, Pause, Play, School, SkipForward, TriangleAlert, Trophy, Users, WifiOff, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { LeaderboardList, OPTION_STYLE, RingTimer, TeamBoard } from '../../../components/game';
 import { Button, Modal, useDialogs } from '../../../components/ui';
@@ -89,7 +90,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
               exit={{ opacity: 0 }}
               className="absolute inset-0 flex items-center justify-center bg-ordo-red/90 font-display text-4xl font-black tracking-widest"
             >
-              ⏸ {t.paused}
+              <Pause className="ico" /> {t.paused}
             </motion.div>
           )}
         </AnimatePresence>
@@ -112,22 +113,22 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
               )}
               <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                 <Button size="lg" variant="sky" disabled={g.paused || !(g.phase === 'IDLE' || (g.phase === 'REVEAL' && !isLast))} loading={busy === 'nextQuestion'} onClick={() => act({ type: 'nextQuestion' })}>
-                  ⏭ {g.phase === 'IDLE' ? t.btn.firstQuestion : t.btn.nextQuestion}
+                  <SkipForward className="ico" /> {g.phase === 'IDLE' ? t.btn.firstQuestion : t.btn.nextQuestion}
                 </Button>
                 <Button size="lg" variant="green" disabled={g.paused || g.phase !== 'READY'} loading={busy === 'showQuestion'} onClick={() => act({ type: 'showQuestion' })}>
-                  👁 {t.btn.showQuestion}
+                  <Eye className="ico" /> {t.btn.showQuestion}
                 </Button>
                 <Button size="lg" variant="gold" disabled={g.phase !== 'QUESTION'} loading={busy === 'revealAnswer'} onClick={doReveal}>
-                  ✅ {t.btn.reveal}
+                  <CircleCheckBig className="ico" /> {t.btn.reveal}
                 </Button>
                 <Button size="lg" variant="dark" disabled={g.phase === 'QUESTION'} loading={busy === 'toggleLeaderboard'} onClick={() => act({ type: 'toggleLeaderboard' })}>
-                  🏆 {g.showLeaderboard ? t.btn.hideLeaderboard : t.btn.leaderboard}
+                  <Trophy className="ico" /> {g.showLeaderboard ? t.btn.hideLeaderboard : t.btn.leaderboard}
                 </Button>
                 <Button size="lg" variant="red" disabled={g.paused || !(g.phase === 'REVEAL' && isLast)} loading={busy === 'endRound'} onClick={doEndRound}>
-                  🏁 {t.btn.endRound}
+                  <Flag className="ico" /> {t.btn.endRound}
                 </Button>
                 <Button size="lg" variant={g.paused ? 'green' : 'outline'} loading={busy === 'togglePause'} onClick={() => act({ type: 'togglePause' })}>
-                  {g.paused ? `▶ ${t.btn.resume}` : `⏸ ${t.btn.pause}`}
+                  {g.paused ? <><Play className="ico" /> {t.btn.resume}</> : <><Pause className="ico" /> {t.btn.pause}</>}
                 </Button>
               </div>
               {(g.phase === 'QUESTION' || g.phase === 'REVEAL') && (
@@ -181,7 +182,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                         )}
                         {q.audience.total > 0 && (
                           <span className="rounded-lg bg-violet-100 px-2 py-0.5 text-xs font-bold tabular-nums text-violet-700" title={t.audience}>
-                            👥 {q.audience.counts[k]}
+                            <Users className="ico" /> {q.audience.counts[k]}
                           </span>
                         )}
                       </div>
@@ -189,7 +190,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                   })}
                 </div>
                 )}
-                {q.audience.total > 0 && <div className="mt-3 text-sm font-semibold text-violet-700">👥 {t.audienceVotes(q.audience.total)}</div>}
+                {q.audience.total > 0 && <div className="mt-3 text-sm font-semibold text-violet-700"><Users className="ico" /> {t.audienceVotes(q.audience.total)}</div>}
               </section>
             )}
 
@@ -212,7 +213,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                         className={`rounded-2xl border-2 p-3 ${!a ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400' : a.isCorrect ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-ordo-red bg-ordo-red text-white'}`}
                       >
                         <div className="flex items-center gap-1.5">
-                          {!p.online && <span title={ky.common.offline}>📵</span>}
+                          {!p.online && <span title={ky.common.offline}><WifiOff className="ico text-ordo-red" /></span>}
                           <span className="truncate font-semibold">{p.name}</span>
                           {p.fiftyUsed && <span title={t.fiftyUsed} className="ml-auto text-xs font-bold opacity-80">½</span>}
                         </div>
@@ -220,7 +221,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                           {a ? (
                             <>
                               {a.isCorrect ? '✓' : '✗'} {answerLabel(q.type, a.choice)} · {ky.common.sec(a.responseMs)}
-                              {a.bonus > 0 && <span className="ml-1 font-bold">{t.bonus(a.bonus)}</span>}
+                              {a.bonus > 0 && <span className="ml-1 font-bold"><Zap className="ico" />{t.bonus(a.bonus)}</span>}
                             </>
                           ) : (
                             t.notAnswered
@@ -238,7 +239,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
           <aside className="space-y-5">
             {g.teamMode && state.teams.length > 0 && (
               <section className="card p-5">
-                <h3 className="mb-3 font-display text-lg font-bold">🏫 {t.teamBoard}</h3>
+                <h3 className="mb-3 font-display text-lg font-bold"><School className="ico" /> {t.teamBoard}</h3>
                 <TeamBoard teams={state.teams} light />
               </section>
             )}
@@ -282,7 +283,7 @@ function PlayersManage({ state, act, onAdjust }: { state: AdminState; act: Act; 
                   if (await confirm({ title: t.kick, message: t.confirms.kick(p.name), danger: true, confirmText: t.kick })) await act({ type: 'kickPlayer', playerId: p.id });
                 }}
               >
-                ⛔
+                <Ban className="h-4 w-4" />
               </button>
             </div>
           ))}
@@ -372,7 +373,7 @@ function RoundEndPanel({ state, act, busy, onAdjust }: { state: AdminState; act:
       <section className="card space-y-4 p-6 xl:col-span-2">
         <h2 className="font-display text-2xl font-black">{isFinal ? t.finalRanking : t.advanceTitle(re.round)}</h2>
         {!isFinal && <p className="text-ordo-ink/60">{t.advanceHint(re.count)}</p>}
-        {re.tieAtCutoff && <div className="rounded-2xl bg-ordo-red p-4 font-bold text-white">⚠ {t.tieWarn}</div>}
+        {re.tieAtCutoff && <div className="rounded-2xl bg-ordo-red p-4 font-bold text-white"><TriangleAlert className="ico" /> {t.tieWarn}</div>}
 
         <div className="space-y-2">
           {re.ranking.map((r) => {
@@ -412,14 +413,14 @@ function RoundEndPanel({ state, act, busy, onAdjust }: { state: AdminState; act:
         {!isFinal && <div className={`text-center font-bold ${selected.length === re.count ? 'text-emerald-600' : 'text-ordo-red'}`}>{t.selected(selected.length, re.count)}</div>}
 
         <Button size="xl" variant={isFinal ? 'gold' : 'green'} className="w-full py-7" pulse loading={busy === 'confirmAdvance' || busy === 'finishGame'} disabled={!isFinal && selected.length === 0} onClick={submit}>
-          {isFinal ? `🏆 ${t.btn.finish}` : `✓ ${t.confirmAdvance}`}
+          {isFinal ? <><Trophy className="ico" /> {t.btn.finish}</> : <><Check className="ico" /> {t.confirmAdvance}</>}
         </Button>
       </section>
       <aside className="card space-y-3 p-5">
-        <h3 className="font-display text-lg font-bold">🖥 {ky.admin.control.screenLink}</h3>
+        <h3 className="font-display text-lg font-bold"><Monitor className="ico" /> {ky.admin.control.screenLink}</h3>
         <p className="text-sm text-ordo-ink/60">{ky.screen.roundResults(re.round)}</p>
         <Button variant="outline" className="w-full" loading={busy === 'togglePause'} onClick={() => act({ type: 'togglePause' })}>
-          {state.game.paused ? `▶ ${t.btn.resume}` : `⏸ ${t.btn.pause}`}
+          {state.game.paused ? <><Play className="ico" /> {t.btn.resume}</> : <><Pause className="ico" /> {t.btn.pause}</>}
         </Button>
       </aside>
     </div>

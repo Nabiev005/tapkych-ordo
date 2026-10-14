@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { CircleCheckBig, Crown, Medal, Pause } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ky, type OptionKey } from '../i18n/ky';
 import type { Ranked, TeamStanding } from '../lib/types';
@@ -10,6 +11,15 @@ export const OPTION_STYLE: Record<OptionKey, { bg: string; ring: string; glow: s
   C: { bg: 'bg-opt-c', ring: 'ring-opt-c', glow: 'shadow-[0_0_40px_rgba(245,158,11,0.6)]', hex: '#f59e0b' },
   D: { bg: 'bg-opt-d', ring: 'ring-opt-d', glow: 'shadow-[0_0_40px_rgba(16,185,129,0.6)]', hex: '#10b981' },
 };
+
+/** 1-3-орундардын түстөрү: алтын, күмүш, коло */
+const MEDAL_COLOR = ['text-ordo-gold', 'text-slate-300', 'text-orange-400'];
+
+/** Медаль иконкасы (1–3-орундар). rank 1–3 эмес болсо — эч нерсе көрсөтүлбөйт */
+export function RankMedal({ rank, className = 'h-[1em] w-[1em]' }: { rank: number; className?: string }) {
+  if (rank < 1 || rank > 3) return null;
+  return <Medal className={`inline-block ${MEDAL_COLOR[rank - 1]} ${className}`} strokeWidth={2.2} aria-label={`${rank}`} />;
+}
 
 /** Тегерек таймер. msLeft — сервер боюнча калган убакыт */
 export function RingTimer({ msLeft, totalSec, size = 160, paused }: { msLeft: number; totalSec: number; size?: number; paused?: boolean }) {
@@ -43,7 +53,7 @@ export function RingTimer({ msLeft, totalSec, size = 160, paused }: { msLeft: nu
         className="absolute inset-0 flex items-center justify-center font-display font-black text-white tabular-nums"
         style={{ fontSize: size * 0.38, color: urgent ? '#ff6b86' : 'white' }}
       >
-        {paused ? '⏸' : sec}
+        {paused ? <Pause className="h-[0.8em] w-[0.8em]" fill="currentColor" /> : sec}
       </motion.div>
     </div>
   );
@@ -83,8 +93,8 @@ export function OptionCard({
       </div>
       <div className="flex-1 text-2xl font-semibold leading-tight text-white md:text-4xl">{text}</div>
       {correct && (
-        <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} className="text-5xl md:text-6xl">
-          ✅
+        <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} className="text-emerald-400">
+          <CircleCheckBig className="h-12 w-12 md:h-14 md:w-14" strokeWidth={2.5} />
         </motion.div>
       )}
       {count !== undefined && count !== null && (
@@ -97,7 +107,7 @@ export function OptionCard({
 /** Анимациялуу рейтинг таблицасы */
 export function LeaderboardList({ rows, highlight = [], big, compact, light, maxRows }: { rows: Ranked[]; highlight?: number[]; big?: boolean; compact?: boolean; light?: boolean; maxRows?: number }) {
   const list = maxRows ? rows.slice(0, maxRows) : rows;
-  const medal = (rank: number, score: number) => (score <= 0 ? null : rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null);
+  const medal = (rank: number, score: number) => (score > 0 && rank <= 3 ? <RankMedal rank={rank} className="mx-auto h-[1.1em] w-[1.1em]" /> : null);
   return (
     <div className={`flex flex-col ${big && !compact ? 'gap-2.5' : 'gap-1.5'}`}>
       <AnimatePresence>
@@ -147,7 +157,6 @@ export function Podium({ top }: { top: { name: string; score: number; total?: nu
     'from-slate-100 via-slate-300 to-slate-500',
     'from-orange-200 via-orange-400 to-orange-700',
   ];
-  const medals = ['🥇', '🥈', '🥉'];
   return (
     <div className="flex items-end justify-center gap-4 md:gap-8">
       {order.map((idx, col) => {
@@ -167,7 +176,7 @@ export function Podium({ top }: { top: { name: string; score: number; total?: nu
               animate={idx === 0 ? { y: [0, -10, 0] } : undefined}
               transition={{ repeat: Infinity, duration: 2 }}
             >
-              {idx === 0 ? '👑' : medals[idx]}
+              {idx === 0 ? <Crown className="h-16 w-16 text-ordo-gold md:h-20 md:w-20" fill="currentColor" strokeWidth={1.5} /> : <RankMedal rank={idx + 1} className="h-14 w-14 md:h-16 md:w-16" />}
             </motion.div>
             <div className={`mb-2 text-center font-display font-black leading-tight text-white ${idx === 0 ? 'text-3xl md:text-4xl' : 'text-2xl md:text-3xl'}`}>
               {p.name}
@@ -197,7 +206,6 @@ export function JoinQr({ url, size = 220 }: { url: string; size?: number }) {
 
 /** Командалык рейтинг (топ топко каршы) */
 export function TeamBoard({ teams, light, big }: { teams: TeamStanding[]; light?: boolean; big?: boolean }) {
-  const medal = ['🥇', '🥈', '🥉'];
   const max = Math.max(1, ...teams.map((t) => t.total));
   return (
     <div className={`flex flex-col ${big ? 'gap-3' : 'gap-1.5'}`}>
@@ -215,7 +223,7 @@ export function TeamBoard({ teams, light, big }: { teams: TeamStanding[]; light?
             style={{ width: `${(t.total / max) * 100}%` }}
           />
           <div className="relative flex items-center gap-4">
-            <div className={`w-10 text-center font-display font-black ${big ? 'text-4xl' : 'text-xl'} ${light ? 'text-ordo-ink/60' : 'text-ordo-gold'}`}>{medal[i] ?? t.place}</div>
+            <div className={`w-10 text-center font-display font-black ${big ? 'text-4xl' : 'text-xl'} ${light ? 'text-ordo-ink/60' : 'text-ordo-gold'}`}>{i < 3 ? <RankMedal rank={i + 1} className="mx-auto h-[1em] w-[1em]" /> : t.place}</div>
             <div className={`flex-1 font-display font-black ${big ? 'text-4xl' : 'text-lg'} ${light ? 'text-ordo-ink' : 'text-white'}`}>{t.team}</div>
             <div className={`${big ? 'text-xl' : 'text-xs'} ${light ? 'text-ordo-ink/50' : 'text-white/60'}`}>
               {ky.screen.members(t.members)} · {ky.admin.control.average} {t.average}

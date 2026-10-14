@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { BookOpen, Info, NotebookPen, PartyPopper, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
@@ -118,7 +119,7 @@ export default function Homework() {
           <Logo size="md" />
         </div>
         <div className="rounded-3xl bg-white/[0.07] p-5 text-center ring-1 ring-white/10">
-          <div className="text-sm uppercase tracking-widest text-ordo-sky-light">📝 {t.title}</div>
+          <div className="text-sm uppercase tracking-widest text-ordo-sky-light"><NotebookPen className="ico" /> {t.title}</div>
           <h1 className="mt-1 font-display text-2xl font-black">{a.title}</h1>
           <div className="mt-1 text-white/70">{t.questions(a.questions, a.timerSeconds)}</div>
           {a.closesAt && <div className="mt-1 text-sm text-ordo-gold-light">{t.closesAt(fmtDateTime(a.closesAt))}</div>}
@@ -128,7 +129,7 @@ export default function Homework() {
           <div className="rounded-2xl bg-ordo-red p-4 text-center font-semibold">{t.closed}</div>
         ) : (
           <>
-            <p className="rounded-2xl bg-white/5 p-3 text-sm text-white/70">ℹ️ {t.rules}</p>
+            <p className="rounded-2xl bg-white/5 p-3 text-sm text-white/70"><Info className="ico" /> {t.rules}</p>
             <div>
               <div className="mb-2 font-semibold">{t.pickClass}</div>
               <div className="flex flex-wrap gap-2">
@@ -230,7 +231,7 @@ function Session({ code, token, onReset }: { code: string; token: string; onRese
         <OrnamentBand height={16} />
         <div className="mx-auto max-w-lg space-y-5 p-5">
           <div className="text-center">
-            <div className="text-7xl">{r.correct === s.total ? '🏆' : r.correct >= s.total / 2 ? '🎉' : '📘'}</div>
+            <div className="text-7xl text-ordo-gold">{r.correct === s.total ? <Trophy className="ico mx-auto" /> : r.correct >= s.total / 2 ? <PartyPopper className="ico mx-auto" /> : <BookOpen className="ico mx-auto" />}</div>
             <h1 className="mt-2 font-display text-3xl font-black text-gold-gradient">{t.finished}</h1>
             <div className="mt-1 text-white/70">
               {s.name} · {s.title}

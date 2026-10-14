@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { CirclePlay, Trophy, Users, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { LeaderboardList, OPTION_STYLE } from '../../components/game';
@@ -46,7 +47,7 @@ export default function Replay() {
         <Button variant="dark" size="sm" onClick={() => navigate(`/admin/games/${id}`)}>
           ← {ky.common.back}
         </Button>
-        <div className="font-display text-xl font-black text-gold-gradient">⏯ {t.title}</div>
+        <div className="font-display text-xl font-black text-gold-gradient"><CirclePlay className="ico text-ordo-gold" /> {t.title}</div>
         <div className="text-white/60">{data.game.title ?? data.game.code}</div>
         <div className="flex-1" />
         <span className="text-sm text-white/40">{t.keysHint}</span>
@@ -84,7 +85,7 @@ export default function Replay() {
                         <span className={`flex h-10 w-10 items-center justify-center rounded-xl font-display text-xl font-black ${OPTION_STYLE[k].bg}`}>{ky.options[k]}</span>
                         <span className="flex-1 font-semibold">{step.type === 'TF' ? ky.tf[k] : step.options[k]}</span>
                         <span className="rounded-lg bg-black/30 px-2 font-bold tabular-nums">{n}</span>
-                        {step.audience[k] ? <span className="rounded-lg bg-violet-600/50 px-2 text-sm">👥 {step.audience[k]}</span> : null}
+                        {step.audience[k] ? <span className="rounded-lg bg-violet-600/50 px-2 text-sm"><Users className="ico" /> {step.audience[k]}</span> : null}
                       </div>
                     );
                   })}
@@ -99,7 +100,7 @@ export default function Replay() {
                     .map((a) => (
                       <span key={a.playerId} className={`rounded-xl px-3 py-1.5 font-semibold ${a.isCorrect ? 'bg-emerald-500' : 'bg-ordo-red'}`}>
                         {a.isCorrect ? '✓' : '✗'} {a.name} · {answerLabel(step.type, a.choice)} · {ky.common.sec(a.responseMs)}
-                        {a.bonus > 0 && ` ⚡+${a.bonus}`}
+                        {a.bonus > 0 && <> <Zap className="ico" />+{a.bonus}</>}
                       </span>
                     ))}
                   {step.notAnswered.map((n) => (
@@ -113,7 +114,7 @@ export default function Replay() {
           </AnimatePresence>
 
           <aside className="rounded-3xl bg-white/[0.05] p-4 ring-1 ring-white/10">
-            <div className="mb-3 font-display font-bold">🏆 {t.leaderboard}</div>
+            <div className="mb-3 font-display font-bold"><Trophy className="ico" /> {t.leaderboard}</div>
             <LeaderboardList rows={step.leaderboard} maxRows={12} />
           </aside>
         </div>

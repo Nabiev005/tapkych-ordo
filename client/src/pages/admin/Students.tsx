@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { ClipboardList, GraduationCap, KeyRound, Pencil, Printer, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
 import { ky } from '../../i18n/ky';
@@ -112,18 +113,18 @@ export default function Students() {
         <div>
           <h1 className="font-display text-2xl font-black">{t.title}</h1>
           <p className="max-w-2xl text-ordo-ink/60">{t.hint}</p>
-          <p className="mt-1 max-w-2xl text-sm text-ordo-sky">🎓 {t.codesHint}</p>
+          <p className="mt-1 max-w-2xl text-sm text-ordo-sky"><GraduationCap className="ico" /> {t.codesHint}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" icon="🔑" loading={busy} onClick={makeCodes}>
+          <Button variant="outline" icon={<KeyRound />} loading={busy} onClick={makeCodes}>
             {t.makeCodes}
           </Button>
           {(students ?? []).some((s) => s.accessCode) && (
-            <Button variant="outline" icon="🖨" onClick={() => window.print()}>
+            <Button variant="outline" icon={<Printer />} onClick={() => window.print()}>
               {t.printCodes}
             </Button>
           )}
-          <Button variant="outline" icon="📋" onClick={() => setBulk(true)}>
+          <Button variant="outline" icon={<ClipboardList />} onClick={() => setBulk(true)}>
             {t.bulkTitle}
           </Button>
           <Button variant="red" icon="＋" onClick={() => setEdit({ name: '', className: cls })}>
@@ -171,19 +172,19 @@ export default function Students() {
                         <div className="flex items-center gap-2 text-xs text-ordo-ink/50">
                           <span>{t.games(s._count?.players ?? 0)}</span>
                           <span title={t.code} className={`rounded-md px-1.5 py-0.5 font-mono font-bold tracking-wider ${s.accessCode ? 'bg-ordo-sky/10 text-ordo-sky' : 'bg-ordo-ink/5'}`}>
-                            🔑 {s.accessCode ?? t.noCode}
+                            <KeyRound className="ico" /> {s.accessCode ?? t.noCode}
                           </span>
                         </div>
                       </div>
                       <div className="flex opacity-50 transition group-hover:opacity-100">
                         <button title={t.newCode} className="rounded-lg p-1.5 hover:bg-ordo-sky/15" onClick={() => newCode(s)}>
-                          🔑
+                          <KeyRound className="h-4 w-4" />
                         </button>
                         <button title={t.edit} className="rounded-lg p-1.5 hover:bg-ordo-gold/20" onClick={() => setEdit({ id: s.id, name: s.name, className: s.className })}>
-                          ✏️
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button title={ky.common.delete} className="rounded-lg p-1.5 hover:bg-ordo-red/10" onClick={() => remove(s)}>
-                          🗑
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </motion.div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Hourglass, KeyRound, Mail, Pencil, Trash2 } from 'lucide-react';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
 import { fmtDateTime, ky } from '../../i18n/ky';
 import { api } from '../../lib/api';
@@ -90,7 +91,7 @@ export default function Teachers() {
       {pending.length > 0 && (
         <section className="rounded-3xl border-2 border-ordo-gold/60 bg-ordo-gold/10 p-5">
           <h2 className="font-display text-lg font-bold">
-            ⏳ {t.pendingTitle} <span className="text-ordo-gold-dark">({pending.length})</span>
+            <Hourglass className="ico" /> {t.pendingTitle} <span className="text-ordo-gold-dark">({pending.length})</span>
           </h2>
           <p className="text-sm text-ordo-ink/60">{t.pendingHint}</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -101,7 +102,7 @@ export default function Teachers() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-display font-bold">{x.name}</div>
-                  <div className="truncate text-sm font-semibold text-ordo-sky">✉ {x.email}</div>
+                  <div className="truncate text-sm font-semibold text-ordo-sky"><Mail className="ico" /> {x.email}</div>
                   <div className="text-xs text-ordo-ink/45">{fmtDateTime(x.createdAt)}</div>
                 </div>
                 <div className="flex gap-2">
@@ -130,12 +131,12 @@ export default function Teachers() {
               <div className="min-w-0 flex-1">
                 <div className="font-display font-bold">{x.name}</div>
                 <div className="font-mono text-sm text-ordo-ink/60">{x.username}</div>
-                {x.email && <div className="truncate text-sm font-semibold text-ordo-sky">✉ {x.email}</div>}
+                {x.email && <div className="truncate text-sm font-semibold text-ordo-sky"><Mail className="ico" /> {x.email}</div>}
                 <div className="text-xs text-ordo-ink/45">{t.stats(x._count.questions, x._count.games, x._count.assignments)}</div>
               </div>
               <div className="flex flex-col gap-1">
                 <Button size="sm" variant="outline" onClick={() => setForm({ id: x.id, name: x.name, username: x.username, password: '', email: x.email ?? '' })}>
-                  ✏️ {t.edit}
+                  <Pencil className="ico" /> {t.edit}
                 </Button>
                 <Button
                   size="sm"
@@ -151,7 +152,7 @@ export default function Teachers() {
                     }
                   }}
                 >
-                  🔑 {t.resetPassword}
+                  <KeyRound className="ico" /> {t.resetPassword}
                 </Button>
                 <Button
                   size="sm"
@@ -162,7 +163,7 @@ export default function Teachers() {
                     void load();
                   }}
                 >
-                  🗑 {ky.common.delete}
+                  <Trash2 className="ico" /> {ky.common.delete}
                 </Button>
               </div>
             </div>

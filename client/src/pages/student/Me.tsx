@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { BarChart3, CircleCheckBig, CircleX, Dumbbell, Flame, PartyPopper, Play, Sun, Target, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
@@ -192,16 +193,16 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
 
       {/* Серия */}
       <motion.section initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 rounded-3xl bg-gradient-to-br from-orange-500/25 to-ordo-red/20 p-5 ring-1 ring-orange-400/40">
-        <div className={`text-6xl ${me.streak ? '' : 'opacity-40 grayscale'}`}>🔥</div>
+        <Flame className={`h-14 w-14 shrink-0 ${me.streak ? 'text-orange-400' : 'text-white/30'}`} fill={me.streak ? 'currentColor' : 'none'} />
         <div className="flex-1">
-          <div className="font-display text-3xl font-black">{me.streak ? t.streak(me.streak) : t.streakZero}</div>
+          <div className={`font-display font-black ${me.streak ? 'text-3xl' : 'text-xl'}`}>{me.streak ? t.streak(me.streak) : t.streakZero}</div>
           {me.best > 0 && <div className="text-sm text-white/60">{t.best(me.best)}</div>}
         </div>
       </motion.section>
 
       {/* Күндүн суроолору */}
       <section className="rounded-3xl bg-white/[0.07] p-5 ring-1 ring-white/10">
-        <h2 className="font-display text-xl font-bold">☀️ {t.dailyTitle}</h2>
+        <h2 className="font-display text-xl font-bold"><Sun className="ico text-ordo-gold" /> {t.dailyTitle}</h2>
         {me.todayDone ? (
           <>
             <p className="mt-1 font-semibold text-emerald-300">{t.dailyDone}</p>
@@ -214,7 +215,7 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
           <>
             <p className="mt-1 text-white/70">{t.dailyHint(5)}</p>
             <Button variant="gold" size="lg" className="mt-4 w-full sm:w-auto" loading={busy} disabled={!me.libraryTotal} onClick={startDaily}>
-              ▶ {t.dailyStart}
+              <Play className="ico" /> {t.dailyStart}
             </Button>
           </>
         )}
@@ -239,7 +240,7 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
 
       {/* Машыгуу */}
       <section className="rounded-3xl bg-white/[0.07] p-5 ring-1 ring-white/10">
-        <h2 className="font-display text-xl font-bold">🎯 {t.practiceTitle}</h2>
+        <h2 className="font-display text-xl font-bold"><Target className="ico text-ordo-sky-light" /> {t.practiceTitle}</h2>
         <p className="mt-1 text-white/70">{t.practiceHint}</p>
         {me.libraryTotal === 0 ? (
           <p className="mt-3 text-white/60">{t.empty}</p>
@@ -256,7 +257,7 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
               ))}
             </div>
             <Button variant="sky" size="lg" className="mt-4 w-full sm:w-auto" loading={busy} onClick={() => startPractice(category)}>
-              ▶ {t.practiceStart}
+              <Play className="ico" /> {t.practiceStart}
             </Button>
           </>
         )}
@@ -264,7 +265,7 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
 
       {/* Жыйынтыктар */}
       <section className="rounded-3xl bg-white/[0.07] p-5 ring-1 ring-white/10">
-        <h2 className="font-display text-xl font-bold">📊 {t.stats}</h2>
+        <h2 className="font-display text-xl font-bold"><BarChart3 className="ico text-emerald-300" /> {t.stats}</h2>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           {[
             { label: t.statDays, value: me.totals.dailyDays },
@@ -347,7 +348,7 @@ function Quiz({
           {t.back}
         </button>
         <div className="font-display font-bold text-ordo-gold-light">
-          {mode.kind === 'daily' ? `☀️ ${t.dailyTitle}` : `🎯 ${mode.category || t.allTopics}`}
+          {mode.kind === 'daily' ? <><Sun className="ico" /> {t.dailyTitle}</> : <><Target className="ico" /> {mode.category || t.allTopics}</>}
         </div>
         <div className="font-display font-bold tabular-nums">{t.question(i + 1, questions.length)}</div>
       </div>
@@ -431,20 +432,20 @@ function Result({ result, mode, onHome, onAgain }: { result: PracticeResult; mod
   return (
     <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
       <motion.section initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-3xl bg-white/[0.07] p-6 text-center ring-1 ring-white/10">
-        <div className="text-6xl">{ratio === 1 ? '🏆' : ratio >= 0.6 ? '🎉' : '💪'}</div>
+        <div className="text-6xl text-ordo-gold">{ratio === 1 ? <Trophy className="ico mx-auto" /> : ratio >= 0.6 ? <PartyPopper className="ico mx-auto" /> : <Dumbbell className="ico mx-auto" />}</div>
         <div className="mt-2 font-display text-4xl font-black text-gold-gradient">
           {result.correct} / {result.total}
         </div>
         <div className="mt-1 text-lg">{t.result(result.correct, result.total)}</div>
         <div className="mt-1 text-white/70">{ratio === 1 ? t.perfect : ratio >= 0.6 ? t.good : t.tryMore}</div>
-        {mode.kind === 'daily' && result.streak !== undefined && result.streak > 0 && <div className="mt-3 font-display text-xl font-bold text-orange-300">🔥 {t.streak(result.streak)}</div>}
+        {mode.kind === 'daily' && result.streak !== undefined && result.streak > 0 && <div className="mt-3 font-display text-xl font-bold text-orange-300"><Flame className="ico" /> {t.streak(result.streak)}</div>}
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Button variant="outline" onClick={onHome}>
             {t.back}
           </Button>
           {onAgain && (
             <Button variant="sky" onClick={onAgain}>
-              🎯 {t.again}
+              <Target className="ico" /> {t.again}
             </Button>
           )}
         </div>
@@ -454,7 +455,7 @@ function Result({ result, mode, onHome, onAgain }: { result: PracticeResult; mod
         {result.items.map((it, n) => (
           <div key={it.id} className={`rounded-2xl p-4 ring-1 ${it.isCorrect ? 'bg-emerald-500/10 ring-emerald-400/40' : 'bg-ordo-red/10 ring-ordo-red/40'}`}>
             <div className="flex gap-2 font-semibold">
-              <span>{it.isCorrect ? '✅' : '❌'}</span>
+              <span className="shrink-0 pt-0.5">{it.isCorrect ? <CircleCheckBig className="h-5 w-5 text-emerald-400" /> : <CircleX className="h-5 w-5 text-red-400" />}</span>
               <span>
                 {n + 1}. {it.text}
               </span>

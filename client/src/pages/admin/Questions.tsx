@@ -2,6 +2,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Archive, FileSpreadsheet, Image, Import, Info, Library, Music, Pencil, Trash2, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
@@ -42,7 +43,7 @@ export function QuestionBadges({ q }: { q: Pick<Question, 'type' | 'category' | 
       <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${DIFF_STYLE[q.difficulty]}`}>{ky.difficulty[q.difficulty]}</span>
       {q.type !== 'CHOICE' && <span className="rounded-md bg-ordo-sky/15 px-2 py-0.5 text-xs font-bold text-ordo-sky">{ky.qtypesShort[q.type]}</span>}
       {q.category && <span className="rounded-md bg-ordo-ink/5 px-2 py-0.5 text-xs font-semibold text-ordo-ink/70">#{q.category}</span>}
-      {q.audioUrl && <span className="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700">🎵</span>}
+      {q.audioUrl && <span className="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700"><Music className="ico" /></span>}
     </div>
   );
 }
@@ -138,16 +139,16 @@ export default function Questions() {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            icon="📊"
+            icon={<FileSpreadsheet />}
             title={ky.admin.questions.exportHint}
             onClick={() => downloadFile('/api/questions/export.xlsx', ky.files.bank).catch((e) => toast(e.message, 'err'))}
           >
             {ky.admin.questions.exportBank}
           </Button>
-          <Button variant="outline" icon="📥" onClick={() => navigate('/admin/import')}>
+          <Button variant="outline" icon={<Import />} onClick={() => navigate('/admin/import')}>
             {ky.admin.questions.import}
           </Button>
-          <Button variant="sky" icon="📚" onClick={() => navigate('/admin/library')}>
+          <Button variant="sky" icon={<Library />} onClick={() => navigate('/admin/library')}>
             {ky.admin.questions.openLibrary}
           </Button>
           <Button variant="red" icon="＋" onClick={() => setDraft(emptyDraft(roundTab))}>
@@ -179,7 +180,7 @@ export default function Questions() {
           onClick={() => setTab('ARCHIVE')}
           className={`rounded-2xl border-2 p-4 text-left transition ${tab === 'ARCHIVE' ? 'border-ordo-night bg-white shadow-lg' : 'border-transparent bg-white/60 hover:bg-white'}`}
         >
-          <div className="font-display text-lg font-bold">🗄 {ky.admin.questions.archiveTab}</div>
+          <div className="font-display text-lg font-bold"><Archive className="ico" /> {ky.admin.questions.archiveTab}</div>
           <div className="mt-1 text-sm font-semibold text-ordo-ink/50">{archived.length}</div>
         </button>
       </div>
@@ -320,25 +321,25 @@ function SortableRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <QuestionBadges q={q} />
-          {q.libraryId && <span className="rounded-md bg-ordo-sky/10 px-2 py-0.5 text-xs font-semibold text-ordo-sky">{ky.admin.questions.fromLibrary}</span>}
+          {q.libraryId && <span className="rounded-md bg-ordo-sky/10 px-2 py-0.5 text-xs font-semibold text-ordo-sky"><Library className="ico" /> {ky.admin.questions.fromLibrary}</span>}
         </div>
         <div className="mt-1 font-semibold">{q.text}</div>
         <OptionsPreview q={q} />
       </div>
       <div className="flex shrink-0 flex-col gap-1">
         <Button size="sm" variant="outline" onClick={onEdit}>
-          ✏️ {ky.common.edit}
+          <Pencil className="ico" /> {ky.common.edit}
         </Button>
         <Button size="sm" variant="outline" onClick={onArchive}>
-          🗄 {ky.admin.questions.toArchive}
+          <Archive className="ico" /> {ky.admin.questions.toArchive}
         </Button>
         {!q.libraryId && (
           <Button size="sm" variant="outline" title={ky.admin.questions.shareHint} onClick={onShare}>
-            📚 {ky.admin.questions.share}
+            <Library className="ico" /> {ky.admin.questions.share}
           </Button>
         )}
         <Button size="sm" variant="danger" onClick={onDelete}>
-          🗑 {ky.common.delete}
+          <Trash2 className="ico" /> {ky.common.delete}
         </Button>
       </div>
     </div>
@@ -504,7 +505,7 @@ export function QuestionForm({
                 {d.imageUrl && <img src={assetUrl(d.imageUrl)} alt="" className="h-16 w-24 rounded-xl object-cover ring-2 ring-ordo-gold/30" />}
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0], 'image')} />
                 <Button variant="outline" size="sm" loading={uploading === 'image'} onClick={() => fileRef.current?.click()}>
-                  🖼 {uploading === 'image' ? f.uploading : f.uploadImage}
+                  <Image className="ico" /> {uploading === 'image' ? f.uploading : f.uploadImage}
                 </Button>
                 {d.imageUrl && (
                   <Button variant="ghost" size="sm" onClick={() => setD({ ...d, imageUrl: null })}>
@@ -518,7 +519,7 @@ export function QuestionForm({
               <div className="flex flex-wrap items-center gap-2">
                 <input ref={audioRef} type="file" accept="audio/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0], 'audio')} />
                 <Button variant="outline" size="sm" loading={uploading === 'audio'} onClick={() => audioRef.current?.click()}>
-                  🎵 {uploading === 'audio' ? f.uploading : f.uploadAudio}
+                  <Music className="ico" /> {uploading === 'audio' ? f.uploading : f.uploadAudio}
                 </Button>
                 {d.audioUrl && (
                   <Button variant="ghost" size="sm" onClick={() => setD({ ...d, audioUrl: null })}>
@@ -644,7 +645,7 @@ function ArchiveList({ list, onChanged, onEdit, onDelete }: { list: Question[]; 
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-ordo-sky/10 p-4 text-ordo-ink/80">ℹ️ {t.archiveHint}</div>
+      <div className="rounded-2xl bg-ordo-sky/10 p-4 text-ordo-ink/80"><Info className="ico" /> {t.archiveHint}</div>
       <div className="flex flex-wrap items-center gap-2">
         {(['', ...ROUND_KEYS] as (RoundKey | '')[]).map((r) => (
           <button
@@ -665,7 +666,7 @@ function ArchiveList({ list, onChanged, onEdit, onDelete }: { list: Question[]; 
                 await restore(shown.map((q) => q.id));
             }}
           >
-            ↩ {t.restoreAll}
+            <Undo2 className="ico" /> {t.restoreAll}
           </Button>
         )}
       </div>
@@ -684,13 +685,13 @@ function ArchiveList({ list, onChanged, onEdit, onDelete }: { list: Question[]; 
               </div>
               <div className="flex shrink-0 flex-col gap-1">
                 <Button size="sm" variant="green" onClick={() => restore([q.id])}>
-                  ↩ {t.restore}
+                  <Undo2 className="ico" /> {t.restore}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => onEdit(q)}>
-                  ✏️ {ky.common.edit}
+                  <Pencil className="ico" /> {ky.common.edit}
                 </Button>
                 <Button size="sm" variant="danger" onClick={() => onDelete(q)}>
-                  🗑 {ky.common.delete}
+                  <Trash2 className="ico" /> {ky.common.delete}
                 </Button>
               </div>
             </div>

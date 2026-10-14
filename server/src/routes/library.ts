@@ -188,7 +188,8 @@ libraryRouter.post('/packs/:id/copy', async (req, res) => {
 const packSchema = z.object({
   title: z.string().trim().min(1).max(80),
   description: z.string().trim().max(300).default(''),
-  icon: z.string().trim().min(1).max(8).default('🎁'),
+  // Иконканын аты (client/src/components/PackIcon.tsx), мис. 'mountain'
+  icon: z.string().trim().min(1).max(20).default('gift'),
   items: z.array(z.object({ id: z.number().int(), round: z.enum(ROUNDS) })).min(1).max(150),
 });
 

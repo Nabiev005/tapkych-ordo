@@ -1,4 +1,31 @@
 import { motion } from 'framer-motion';
+import {
+  Archive,
+  Award,
+  BarChart3,
+  Check,
+  FileSpreadsheet,
+  Flame,
+  Gift,
+  GraduationCap,
+  Laptop,
+  Library,
+  Lock,
+  Mic,
+  NotebookPen,
+  Plus,
+  Presentation,
+  Projector,
+  Puzzle,
+  School,
+  Smartphone,
+  TrendingUp,
+  Trophy,
+  Users,
+  Vote,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../components/game';
@@ -6,6 +33,36 @@ import { LangSwitch } from '../components/LangSwitch';
 import { HornMotif, Logo, OrnamentBand, SunTunduk } from '../components/Ornament';
 import { ky } from '../i18n/ky';
 import { OPTION_KEYS } from '../lib/types';
+
+/** Котормолордогу иконка аттары (ky.landing) → иконкалар */
+const ICONS: Record<string, LucideIcon> = {
+  projector: Projector,
+  phone: Smartphone,
+  laptop: Laptop,
+  library: Library,
+  gift: Gift,
+  flame: Flame,
+  student: GraduationCap,
+  lock: Lock,
+  trophy: Trophy,
+  puzzle: Puzzle,
+  team: Users,
+  zap: Zap,
+  vote: Vote,
+  chart: BarChart3,
+  award: Award,
+  homework: NotebookPen,
+  growth: TrendingUp,
+  archive: Archive,
+  sheet: FileSpreadsheet,
+  teacher: Presentation,
+  school: School,
+};
+
+function LandingIcon({ name, className }: { name: string; className: string }) {
+  const Icon = ICONS[name] ?? Check;
+  return <Icon className={className} />;
+}
 
 /** Бөлүм пайда болгондо жумшак көтөрүлүү анимациясы */
 function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
@@ -37,6 +94,7 @@ function SectionTitle({ title, text }: { title: string; text?: string }) {
 export default function Home() {
   const t = ky.landing;
   const h = ky.home;
+  const heroBtn = 'inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 font-display text-lg font-bold transition sm:w-auto';
 
   return (
     <div className="min-h-dvh bg-ordo-cream text-ordo-ink">
@@ -85,23 +143,23 @@ export default function Home() {
               {t.heroText}
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-8 flex flex-wrap gap-3">
-              <Link to="/join" className="w-full rounded-2xl bg-gradient-to-b from-[#e0213f] to-ordo-red-dark px-6 py-4 text-center sm:w-auto font-display text-lg font-bold shadow-[0_6px_0_#6e0818] transition hover:brightness-110">
-                📱 {h.join}
+              <Link to="/join" className={`${heroBtn} bg-gradient-to-b from-[#e0213f] to-ordo-red-dark shadow-[0_6px_0_#6e0818] hover:brightness-110`}>
+                <Smartphone className="h-5 w-5" /> {h.join}
               </Link>
-              <Link to="/rating" className="w-full rounded-2xl bg-gradient-to-b from-ordo-gold-light to-ordo-gold px-6 py-4 text-center sm:w-auto font-display text-lg font-bold text-ordo-ink shadow-[0_6px_0_#a07800] transition hover:brightness-105">
-                🏆 {h.rating}
+              <Link to="/rating" className={`${heroBtn} bg-gradient-to-b from-ordo-gold-light to-ordo-gold text-ordo-ink shadow-[0_6px_0_#a07800] hover:brightness-105`}>
+                <Trophy className="h-5 w-5" /> {h.rating}
               </Link>
-              <Link to="/me" className="w-full rounded-2xl bg-gradient-to-b from-[#3cb8ef] to-[#0d86c0] px-6 py-4 text-center font-display text-lg font-bold shadow-[0_6px_0_#075e88] sm:w-auto transition hover:brightness-110">
-                🎓 {h.student}
+              <Link to="/me" className={`${heroBtn} bg-gradient-to-b from-[#3cb8ef] to-[#0d86c0] shadow-[0_6px_0_#075e88] hover:brightness-110`}>
+                <GraduationCap className="h-5 w-5" /> {h.student}
               </Link>
-              <Link to="/admin" className="w-full rounded-2xl bg-white/10 px-6 py-4 text-center font-display text-lg font-bold ring-2 ring-white/25 sm:w-auto transition hover:bg-white/20">
-                🎙️ {h.host}
+              <Link to="/admin" className={`${heroBtn} bg-white/10 ring-2 ring-white/25 hover:bg-white/20`}>
+                <Mic className="h-5 w-5" /> {h.host}
               </Link>
             </motion.div>
             <div className="mt-8 flex flex-wrap gap-2">
               {t.badges.map((b) => (
-                <span key={b} className="rounded-full bg-white/10 px-3 py-1 text-sm text-white/80 ring-1 ring-white/15">
-                  ✓ {b}
+                <span key={b} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm text-white/80 ring-1 ring-white/15">
+                  <Check className="h-3.5 w-3.5 text-emerald-300" /> {b}
                 </span>
               ))}
             </div>
@@ -158,7 +216,9 @@ export default function Home() {
           {t.devices.map((d, i) => (
             <Reveal key={d.title} delay={i * 0.1}>
               <div className="card h-full p-7 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-ordo-night text-3xl shadow-lg">{d.icon}</div>
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-ordo-night text-ordo-gold shadow-lg">
+                  <LandingIcon name={d.icon} className="h-8 w-8" />
+                </div>
                 <h3 className="font-display text-lg font-bold">{d.title}</h3>
                 <p className="mt-2 leading-relaxed text-ordo-ink/65">{d.text}</p>
               </div>
@@ -173,7 +233,9 @@ export default function Home() {
           <SectionTitle title={t.howTitle} />
           <div className="grid gap-10 lg:grid-cols-5">
             <Reveal className="lg:col-span-3">
-              <h3 className="mb-5 font-display text-xl font-bold text-ordo-red">🎙️ {t.howHostTitle}</h3>
+              <h3 className="mb-5 flex items-center gap-2 font-display text-xl font-bold text-ordo-red">
+                <Mic className="h-6 w-6" /> {t.howHostTitle}
+              </h3>
               <ol className="space-y-4">
                 {t.howHost.map((s, i) => (
                   <Step key={s.title} n={i + 1} title={s.title} text={s.text} tone="red" />
@@ -181,7 +243,9 @@ export default function Home() {
               </ol>
             </Reveal>
             <Reveal delay={0.15} className="lg:col-span-2">
-              <h3 className="mb-5 font-display text-xl font-bold text-ordo-sky">📱 {t.howStudentTitle}</h3>
+              <h3 className="mb-5 flex items-center gap-2 font-display text-xl font-bold text-ordo-sky">
+                <Smartphone className="h-6 w-6" /> {t.howStudentTitle}
+              </h3>
               <ol className="space-y-4">
                 {t.howStudent.map((s, i) => (
                   <Step key={s.title} n={i + 1} title={s.title} text={s.text} tone="sky" />
@@ -199,7 +263,9 @@ export default function Home() {
           {t.features.map((f, i) => (
             <Reveal key={f.title} delay={(i % 4) * 0.06}>
               <div className="group h-full rounded-3xl bg-white p-5 ring-1 ring-ordo-gold/20 transition hover:-translate-y-1 hover:shadow-xl">
-                <div className="mb-3 text-3xl transition group-hover:scale-110">{f.icon}</div>
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-ordo-red/10 text-ordo-red transition group-hover:scale-110 group-hover:bg-ordo-red group-hover:text-white">
+                  <LandingIcon name={f.icon} className="h-6 w-6" />
+                </div>
                 <h3 className="font-display font-bold">{f.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-ordo-ink/60">{f.text}</p>
               </div>
@@ -218,7 +284,9 @@ export default function Home() {
             {t.who.map((w, i) => (
               <Reveal key={w.title} delay={i * 0.1}>
                 <div className="h-full rounded-3xl bg-white/[0.06] p-7 ring-1 ring-white/10">
-                  <div className="mb-3 text-5xl">{w.icon}</div>
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-ordo-gold/15 text-ordo-gold ring-1 ring-ordo-gold/30">
+                    <LandingIcon name={w.icon} className="h-7 w-7" />
+                  </div>
                   <h3 className="font-display text-xl font-bold">{w.title}</h3>
                   <p className="mt-2 leading-relaxed text-white/70">{w.text}</p>
                 </div>
@@ -237,7 +305,9 @@ export default function Home() {
               <details className="group rounded-2xl bg-white p-5 ring-1 ring-ordo-gold/25 open:shadow-lg">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display font-bold">
                   {f.q}
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ordo-gold/20 text-lg transition group-open:rotate-45">＋</span>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ordo-gold/20 transition group-open:rotate-45">
+                    <Plus className="h-4 w-4" />
+                  </span>
                 </summary>
                 <p className="mt-3 leading-relaxed text-ordo-ink/70">{f.a}</p>
               </details>
@@ -253,11 +323,11 @@ export default function Home() {
             <h2 className="font-display text-3xl font-black md:text-4xl">{t.ctaTitle}</h2>
             <p className="mx-auto mt-3 max-w-xl text-lg text-white/80">{t.ctaText}</p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link to="/admin" className="rounded-2xl bg-white px-7 py-4 font-display text-lg font-bold text-ordo-red shadow-lg hover:brightness-95">
-                🎙️ {h.host}
+              <Link to="/admin" className="inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-4 font-display text-lg font-bold text-ordo-red shadow-lg hover:brightness-95">
+                <Mic className="h-5 w-5" /> {h.host}
               </Link>
-              <Link to="/join" className="rounded-2xl bg-white/15 px-7 py-4 font-display text-lg font-bold ring-2 ring-white/40 hover:bg-white/25">
-                📱 {h.join}
+              <Link to="/join" className="inline-flex items-center gap-2 rounded-2xl bg-white/15 px-7 py-4 font-display text-lg font-bold ring-2 ring-white/40 hover:bg-white/25">
+                <Smartphone className="h-5 w-5" /> {h.join}
               </Link>
             </div>
           </div>
@@ -281,6 +351,9 @@ export default function Home() {
             </Link>
             <Link to="/rating" className="hover:text-white">
               {h.rating}
+            </Link>
+            <Link to="/me" className="hover:text-white">
+              {h.student}
             </Link>
             <Link to="/admin" className="hover:text-white">
               {h.host}

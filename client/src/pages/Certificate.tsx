@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { RankMedal } from '../components/game';
+import { Printer } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { CornerOrnament, HornMotif, SunTunduk } from '../components/Ornament';
 import { Button, Spinner } from '../components/ui';
@@ -42,7 +44,7 @@ export default function Certificate() {
       <style>{'@page { size: A4 landscape; margin: 0 } @media print { .cert { page-break-after: always; box-shadow: none !important; margin: 0 !important } }'}</style>
       <div className="no-print mx-auto mb-6 flex max-w-[297mm] flex-wrap items-center justify-between gap-3 px-4">
         <p className="max-w-2xl text-sm text-ordo-ink/70">{t.printHint}</p>
-        <Button size="lg" icon="🖨" onClick={() => window.print()}>
+        <Button size="lg" icon={<Printer />} onClick={() => window.print()}>
           {t.print}
         </Button>
       </div>
@@ -70,7 +72,7 @@ export default function Certificate() {
           <div className="mt-1 font-display text-[13mm] font-black leading-tight text-ordo-ink">{r.name}</div>
           {r.className && <div className="text-xl font-semibold text-ordo-ink/60">{r.className}</div>}
           <div className="mt-4 rounded-full bg-gradient-to-r from-ordo-gold-light to-ordo-gold px-10 py-2 font-display text-3xl font-black text-ordo-ink">
-            {r.place <= 3 ? ['🥇', '🥈', '🥉'][r.place - 1] + ' ' : ''}
+            {r.place <= 3 ? <><RankMedal rank={r.place} className="ico" /> </> : ''}
             {t.placeText(r.place)}
           </div>
           <p className="mt-4 max-w-[200mm] text-xl leading-relaxed text-ordo-ink/80">{t.reason(when)}</p>

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { CircleHelp, Flag, GraduationCap, Hourglass, Import, Library, NotebookPen, Plus, Sparkles, Trash2, Trophy } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { SunTunduk } from '../../components/Ornament';
 import { Button, Spinner, useDialogs } from '../../components/ui';
@@ -52,10 +53,10 @@ const STATUS_STYLE: Record<string, string> = {
   FINISHED: 'bg-emerald-100 text-emerald-700',
 };
 
-function Stat({ icon, value, label, tint, to }: { icon: string; value: number | null; label: string; tint: string; to: string }) {
+function Stat({ icon, value, label, tint, to }: { icon: ReactNode; value: number | null; label: string; tint: string; to: string }) {
   return (
     <Link to={to} className="card group flex flex-col items-start gap-3 p-4 transition sm:flex-row sm:items-center sm:gap-4 hover:-translate-y-0.5 hover:shadow-xl">
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl ${tint}`}>{icon}</div>
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-ordo-ink/80 ${tint}`}>{icon}</div>
       <div className="min-w-0">
         <div className="font-display text-2xl leading-none font-black text-ordo-ink">{value ?? '—'}</div>
         <div className="mt-1 text-sm leading-tight font-semibold text-ordo-ink/55">{label}</div>
@@ -111,10 +112,10 @@ export default function Dashboard() {
   const recent = games?.filter((g) => g.status === 'FINISHED').slice(0, 6) ?? [];
 
   const quick = [
-    { icon: '➕', label: d.quickAddQuestion, to: '/admin/questions' },
-    { icon: '📥', label: d.quickImport, to: '/admin/import' },
-    { icon: '🎓', label: d.quickStudents, to: '/admin/students' },
-    { icon: '📝', label: d.quickAssignment, to: '/admin/assignments' },
+    { icon: <Plus className="h-7 w-7" />, label: d.quickAddQuestion, to: '/admin/questions' },
+    { icon: <Import className="h-7 w-7" />, label: d.quickImport, to: '/admin/import' },
+    { icon: <GraduationCap className="h-7 w-7" />, label: d.quickStudents, to: '/admin/students' },
+    { icon: <NotebookPen className="h-7 w-7" />, label: d.quickAssignment, to: '/admin/assignments' },
   ];
 
   const gameCard = (g: GameRow) => (
@@ -132,7 +133,7 @@ export default function Dashboard() {
         {d.open}
       </Button>
       <button className="rounded-xl p-2 text-ordo-ink/30 hover:bg-ordo-red/10 hover:text-ordo-red" title={d.deleteGame} onClick={() => remove(g)}>
-        🗑
+        <Trash2 className="h-4 w-4" />
       </button>
     </motion.div>
   );
@@ -156,7 +157,7 @@ export default function Dashboard() {
             </h1>
             <p className="mt-3 text-white/70">{d.helloSub}</p>
           </div>
-          <Button size="xl" variant="gold" icon="✨" onClick={() => navigate('/admin/games/new')}>
+          <Button size="xl" variant="gold" icon={<Sparkles />} onClick={() => navigate('/admin/games/new')}>
             {d.newGame}
           </Button>
         </div>
@@ -167,7 +168,7 @@ export default function Dashboard() {
           to="/admin/teachers"
           className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ordo-gold/60 bg-ordo-gold/15 px-5 py-4 font-semibold transition hover:bg-ordo-gold/25"
         >
-          <span>⏳ {d.pendingBanner(pendingTeachers)}</span>
+          <span><Hourglass className="ico" /> {d.pendingBanner(pendingTeachers)}</span>
           <span className="text-ordo-sky">{d.pendingOpen}</span>
         </Link>
       )}
@@ -176,17 +177,17 @@ export default function Dashboard() {
           to="/admin/library"
           className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ordo-sky/50 bg-ordo-sky/10 px-5 py-4 font-semibold transition hover:bg-ordo-sky/20"
         >
-          <span>📚 {d.libraryPending(pendingLibrary)}</span>
+          <span><Library className="ico" /> {d.libraryPending(pendingLibrary)}</span>
           <span className="text-ordo-sky">{d.pendingOpen}</span>
         </Link>
       )}
 
       {/* Сандар */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon="❓" value={totalQuestions} label={d.statQuestions} tint="bg-ordo-sky/15" to="/admin/questions" />
-        <Stat icon="🎓" value={students} label={d.statStudents} tint="bg-emerald-100" to="/admin/students" />
-        <Stat icon="🏁" value={finished} label={d.statGames} tint="bg-ordo-gold/25" to="/admin/history" />
-        <Stat icon="📝" value={openTasks} label={d.statAssignments} tint="bg-ordo-red/10" to="/admin/assignments" />
+        <Stat icon={<CircleHelp className="h-6 w-6" />} value={totalQuestions} label={d.statQuestions} tint="bg-ordo-sky/15" to="/admin/questions" />
+        <Stat icon={<GraduationCap className="h-6 w-6" />} value={students} label={d.statStudents} tint="bg-emerald-100" to="/admin/students" />
+        <Stat icon={<Flag className="h-6 w-6" />} value={finished} label={d.statGames} tint="bg-ordo-gold/25" to="/admin/history" />
+        <Stat icon={<NotebookPen className="h-6 w-6" />} value={openTasks} label={d.statAssignments} tint="bg-ordo-red/10" to="/admin/assignments" />
       </section>
 
       {/* Тез аракеттер */}
@@ -199,7 +200,7 @@ export default function Dashboard() {
               to={q.to}
               className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-ordo-gold/40 bg-white/70 p-4 text-center font-semibold text-ordo-ink/80 transition hover:border-ordo-gold hover:bg-white hover:text-ordo-ink"
             >
-              <span className="text-3xl">{q.icon}</span>
+              <span className="text-ordo-red">{q.icon}</span>
               <span className="text-sm">{q.label}</span>
             </Link>
           ))}
@@ -207,7 +208,7 @@ export default function Dashboard() {
             to="/admin/rating"
             className="col-span-2 flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-ordo-gold/40 bg-white/70 p-4 text-center font-semibold text-ordo-ink/80 transition hover:border-ordo-gold hover:bg-white hover:text-ordo-ink md:col-span-1"
           >
-            <span className="text-3xl">🏆</span>
+            <Trophy className="h-7 w-7 text-ordo-gold-dark" />
             <span className="text-sm">{d.quickRating}</span>
           </Link>
         </div>
@@ -232,7 +233,7 @@ export default function Dashboard() {
           <SunTunduk size={90} />
           <div className="font-display text-2xl font-bold">{d.emptyTitle}</div>
           <p className="max-w-md text-ordo-ink/60">{d.noGames}</p>
-          <Button variant="red" icon="✨" onClick={() => navigate('/admin/games/new')}>
+          <Button variant="red" icon={<Sparkles />} onClick={() => navigate('/admin/games/new')}>
             {d.newGame}
           </Button>
         </section>

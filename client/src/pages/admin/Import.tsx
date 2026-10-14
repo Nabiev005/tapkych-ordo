@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { FileSpreadsheet, FileText, FolderOpen, Paperclip, TriangleAlert } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Spinner, useDialogs } from '../../components/ui';
@@ -77,10 +78,10 @@ export default function ImportPage() {
         <h2 className="font-display text-lg font-bold">{t.step1}</h2>
         <p className="text-ordo-ink/60">{t.step1Hint}</p>
         <div className="flex flex-wrap gap-3">
-          <Button variant="green" icon="📊" onClick={() => dl('/api/questions/template.xlsx', ky.files.templateXlsx)}>
+          <Button variant="green" icon={<FileSpreadsheet />} onClick={() => dl('/api/questions/template.xlsx', ky.files.templateXlsx)}>
             {t.templateXlsx}
           </Button>
-          <Button variant="outline" icon="📄" onClick={() => dl('/api/questions/template.csv', ky.files.templateCsv)}>
+          <Button variant="outline" icon={<FileText />} onClick={() => dl('/api/questions/template.csv', ky.files.templateCsv)}>
             {t.templateCsv}
           </Button>
         </div>
@@ -102,11 +103,11 @@ export default function ImportPage() {
           }}
           className={`flex flex-col items-center gap-3 rounded-3xl border-4 border-dashed p-10 text-center transition ${drag ? 'border-ordo-sky bg-ordo-sky/10' : 'border-ordo-gold/40'}`}
         >
-          <div className="text-5xl">📁</div>
+          <FolderOpen className="h-12 w-12 text-ordo-gold-dark" />
           <Button variant="sky" size="lg" onClick={() => fileRef.current?.click()}>
             {t.chooseFile}
           </Button>
-          <div className="text-ordo-ink/50">{file ? `📎 ${file.name}` : t.dropHint}</div>
+          <div className="text-ordo-ink/50">{file ? <><Paperclip className="ico" /> {file.name}</> : t.dropHint}</div>
           {checking && (
             <div className="flex items-center gap-2 text-ordo-sky">
               <Spinner /> {t.checking}
@@ -129,7 +130,7 @@ export default function ImportPage() {
 
           {preview.errors.length > 0 && (
             <div className="rounded-2xl bg-ordo-red/10 p-4">
-              <div className="mb-2 font-bold text-ordo-red">⚠ {t.errorsTitle(preview.errors.length)}</div>
+              <div className="mb-2 font-bold text-ordo-red"><TriangleAlert className="ico" /> {t.errorsTitle(preview.errors.length)}</div>
               <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-ordo-red/90">
                 {preview.errors.map((e) => (
                   <li key={e.row}>• {t.rowError(e.row, e.problem)}</li>

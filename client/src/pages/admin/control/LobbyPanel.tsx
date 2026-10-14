@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { Link2, Monitor, Pencil, Play, Printer, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { JoinQr } from '../../../components/game';
 import { Button, useDialogs } from '../../../components/ui';
@@ -49,7 +50,7 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
           <div className="break-all text-center font-mono text-lg text-ordo-gold-light">{base ? `${base}/join` : '…'}</div>
         </div>
         <div className="mt-6 grid gap-2">
-          <Button variant="gold" size="lg" icon="🖥" onClick={() => window.open(`/screen/${g.code}`, '_blank')}>
+          <Button variant="gold" size="lg" icon={<Monitor />} onClick={() => window.open(`/screen/${g.code}`, '_blank')}>
             {t.openScreen}
           </Button>
           <p className="text-center text-xs text-white/50">{t.openScreenHint}</p>
@@ -64,10 +65,10 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
                   .catch(() => undefined)
               }
             >
-              🔗 {t.copyLink}
+              <Link2 className="ico" /> {t.copyLink}
             </Button>
             <Button variant="dark" size="sm" onClick={() => window.open(`/admin/games/${g.id}/pins`, '_blank')}>
-              🖨 {t.printPins}
+              <Printer className="ico" /> {t.printPins}
             </Button>
           </div>
         </div>
@@ -117,7 +118,7 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
                       if (name && name !== p.name) await rest(() => api.patch(`/api/games/${g.id}/players/${p.id}`, { name }));
                     }}
                   >
-                    ✏️
+                    <Pencil className="h-4 w-4" />
                   </IconBtn>
                   <IconBtn
                     title={t.newPin}
@@ -125,7 +126,7 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
                       if (await confirm({ title: t.newPin, message: t.newPinConfirm(p.name) })) await rest(() => api.post(`/api/games/${g.id}/players/${p.id}/new-pin`));
                     }}
                   >
-                    🔄
+                    <RefreshCw className="h-4 w-4" />
                   </IconBtn>
                   <IconBtn
                     title={t.removePlayer}
@@ -134,7 +135,7 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
                         await rest(() => api.del(`/api/games/${g.id}/players/${p.id}`));
                     }}
                   >
-                    🗑
+                    <Trash2 className="h-4 w-4" />
                   </IconBtn>
                 </div>
               </motion.div>
@@ -157,7 +158,7 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
         )}
         <div className="mb-2 text-center text-sm text-ordo-ink/50">{t.settingsSummary(g.settings.pointsPerCorrect, g.settings.timerSeconds)}</div>
         <Button size="xl" variant="green" className="w-full py-8 text-3xl" pulse={blockers.length === 0} disabled={blockers.length > 0} loading={busy === 'startGame'} onClick={start}>
-          ▶ {t.start}
+          <Play className="ico" /> {t.start}
         </Button>
       </section>
     </div>
