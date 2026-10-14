@@ -36,8 +36,9 @@ render.yaml            Render Blueprint (бир сервис: API + сайт)
 server/
   prisma/schema.prisma Teacher, Question, Game, Player, GameQuestion, Answer, AudienceVote,
                        ScoreAdjustment, Student, Season, Assignment, AssignmentQuestion,
-                       Submission, Upload
-  prisma/migrations/   init, phases, archive_students_rating, school_features, teacher_google
+                       Submission, Upload, LibraryQuestion (Question.libraryId — көчүрмөнүн булагы)
+  prisma/migrations/   init, phases, archive_students_rating, school_features, teacher_google,
+                       teacher_approval, library
   prisma/seed.ts       база бош болсо, 25 мисал суроо кошот
   src/index.ts         Express + Socket.IO; client/dist'ти да берет
   src/migrate.ts       өзүнчө жазылган migrator (`_ordo_migrations` таблицасы; Turso'до да иштейт)
@@ -48,8 +49,11 @@ server/
   src/game/state.ts    ролдор боюнча snapshot'тор: admin, screen, player, audience
   src/game/scoring.ts  rankScores, overallStandings, teamStandings
   src/sockets/index.ts socket окуялары
-  src/routes/          questions, games, public (login), importExport, uploads, students,
-                       rating, teachers, seasons, assignments (+ ачык /api/hw)
+  src/routes/          questions, games, public (login), importExport (parseQuestionRows — банк
+                       жана китепкана үчүн жалпы), uploads, students, rating, teachers, seasons,
+                       assignments (+ ачык /api/hw), library
+  src/library/starter.ts китепкананын баштапкы топтому (~130 суроо, POST /api/library/starter → PENDING)
+  test/                npm test: unit, auth, game, library
 client/src/
   i18n/                ky.ts, ru.ts, lang.ts (localStorage `ordo_lang`)
   lib/                 api.ts (API_BASE, assetUrl, adminToken, staffUser), types.ts,
@@ -59,7 +63,8 @@ client/src/
   pages/Home.tsx       лендинг (sticky header)
   pages/player/        Join (PIN), Play, Watch (залдагы көрүүчүлөр), Homework
   pages/screen/        Screen (проектор)
-  pages/admin/         AdminLayout (каптал меню), Dashboard, Questions, Import, NewGame,
+  pages/admin/         AdminLayout (каптал меню), Dashboard, Questions (QuestionForm, OptionsPreview —
+                       Library да колдонот; library=true режими), Library, Import, NewGame,
                        GameControl + control/ (Lobby/Live/ResultsPanel), Pins, Students,
                        History, Replay, Teachers, Seasons, Assignments, AssignmentDetail
 ```
@@ -105,12 +110,16 @@ cd server && npx tsc --noEmit
 8. Админ панелинин жаңы дизайны: каптал меню (телефондо ачылма меню), Dashboard'до саламдашуу, сандар, тез аракеттер, жүрүп жаткан жана акыркы оюндар.
 9. Терминдер: «окуучу» → «студент», «класс» → «топ», «мектеп» → «окуу жайы».
 10. «Google менен кирүү» мугалимдер жана алып баруучу үчүн. Админдин Gmail'дери `ADMIN_EMAILS` өзгөрмөсүндө. Мугалимдер Google менен **өздөрү катталат**: жаңы Gmail кирсе, `Teacher` жазуусу `approved = false` абалында түзүлөт, кирүүгө `TEACHER_PENDING` катасы кайтат (эң көп 50 өтүнмө). Башкы алып баруучу «Мугалимдер» бетинен ырастайт же четке кагат (четке кагуу = жазууну өчүрүү). Dashboard'до өтүнмөлөр тууралуу эскертүү чыгат. Google'дун талабы боюнча `/privacy` жана `/terms` беттери кошулду (`pages/Legal.tsx`, тексттер `ky.legal`). Жөндөө тартиби README'нин 6.1-бөлүмүндө.
+11. (2026-10-14) Автоматтык тесттер (`npm test`), рейтинг админ панелинин ичинде (`/admin/rating`), UptimeRobot.
+12. (2026-10-14) **Суроолор китепканасы** (`/admin/library`, `LibraryQuestion`). Статустар: PENDING → APPROVED, четке кагуу = өчүрүү. Мугалим ырасталгандарды көрөт жана көчүрөт (`POST /api/library/copy`, round: AUTO = кыйынчылыгына жараша же белгилүү тур; кайра көчүрүлбөйт — `Question.libraryId` боюнча). Мугалим «Суроолор» бетинен бөлүшөт (`/share` → PENDING; админ бөлүшсө — дароо APPROVED; китепканадан алынган же китепканада бар текст бөлүшүлбөйт). Башкы алып баруучу гана: түз кошуу/оңдоо, approve/reject, Excel импорт («Тур» мамычасы милдеттүү эмес), баштапкы топтом. Тексттин кайталанышы `norm()` менен текшерилет (боштуктар, чоң/кичине тамга). Dashboard'до модерация тууралуу эскертүү.
 
 ## Калган иштер жана идеялар
 
 - [x] **Google менен кирүү иштейт (2026-10-10, www.tapkych.com'до сыналды).** OAuth Client ID «My Project 5063» (`clear-destiny-500409-u9`) долбоорунда түзүлгөн («peak-bricolage-6mn89» Starter Tier болгондуктан колдонулбайт). Колдонмо жарыяланган (In production). Origins: onrender, vercel.app, www.tapkych.com, tapkych.com, localhost:3000/5173. Render'де `GOOGLE_CLIENT_ID` жана `ADMIN_EMAILS` коюлган.
 - [ ] Google: **Verify branding** (кирүү терезесинде «Тапкыч ордо» деген ат көрүнүшү үчүн) — адегенде Search Console'до `tapkych.com` ырасталышы керек. Client secret скриншотто көрүнүп калган, аны Reset кылуу сунушталды (биз аны колдонбойбуз).
 - [ ] Search Console: `tapkych.com` доменин ырастоо жана `https://www.tapkych.com/sitemap.xml` дарегин жөнөтүү.
+- [ ] **Китепкананын баштапкы топтомун текшерүү:** ~130 суроону Claude жазган — продакшнда «Баштапкы топтомду кошуу» басылгандан кийин башкы алып баруучу ар бирин фактысы боюнча текшерип ырастоосу керек.
+- [ ] Китепкананын кийинки кадамдары: даяр оюн пакеттери (бир басуу менен бүтүндөй оюн), ЖРТ даярдоо режими, суроолор боюнча статистика (канча % туура жооп берилди).
 - [ ] Студенттер үчүн Google менен кирүү (үй тапшырмасы, жеке баракча) — кийинчерээк.
 - [x] **Render'дин уктап калышы (2026-10-14):** UptimeRobot (бекер план) ар 5 мүнөттө `https://tapkych-ordo.onrender.com/api/health` дарегин текшерет, иштебей калса ajbeknabiev90@gmail.com'го кат келет. Акылуу планга азыр каражат жок. Келечекте Oracle Cloud Always Free'ге көчүү варианты бар. Эскертүү: `www.tapkych.com/api/health` серверди ойготпойт — ал Vercel'дин index.html'ин берет.
 - [ ] Админ панелинин башка беттери (Суроолор, Студенттер, Тарых ж.б.) жаңы каптал менюнун стилине толук ылайыкташтырыла элек. Аларды текшерип, керек болсо жаңыртуу керек.

@@ -74,6 +74,7 @@ export default function Dashboard() {
   const [students, setStudents] = useState<number | null>(null);
   const [openTasks, setOpenTasks] = useState<number | null>(null);
   const [pendingTeachers, setPendingTeachers] = useState(0);
+  const [pendingLibrary, setPendingLibrary] = useState(0);
 
   const load = () => {
     api.get<{ summary: Summary[] }>('/api/questions/summary').then((r) => setSummary(r.summary)).catch((e) => toast(e.message, 'err'));
@@ -84,11 +85,17 @@ export default function Dashboard() {
       .then((r) => setOpenTasks(r.assignments.filter((a) => a.open).length))
       .catch(() => undefined);
     // Google менен катталып, ырастоону күткөн мугалимдер (башкы алып баруучуга гана)
-    if (user?.role !== 'teacher')
+    if (user?.role !== 'teacher') {
       api
         .get<{ teachers: { approved: boolean }[] }>('/api/teachers')
         .then((r) => setPendingTeachers(r.teachers.filter((x) => !x.approved).length))
         .catch(() => undefined);
+      // Мугалимдер бөлүшкөн, модерацияны күткөн китепкана суроолору
+      api
+        .get<{ pendingCount: number }>('/api/library?limit=1')
+        .then((r) => setPendingLibrary(r.pendingCount))
+        .catch(() => undefined);
+    }
   };
   useEffect(load, [toast]);
 
@@ -161,6 +168,15 @@ export default function Dashboard() {
           className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ordo-gold/60 bg-ordo-gold/15 px-5 py-4 font-semibold transition hover:bg-ordo-gold/25"
         >
           <span>⏳ {d.pendingBanner(pendingTeachers)}</span>
+          <span className="text-ordo-sky">{d.pendingOpen}</span>
+        </Link>
+      )}
+      {pendingLibrary > 0 && (
+        <Link
+          to="/admin/library"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-ordo-sky/50 bg-ordo-sky/10 px-5 py-4 font-semibold transition hover:bg-ordo-sky/20"
+        >
+          <span>📚 {d.libraryPending(pendingLibrary)}</span>
           <span className="text-ordo-sky">{d.pendingOpen}</span>
         </Link>
       )}

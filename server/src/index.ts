@@ -19,6 +19,7 @@ import { teachersRouter } from './routes/teachers.js';
 import { seasonsRouter } from './routes/seasons.js';
 import { assignmentsRouter, homeworkRouter } from './routes/assignments.js';
 import { importExportRouter } from './routes/importExport.js';
+import { libraryRouter } from './routes/library.js';
 import { setupSockets } from './sockets/index.js';
 import { restoreTimers } from './game/engine.js';
 
@@ -47,6 +48,7 @@ app.use('/api/teachers', teachersRouter);
 app.use('/api/seasons', seasonsRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/hw', homeworkRouter);
+app.use('/api/library', libraryRouter);
 app.use('/api', importExportRouter);
 
 app.use('/api', (_req, _res) => {

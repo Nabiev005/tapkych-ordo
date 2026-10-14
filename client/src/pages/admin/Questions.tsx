@@ -13,8 +13,8 @@ import { DIFFICULTIES, OPTION_KEYS, QUESTION_TYPES, ROUND_KEYS, optionKeysFor, t
 
 const REQUIRED: Record<RoundKey, number> = { ROUND1: 10, ROUND2: 10, FINAL: 5 };
 
-type Draft = Omit<Question, 'id' | 'order' | 'archived' | 'usedCount' | 'lastUsedAt'> & { id?: number };
-const emptyDraft = (round: RoundKey): Draft => ({
+export type Draft = Omit<Question, 'id' | 'order' | 'archived' | 'usedCount' | 'lastUsedAt'> & { id?: number };
+export const emptyDraft = (round: RoundKey): Draft => ({
   round,
   type: 'CHOICE',
   category: '',
@@ -111,6 +111,16 @@ export default function Questions() {
     }
   };
 
+  const share = async (q: Question) => {
+    try {
+      const r = await api.post<{ shared: number; pending: boolean }>('/api/library/share', { questionIds: [q.id] });
+      const t = ky.admin.questions;
+      toast(!r.shared ? t.shareSkipped : r.pending ? t.sharedPending : t.sharedApproved, r.shared ? 'ok' : 'err');
+    } catch (err) {
+      toast((err as Error).message, 'err');
+    }
+  };
+
   const toArchive = async (q: Question) => {
     try {
       await api.post(`/api/questions/${q.id}/archive`);
@@ -136,6 +146,9 @@ export default function Questions() {
           </Button>
           <Button variant="outline" icon="📥" onClick={() => navigate('/admin/import')}>
             {ky.admin.questions.import}
+          </Button>
+          <Button variant="sky" icon="📚" onClick={() => navigate('/admin/library')}>
+            {ky.admin.questions.openLibrary}
           </Button>
           <Button variant="red" icon="＋" onClick={() => setDraft(emptyDraft(roundTab))}>
             {ky.admin.questions.add}
@@ -223,6 +236,7 @@ export default function Questions() {
                       onEdit={() => setDraft({ ...q })}
                       onDelete={() => remove(q)}
                       onArchive={() => toArchive(q)}
+                      onShare={() => share(q)}
                     />
                   ))}
                 </div>
@@ -246,7 +260,7 @@ export default function Questions() {
   );
 }
 
-function OptionsPreview({ q }: { q: Question }) {
+export function OptionsPreview({ q }: { q: Pick<Question, 'type' | 'correct' | 'optionA' | 'optionB' | 'optionC' | 'optionD'> }) {
   if (q.type === 'ORDER') {
     return (
       <ol className="mt-2 space-y-1 text-sm">
@@ -279,6 +293,7 @@ function SortableRow({
   onEdit,
   onDelete,
   onArchive,
+  onShare,
 }: {
   q: Question;
   index: number;
@@ -286,6 +301,7 @@ function SortableRow({
   onEdit: () => void;
   onDelete: () => void;
   onArchive: () => void;
+  onShare: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id, disabled: dragDisabled });
   return (
@@ -302,7 +318,10 @@ function SortableRow({
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ordo-night font-display font-bold text-ordo-gold">{index + 1}</div>
       {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
       <div className="min-w-0 flex-1">
-        <QuestionBadges q={q} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <QuestionBadges q={q} />
+          {q.libraryId && <span className="rounded-md bg-ordo-sky/10 px-2 py-0.5 text-xs font-semibold text-ordo-sky">{ky.admin.questions.fromLibrary}</span>}
+        </div>
         <div className="mt-1 font-semibold">{q.text}</div>
         <OptionsPreview q={q} />
       </div>
@@ -313,6 +332,11 @@ function SortableRow({
         <Button size="sm" variant="outline" onClick={onArchive}>
           🗄 {ky.admin.questions.toArchive}
         </Button>
+        {!q.libraryId && (
+          <Button size="sm" variant="outline" title={ky.admin.questions.shareHint} onClick={onShare}>
+            📚 {ky.admin.questions.share}
+          </Button>
+        )}
         <Button size="sm" variant="danger" onClick={onDelete}>
           🗑 {ky.common.delete}
         </Button>
@@ -321,7 +345,20 @@ function SortableRow({
   );
 }
 
-function QuestionForm({ draft, categories, onClose, onSaved }: { draft: Draft | null; categories: string[]; onClose: () => void; onSaved: (r: RoundKey) => void }) {
+/** Суроо формасы. library = true — китепкана үчүн: тур тандалбайт, /api/library'ге сакталат */
+export function QuestionForm({
+  draft,
+  categories,
+  onClose,
+  onSaved,
+  library = false,
+}: {
+  draft: Draft | null;
+  categories: string[];
+  onClose: () => void;
+  onSaved: (r: RoundKey) => void;
+  library?: boolean;
+}) {
   const { toast } = useDialogs();
   const [d, setD] = useState<Draft | null>(draft);
   const [busy, setBusy] = useState(false);
@@ -383,8 +420,9 @@ function QuestionForm({ draft, categories, onClose, onSaved }: { draft: Draft | 
       correct: d.correct,
     };
     try {
-      if (d.id) await api.put(`/api/questions/${d.id}`, body);
-      else await api.post('/api/questions', body);
+      const base = library ? '/api/library' : '/api/questions';
+      if (d.id) await api.put(`${base}/${d.id}`, body);
+      else await api.post(base, body);
       toast(ky.common.saved);
       onSaved(d.round);
     } catch (e) {
@@ -401,16 +439,18 @@ function QuestionForm({ draft, categories, onClose, onSaved }: { draft: Draft | 
       {d && (
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label">{f.round}</label>
-              <div className="grid grid-cols-3 gap-2">
-                {ROUND_KEYS.map((r) => (
-                  <button key={r} onClick={() => setD({ ...d, round: r })} className={seg(d.round === r)}>
-                    {ky.rounds[r]}
-                  </button>
-                ))}
+            {!library && (
+              <div>
+                <label className="label">{f.round}</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {ROUND_KEYS.map((r) => (
+                    <button key={r} onClick={() => setD({ ...d, round: r })} className={seg(d.round === r)}>
+                      {ky.rounds[r]}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <div>
               <label className="label">{f.difficulty}</label>
               <div className="grid grid-cols-3 gap-2">

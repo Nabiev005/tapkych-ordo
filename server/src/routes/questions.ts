@@ -48,7 +48,7 @@ function parseId(raw: string): number {
   return id;
 }
 
-async function nextOrder(ownerId: number | null, round: Round): Promise<number> {
+export async function nextOrder(ownerId: number | null, round: Round): Promise<number> {
   const last = await prisma.question.findFirst({ where: { ownerId, round, archived: false }, orderBy: { order: 'desc' } });
   return (last?.order ?? -1) + 1;
 }

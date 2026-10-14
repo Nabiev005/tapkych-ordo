@@ -40,6 +40,7 @@ export default function AdminLayout() {
       items: [
         { to: '/admin', icon: '🏠', label: n.dashboard, end: true },
         { to: '/admin/questions', icon: '❓', label: n.questions },
+        { to: '/admin/library', icon: '📚', label: n.library },
         { to: '/admin/history', icon: '📜', label: n.history },
       ],
     },

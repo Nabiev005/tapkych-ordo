@@ -85,7 +85,58 @@ function parseCorrect(type: QuestionType, v: string): string | null {
   return LETTER[s] ?? null;
 }
 
-async function readRows(file: Express.Multer.File): Promise<string[][]> {
+export interface ParsedQuestion {
+  round: Round | null;
+  type: QuestionType;
+  category: string;
+  difficulty: Difficulty;
+  text: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correct: string;
+  imageUrl: string | null;
+}
+
+/**
+ * Шаблондун саптарын текшерет. roundOptional — китепкана үчүн: «Тур» мамычасы бош болсо да болот.
+ * Эски (8 мамычалуу) шаблон да кабыл алынат.
+ */
+export function parseQuestionRows(rows: string[][], roundOptional = false) {
+  // Баш сап: 1-мамычада тур эмес текст бар (китепканада турсуз саптын 1-мамычасы бош болот)
+  const first = (rows[0]?.[0] ?? '').trim();
+  const hasHeader = rows.length > 0 && !!first && !parseRound(first);
+  // Жаңы шаблондо 2-мамыча — «Түрү»
+  const newFormat = !hasHeader || (rows[0][1] ?? '').trim().toLowerCase().startsWith('түр');
+  const body = hasHeader ? rows.slice(1) : rows;
+  const valid: ParsedQuestion[] = [];
+  const errors: { row: number; problem: string }[] = [];
+
+  body.forEach((r, i) => {
+    const rowNo = i + (hasHeader ? 2 : 1);
+    const cells = r.map((x) => String(x ?? '').trim());
+    const [roundRaw = '', typeRaw = '', category = '', diffRaw = '', text = '', a = '', b = '', c = '', d = '', correctRaw = '', img = ''] = newFormat
+      ? cells
+      : [cells[0], '', '', '', cells[1], cells[2], cells[3], cells[4], cells[5], cells[6], cells[7]];
+    if (![roundRaw, text, a, b, c, d, correctRaw].some(Boolean)) return; // бош сап
+    const round = parseRound(roundRaw);
+    const type = parseType(typeRaw);
+    const difficulty = parseDifficulty(diffRaw);
+    if (!round && !(roundOptional && !roundRaw)) return errors.push({ row: rowNo, problem: 'ROUND' });
+    if (!type) return errors.push({ row: rowNo, problem: 'TYPE' });
+    if (!difficulty) return errors.push({ row: rowNo, problem: 'DIFFICULTY' });
+    if (!text) return errors.push({ row: rowNo, problem: 'TEXT' });
+    if (type !== 'TF' && (!a || !b || !c || !d)) return errors.push({ row: rowNo, problem: 'OPTIONS' });
+    const correct = parseCorrect(type, correctRaw);
+    if (!correct) return errors.push({ row: rowNo, problem: 'CORRECT' });
+    const opts = type === 'TF' ? TF_OPTIONS : { optionA: a, optionB: b, optionC: c, optionD: d };
+    valid.push({ round, type, category: category.slice(0, 40), difficulty, text, ...opts, correct, imageUrl: img || null });
+  });
+  return { valid, errors };
+}
+
+export async function readRows(file: Express.Multer.File): Promise<string[][]> {
   const name = file.originalname.toLowerCase();
   if (name.endsWith('.csv')) {
     const text = file.buffer.toString('utf8').replace(/^﻿/, '');
@@ -189,48 +240,8 @@ importExportRouter.get('/questions/export.xlsx', async (_req, res) => {
  */
 importExportRouter.post('/questions/import', upload.single('file'), async (req, res) => {
   if (!req.file) throw new AppError('INVALID_FILE');
-  const rows = await readRows(req.file);
-  const hasHeader = rows.length > 0 && !parseRound(rows[0][0] ?? '');
-  // Жаңы шаблондо 2-мамыча — «Түрү»
-  const newFormat = !hasHeader || (rows[0][1] ?? '').trim().toLowerCase().startsWith('түр');
-  const body = hasHeader ? rows.slice(1) : rows;
-
-  type Parsed = {
-    round: Round;
-    type: QuestionType;
-    category: string;
-    difficulty: Difficulty;
-    text: string;
-    optionA: string;
-    optionB: string;
-    optionC: string;
-    optionD: string;
-    correct: string;
-    imageUrl: string | null;
-  };
-  const valid: Parsed[] = [];
-  const errors: { row: number; problem: string }[] = [];
-
-  body.forEach((r, i) => {
-    const rowNo = i + (hasHeader ? 2 : 1);
-    const cells = r.map((x) => String(x ?? '').trim());
-    const [roundRaw = '', typeRaw = '', category = '', diffRaw = '', text = '', a = '', b = '', c = '', d = '', correctRaw = '', img = ''] = newFormat
-      ? cells
-      : [cells[0], '', '', '', cells[1], cells[2], cells[3], cells[4], cells[5], cells[6], cells[7]];
-    if (![roundRaw, text, a, b, c, d, correctRaw].some(Boolean)) return; // бош сап
-    const round = parseRound(roundRaw);
-    const type = parseType(typeRaw);
-    const difficulty = parseDifficulty(diffRaw);
-    if (!round) return errors.push({ row: rowNo, problem: 'ROUND' });
-    if (!type) return errors.push({ row: rowNo, problem: 'TYPE' });
-    if (!difficulty) return errors.push({ row: rowNo, problem: 'DIFFICULTY' });
-    if (!text) return errors.push({ row: rowNo, problem: 'TEXT' });
-    if (type !== 'TF' && (!a || !b || !c || !d)) return errors.push({ row: rowNo, problem: 'OPTIONS' });
-    const correct = parseCorrect(type, correctRaw);
-    if (!correct) return errors.push({ row: rowNo, problem: 'CORRECT' });
-    const opts = type === 'TF' ? TF_OPTIONS : { optionA: a, optionB: b, optionC: c, optionD: d };
-    valid.push({ round, type, category: category.slice(0, 40), difficulty, text, ...opts, correct, imageUrl: img || null });
-  });
+  const { valid: parsed, errors } = parseQuestionRows(await readRows(req.file));
+  const valid = parsed.map((v) => ({ ...v, round: v.round! }));
 
   const counts = Object.fromEntries(ROUNDS.map((r) => [r, valid.filter((v) => v.round === r).length]));
 

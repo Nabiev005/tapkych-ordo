@@ -23,6 +23,16 @@ export interface Question {
   archived: boolean;
   usedCount: number;
   lastUsedAt: string | null;
+  /** Китепканадан көчүрүлгөн болсо — китепкана суроосунун id'си */
+  libraryId?: number | null;
+}
+
+/** Жалпы китепканадагы суроо (тур жок — банкка көчүрүүдө тандалат) */
+export interface LibraryItem extends Omit<Question, 'round' | 'order' | 'archived' | 'usedCount' | 'lastUsedAt' | 'libraryId'> {
+  status: 'PENDING' | 'APPROVED';
+  authorId: number | null;
+  authorName: string | null;
+  copiedCount: number;
 }
 
 export interface Settings {

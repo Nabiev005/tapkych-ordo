@@ -24,6 +24,7 @@ model Teacher {
   questions   Question[]
   games       Game[]
   assignments Assignment[]
+  library     LibraryQuestion[]
 }
 
 /// Суроолор банкы. ownerId = null — башкы алып баруучунун банкы, болбосо мугалимдики.
@@ -47,6 +48,8 @@ model Question {
   archived   Boolean   @default(false)
   usedCount  Int       @default(0)
   lastUsedAt DateTime?
+  /// Китепканадан көчүрүлгөн болсо — LibraryQuestion.id (кайра көчүрбөө үчүн; байланышсыз, китепканадан өчсө да калат)
+  libraryId  Int?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -54,6 +57,32 @@ model Question {
   gameQuestions GameQuestion[]
 
   @@index([ownerId, round, archived, order])
+}
+
+/// Жалпы суроолор китепканасы: бардык мугалимдер ырасталган суроолорду өз банкына көчүрө алат.
+/// Мугалим бөлүшкөн суроо PENDING абалында түшөт, башкы алып баруучу ырастаганда APPROVED болот.
+model LibraryQuestion {
+  id          Int      @id @default(autoincrement())
+  authorId    Int? // null — башкы алып баруучу (же баштапкы топтом)
+  status      String   @default("PENDING") // PENDING | APPROVED
+  type        String   @default("CHOICE")
+  category    String   @default("") // предмет/тема: Тарых, География…
+  difficulty  String   @default("MEDIUM")
+  text        String
+  imageUrl    String?
+  audioUrl    String?
+  optionA     String
+  optionB     String
+  optionC     String
+  optionD     String
+  correct     String
+  copiedCount Int      @default(0) // канча жолу банкка көчүрүлдү
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author Teacher? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([status, category])
 }
 
 model Game {

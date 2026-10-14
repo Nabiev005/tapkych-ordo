@@ -27,6 +27,7 @@ const Assignments = lazy(() => import('./pages/admin/Assignments'));
 const AssignmentDetail = lazy(() => import('./pages/admin/AssignmentDetail'));
 const Replay = lazy(() => import('./pages/admin/Replay'));
 const Legal = lazy(() => import('./pages/Legal'));
+const Library = lazy(() => import('./pages/admin/Library'));
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="questions" element={<Questions />} />
+          <Route path="library" element={<Library />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="students" element={<Students />} />
           <Route path="history" element={<History />} />
