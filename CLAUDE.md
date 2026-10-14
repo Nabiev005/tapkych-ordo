@@ -64,7 +64,7 @@ client/src/
                        History, Replay, Teachers, Seasons, Assignments, AssignmentDetail
 ```
 
-Маршруттар: `/`, `/join`, `/screen/:code`, `/watch/:code`, `/hw/:code`, `/rating`, `/rating/student/:id`, `/certificate`, `/admin/*`.
+Маршруттар: `/`, `/join`, `/screen/:code`, `/watch/:code`, `/hw/:code`, `/rating`, `/rating/student/:id`, `/certificate`, `/admin/*`. Рейтинг жана студенттин баракчасы админ панелинин ичинде да ачылат: `/admin/rating`, `/admin/rating/student/:id` (`Rating` / `StudentProfile` компоненттеринин `embedded` режими; ачык `/rating` бети студенттер жана проектор үчүн калат).
 
 ## Буйруктар
 
@@ -78,7 +78,7 @@ cd server && npx tsc --noEmit
 
 - Windows'то `prisma generate` **EPERM** катасын берсе, демек иштеп жаткан сервер DLL'ди кармап турат. Адегенде серверди токтотуңуз.
 - Колдонуучунун dev сервери адатта **3000-портто** иштеп турат. Аны токтотпоңуз жана анын базасына тест маалыматтарын жазбаңыз. Тесттер үчүн өзүнчө порт (мис. 3200) жана өзүнчө база файлын колдонуңуз.
-- Автоматтык тесттер репозиторийде жок. Мурунку сессияларда алар scratchpad'да убактылуу скрипт катары жазылган (жалпы ~115 текшерүү: оюндун толук агымы, архив, рейтинг, тапшырмалар). Скриншоттор Playwright-core жана Edge (`channel: 'msedge'`) менен алынат.
+- **Тесттер:** `npm test` (тамырдан же `server/`'ден) — `node:test` + tsx, `server/test/*.test.ts`. `helpers.ts` ар бир файл үчүн серверди бош портто жана `prisma/test-<ат>-<pid>.db` убактылуу базасында иштетет (миграциялар менен, seed жок), анан өчүрөт. Socket.IO үчүн `socket.io-client` (server devDependency) жана `Client` классы (`waitFor(pred)`). Жаңы функция кошулса — тест да кошуу керек. Скриншоттор Playwright-core жана Edge (`channel: 'msedge'`) менен алынат.
 - Shell'де heredoc/sed менен кириллица жана тырмакчалар бузулуп кетиши мүмкүн. Мындай учурда Edit/Write куралдарын же .cjs скриптти колдонуңуз.
 
 ## Деплой
@@ -112,8 +112,10 @@ cd server && npx tsc --noEmit
 - [ ] Google: **Verify branding** (кирүү терезесинде «Тапкыч ордо» деген ат көрүнүшү үчүн) — адегенде Search Console'до `tapkych.com` ырасталышы керек. Client secret скриншотто көрүнүп калган, аны Reset кылуу сунушталды (биз аны колдонбойбуз).
 - [ ] Search Console: `tapkych.com` доменин ырастоо жана `https://www.tapkych.com/sitemap.xml` дарегин жөнөтүү.
 - [ ] Студенттер үчүн Google менен кирүү (үй тапшырмасы, жеке баракча) — кийинчерээк.
-- [ ] Render'дин уктап калышы: UptimeRobot же GitHub Actions аркылуу `/api/health` дарегине ар 5–10 мүнөттө кайрылып туруу сунушталды (колдонуучу азырынча чечим кабыл ала элек).
+- [x] **Render'дин уктап калышы (2026-10-14):** UptimeRobot (бекер план) ар 5 мүнөттө `https://tapkych-ordo.onrender.com/api/health` дарегин текшерет, иштебей калса ajbeknabiev90@gmail.com'го кат келет. Акылуу планга азыр каражат жок. Келечекте Oracle Cloud Always Free'ге көчүү варианты бар. Эскертүү: `www.tapkych.com/api/health` серверди ойготпойт — ал Vercel'дин index.html'ин берет.
 - [ ] Админ панелинин башка беттери (Суроолор, Студенттер, Тарых ж.б.) жаңы каптал менюнун стилине толук ылайыкташтырыла элек. Аларды текшерип, керек болсо жаңыртуу керек.
-- [ ] Автоматтык тесттерди репозиторийге кошуу (`server/test/`) жана `npm test` буйругун түзүү.
-- [ ] `client/tsconfig.tsbuildinfo` git'те сакталып жатат. Аны `.gitignore`'го кошуу керек.
+- [x] **Автоматтык тесттер (2026-10-14):** 50 тест — unit (rankScores, validChoice, questionSchema, FailLimiter), auth (логин, 401/403, мугалимдердин бөлүнүшү, PIN бөгөтү), game (толук агым, жооп REVEAL чейин ачылбайт, тыныгуу, 50/50, таймер, kick, session:replaced, өчүрүү). Студенттер, рейтинг, сезондор, тапшырмалар, импорт/экспорт үчүн тесттер али жок.
+- [x] `*.tsbuildinfo` `.gitignore`'го кошулду (`client/tsconfig.tsbuildinfo` git'тен `git rm --cached` менен алынышы керек).
+- [ ] `npm audit`: csv-parse (<7.0.2), deepmerge-ts (prisma аркылуу), uuid (exceljs аркылуу) — оңдоо major жаңыртууну талап кылат, текшерилип чыгышы керек.
+- [ ] Windows'то `npm install` Prisma'нын postinstall'ун иштетпей калышы мүмкүн → `@prisma/client did not initialize yet`. Чечими: `cd server && npx prisma generate`.
 - [ ] Render'дин акысыз планында сервер уктап калат. Чыныгы оюн алдында сайтты алдын ала ачып коюу керек, же акылуу планга өтүү керек.
