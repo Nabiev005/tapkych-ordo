@@ -6,7 +6,8 @@ import { SunTunduk } from '../../components/Ornament';
 import { Button, Spinner, useDialogs } from '../../components/ui';
 import { fmtDateTime, ky, type RoundKey } from '../../i18n/ky';
 import { api, staffUser } from '../../lib/api';
-import type { GameRow } from '../../lib/types';
+import type { GameRow, PracticeLeaderboard } from '../../lib/types';
+import { PracticeBoard } from '../../components/PracticeBoard';
 
 type Summary = { round: RoundKey; count: number; required: number; ok: boolean };
 
@@ -76,6 +77,7 @@ export default function Dashboard() {
   const [openTasks, setOpenTasks] = useState<number | null>(null);
   const [pendingTeachers, setPendingTeachers] = useState(0);
   const [pendingLibrary, setPendingLibrary] = useState(0);
+  const [board, setBoard] = useState<PracticeLeaderboard | null>(null);
 
   const load = () => {
     api.get<{ summary: Summary[] }>('/api/questions/summary').then((r) => setSummary(r.summary)).catch((e) => toast(e.message, 'err'));
@@ -97,6 +99,8 @@ export default function Dashboard() {
         .then((r) => setPendingLibrary(r.pendingCount))
         .catch(() => undefined);
     }
+    // Студенттердин өз алдынча машыгуусу (топтор жана серия)
+    api.get<PracticeLeaderboard>('/api/students/activity').then(setBoard).catch(() => undefined);
   };
   useEffect(load, [toast]);
 
@@ -213,6 +217,15 @@ export default function Dashboard() {
           </Link>
         </div>
       </section>
+
+      {/* Машыгуу рейтинги — студенттер «Күндүн суроолорун» аткара баштагандан кийин */}
+      {board && (board.streaks.length > 0 || board.groups.some((g) => g.completions > 0)) && (
+        <section>
+          <h2 className="font-display text-xl font-bold">{ky.practiceBoard.title}</h2>
+          <p className="mb-3 text-sm text-ordo-ink/55">{ky.practiceBoard.subtitle}</p>
+          <PracticeBoard data={board} />
+        </section>
+      )}
 
       {/* Даярдык */}
       <section>

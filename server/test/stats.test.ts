@@ -62,8 +62,33 @@ describe('тактык боюнча иреттөө', () => {
     assert.equal(p2.items[0].text, 'Орто суроо');
   });
 
+  it('топтордун жумалык рейтинги жана серия чемпиондору', async () => {
+    // Топсуз студент жана экинчи топ (аткарган жок) — топсуз рейтингге кирбейт, 2-топ 0% менен аягында
+    await api(base, 'POST', '/api/students', { token: admin, body: { lines: 'Топсуз Студент\nЭкинчи Топтогу; С-2' } });
+    const r = await api(base, 'GET', '/api/students/activity', { token: admin });
+    assert.equal(r.status, 200);
+    assert.deepEqual(
+      r.body.groups.map((g: any) => [g.className, g.place, g.members, g.active, g.completions, g.activity, g.accuracy]),
+      [
+        ['С-1', 1, 6, 6, 6, 14, 56],
+        ['С-2', 2, 1, 0, 0, 0, 0],
+      ],
+    );
+    assert.equal(r.body.streaks.length, 6);
+    assert.ok(r.body.streaks.every((s: any) => s.streak === 1 && s.className === 'С-1'));
+
+    const s = (await api(base, 'GET', '/api/students', { token: admin })).body.students.find((x: any) => x.className === 'С-1');
+    const token = (await api(base, 'POST', '/api/me/login', { body: { code: s.accessCode } })).body.token;
+    const me = await api(base, 'GET', '/api/me/leaderboard', { token });
+    assert.equal(me.body.myGroup, 'С-1');
+    assert.equal(me.body.myId, s.id);
+    assert.equal(me.body.groups[0].className, 'С-1');
+    // Студент мугалимдин маршрутуна кире албайт
+    assert.equal((await api(base, 'GET', '/api/students/activity', { token })).status, 401);
+  });
+
   it('күндүн суроолорун аткаргандан кийин аларды машыгууда да колдонсо болот', async () => {
-    const s = (await api(base, 'GET', '/api/students', { token: admin })).body.students[0];
+    const s = (await api(base, 'GET', '/api/students', { token: admin })).body.students.find((x: any) => x.className === 'С-1');
     const token = (await api(base, 'POST', '/api/me/login', { body: { code: s.accessCode } })).body.token;
     const p = await api(base, 'GET', `/api/me/practice?category=${encodeURIComponent('Стат')}`, { token });
     assert.equal(p.status, 200, JSON.stringify(p.body));

@@ -13,7 +13,7 @@ export const OPTION_STYLE: Record<OptionKey, { bg: string; ring: string; glow: s
 };
 
 /** 1-3-орундардын түстөрү: алтын, күмүш, коло */
-const MEDAL_COLOR = ['text-ordo-gold', 'text-slate-300', 'text-orange-400'];
+const MEDAL_COLOR = ['text-ordo-gold', 'text-slate-400', 'text-orange-400'];
 
 /** Медаль иконкасы (1–3-орундар). rank 1–3 эмес болсо — эч нерсе көрсөтүлбөйт */
 export function RankMedal({ rank, className = 'h-[1em] w-[1em]' }: { rank: number; className?: string }) {

@@ -6,6 +6,9 @@ import { requireStudent, signStudentToken } from '../auth.js';
 import { FailLimiter } from '../rateLimit.js';
 import { AppError } from '../types.js';
 import { validChoice } from '../game/engine.js';
+import { bishkekDay, lastDays, practiceLeaderboard, streakFromDays } from '../practice/activity.js';
+
+export { bishkekDay };
 
 /**
  * Студенттин кабинети (/me): мугалим берген код менен кирет.
@@ -18,13 +21,6 @@ export const meRouter = Router();
 const loginLimiter = new FailLimiter(10, 5 * 60_000);
 export const DAILY_COUNT = 5;
 const PRACTICE_COUNT = 10;
-
-/** Күндүн белгиси Бишкек убактысы (UTC+6) боюнча: түн ортосунда жаңы суроолор */
-export function bishkekDay(now = Date.now()): string {
-  return new Date(now + 6 * 3600_000).toISOString().slice(0, 10);
-}
-
-const prevDay = (day: string) => new Date(Date.parse(`${day}T00:00:00Z`) - 86400_000).toISOString().slice(0, 10);
 
 /** Күнгө жараша туруктуу аралаштыруу (бир күндө баарына бирдей) */
 function seededShuffle<T>(list: T[], seed: string): T[] {
@@ -89,26 +85,8 @@ async function review(details: Detail[]) {
 
 /** Катар күндөр: бүгүн (же бүгүн али аткара элек болсо — кечээ) аяктаган серия */
 async function streakOf(studentId: number): Promise<{ streak: number; best: number }> {
-  const rows = await prisma.practiceAttempt.findMany({ where: { studentId, kind: 'DAILY' }, select: { day: true }, orderBy: { day: 'desc' } });
-  const days = [...new Set(rows.map((r) => r.day))];
-  const set = new Set(days);
-  const today = bishkekDay();
-  let cursor = set.has(today) ? today : prevDay(today);
-  let streak = 0;
-  while (set.has(cursor)) {
-    streak++;
-    cursor = prevDay(cursor);
-  }
-  // Эң узун серия
-  let best = 0;
-  let run = 0;
-  let last: string | null = null;
-  for (const d of [...days].sort()) {
-    run = last && prevDay(d) === last ? run + 1 : 1;
-    best = Math.max(best, run);
-    last = d;
-  }
-  return { streak, best };
+  const rows = await prisma.practiceAttempt.findMany({ where: { studentId, kind: 'DAILY' }, select: { day: true } });
+  return streakFromDays(rows.map((r) => r.day));
 }
 
 const answersSchema = z.array(z.object({ id: z.number().int(), choice: z.string().max(4) })).max(50);
@@ -147,9 +125,7 @@ meRouter.get('/', async (_req, res) => {
   const attempts = await prisma.practiceAttempt.findMany({ where: { studentId }, orderBy: { createdAt: 'desc' } });
   const daily = attempts.filter((a) => a.kind === 'DAILY');
   const practice = attempts.filter((a) => a.kind === 'PRACTICE');
-  // Акыркы 14 күн
-  const days: string[] = [];
-  for (let d = today, i = 0; i < 14; i++, d = prevDay(d)) days.unshift(d);
+  const days = lastDays(14, today);
   const cats = await prisma.libraryQuestion.groupBy({ by: ['category'], where: { status: 'APPROVED' }, _count: { _all: true } });
   const sum = (list: typeof attempts, k: 'correct' | 'total') => list.reduce((s, a) => s + a[k], 0);
 
@@ -175,6 +151,12 @@ meRouter.get('/', async (_req, res) => {
       .sort((a, b) => a.name.localeCompare(b.name, 'ky')),
     libraryTotal: cats.reduce((s, c) => s + c._count._all, 0),
   });
+});
+
+/** Топтордун жумалык машыгуу рейтинги жана серия чемпиондору; myGroup — студенттин өз тобу */
+meRouter.get('/leaderboard', async (_req, res) => {
+  const student = await currentStudent(res.locals.studentId as number);
+  res.json({ ...(await practiceLeaderboard()), myGroup: student.className, myId: student.id });
 });
 
 // ───────────────────────── Күндүн суроолору ─────────────────────────

@@ -6,6 +6,7 @@ import { validChoice } from '../src/game/engine.js';
 import { questionSchema } from '../src/routes/questions.js';
 import { FailLimiter } from '../src/rateLimit.js';
 import { AppError } from '../src/types.js';
+import { lastDays, streakFromDays } from '../src/practice/activity.js';
 
 const s = (playerId: number, score: number, timeMs: number): RoundScore => ({ playerId, name: `P${playerId}`, score, timeMs, correct: 0 });
 
@@ -107,6 +108,25 @@ describe('questionSchema', () => {
 
   it('бош текст — ката', () => {
     assert.throws(() => questionSchema.parse({ ...base, text: '   ', correct: 'A' }));
+  });
+});
+
+describe('streakFromDays', () => {
+  const today = '2026-10-15';
+  it('бүгүн аткарылса — бүгүнтөн артка катар күндөр', () => {
+    assert.deepEqual(streakFromDays(['2026-10-13', '2026-10-14', '2026-10-15'], today), { streak: 3, best: 3 });
+  });
+  it('бүгүн али аткара элек болсо — кечээ аяктаган серия үзүлбөйт', () => {
+    assert.deepEqual(streakFromDays(['2026-10-13', '2026-10-14'], today), { streak: 2, best: 2 });
+  });
+  it('бир күн калтырылса — серия үзүлөт, эң узун серия сакталат', () => {
+    assert.deepEqual(streakFromDays(['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-13'], today), { streak: 0, best: 4 });
+  });
+  it('ай аралыгы жана кайталанган күндөр туура эсептелет', () => {
+    assert.deepEqual(streakFromDays(['2026-09-30', '2026-10-01', '2026-10-01'], '2026-10-01'), { streak: 2, best: 2 });
+  });
+  it('lastDays: бүгүнкү күн акыркы, эскиден жаңыга', () => {
+    assert.deepEqual(lastDays(3, '2026-03-01'), ['2026-02-27', '2026-02-28', '2026-03-01']);
   });
 });
 

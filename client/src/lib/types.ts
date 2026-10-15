@@ -287,6 +287,17 @@ export interface PracticeResult {
   streak?: number;
 }
 
+/** Топтордун жумалык машыгуу рейтинги жана серия чемпиондору */
+export interface PracticeLeaderboard {
+  from: string;
+  to: string;
+  groups: { className: string; members: number; active: number; completions: number; activity: number; accuracy: number; place: number }[];
+  streaks: { studentId: number; name: string; className: string; streak: number }[];
+  /** Студенттин кабинетинде гана */
+  myGroup?: string;
+  myId?: number;
+}
+
 export interface MeInfo {
   student: { id: number; name: string; className: string };
   today: string;

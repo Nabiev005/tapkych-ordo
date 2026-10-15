@@ -3,13 +3,14 @@ import { BarChart3, CircleCheckBig, CircleX, Dumbbell, Flame, PartyPopper, Play,
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
+import { PracticeBoard } from '../../components/PracticeBoard';
 import { LangSwitch } from '../../components/LangSwitch';
 import { Logo, OrnamentBand, SunTunduk } from '../../components/Ornament';
 import { Button, Spinner, useDialogs } from '../../components/ui';
 import { fmtDateTime, ky } from '../../i18n/ky';
 import { assetUrl, studentApi, studentToken } from '../../lib/api';
 import { answerText } from '../../lib/questions';
-import { OPTION_KEYS, optionKeysFor, type MeInfo, type PracticeQuestion, type PracticeResult } from '../../lib/types';
+import { OPTION_KEYS, optionKeysFor, type MeInfo, type PracticeLeaderboard, type PracticeQuestion, type PracticeResult } from '../../lib/types';
 
 type Mode = { kind: 'daily' } | { kind: 'practice'; category: string };
 type View = { name: 'home' } | { name: 'quiz'; mode: Mode; questions: PracticeQuestion[] } | { name: 'result'; mode: Mode; result: PracticeResult };
@@ -100,11 +101,18 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
   const [view, setView] = useState<View>({ name: 'home' });
   const [category, setCategory] = useState('');
   const [busy, setBusy] = useState(false);
+  const [board, setBoard] = useState<PracticeLeaderboard | null>(null);
 
   const load = () =>
     studentApi
       .get<MeInfo>('/api/me')
-      .then(setMe)
+      .then((r) => {
+        setMe(r);
+        studentApi
+          .get<PracticeLeaderboard>('/api/me/leaderboard')
+          .then(setBoard)
+          .catch(() => undefined);
+      })
       .catch((e) => {
         // Токен эскирди же студент өчүрүлдү — кайра кирүү керек
         if (!studentToken.get()) onLogout();
@@ -262,6 +270,17 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
           </>
         )}
       </section>
+
+      {/* Топтордун рейтинги */}
+      {board && (board.groups.length > 0 || board.streaks.length > 0) && (
+        <section className="rounded-3xl bg-white/[0.07] p-5 ring-1 ring-white/10">
+          <h2 className="font-display text-xl font-bold">
+            <Trophy className="ico text-ordo-gold" /> {ky.practiceBoard.title}
+          </h2>
+          <p className="mb-4 text-sm text-white/60">{ky.practiceBoard.subtitle}</p>
+          <PracticeBoard data={board} dark maxGroups={5} />
+        </section>
+      )}
 
       {/* Жыйынтыктар */}
       <section className="rounded-3xl bg-white/[0.07] p-5 ring-1 ring-white/10">

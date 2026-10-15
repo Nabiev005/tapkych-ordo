@@ -70,6 +70,20 @@ export const ruDict: Ky = {
     student: 'Кабинет студента',
   },
 
+  practiceBoard: {
+    title: 'Рейтинг групп по тренировкам',
+    subtitle: 'По «Вопросам дня» за последние 7 дней',
+    activity: 'Активность',
+    activityHint: 'Выполненные дни / (студенты × 7 дней)',
+    active: (a: number, n: number) => `Активны ${a} из ${n}`,
+    accuracy: (pct: number) => `${pct}% верно`,
+    myGroup: 'Ваша группа',
+    streaksTitle: 'Чемпионы серий',
+    days: (n: number) => `${n} ${plural(n, 'день', 'дня', 'дней')}`,
+    empty: 'Пока никто не ответил на «Вопросы дня».',
+    noGroups: 'У студентов не указана группа.',
+  },
+
   student: {
     title: 'Кабинет студента',
     loginTitle: 'Вход в кабинет студента',
