@@ -90,6 +90,7 @@ export interface BaseGame {
   total: number;
   endsAt: number | null;
   pausedRemainingMs: number | null;
+  finishedAt: number | null;
 }
 
 export interface Ranked {
@@ -228,6 +229,10 @@ export interface PlayerState {
   roundPlayers: number;
   final: { place: number; total: number; rounds: Standing['rounds'] } | null;
   teamFinal: { team: string; place: number; total: number } | null;
+  /** Оюн бүткөндө: жеңүүчүлөр (бөлүшүү карточкасы үчүн) */
+  podium: { name: string; total: number }[];
+  players: number;
+  championTeam: { team: string; total: number } | null;
 }
 
 export interface AudienceState {

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { RankMedal } from '../../../components/game';
-import { CircleHelp, CirclePlay, FileSpreadsheet, School } from 'lucide-react';
+import { CircleHelp, CirclePlay, FileSpreadsheet, ImageDown, School } from 'lucide-react';
+import { ShareCardModal } from '../../../components/ShareCard';
 import { useState } from 'react';
 import { Button, useDialogs } from '../../../components/ui';
 import { ky, type OptionKey } from '../../../i18n/ky';
@@ -14,6 +15,7 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
   const t = ky.admin.results;
   const { toast } = useDialogs();
   const [busy, setBusy] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const top = state.standings.slice(0, 3);
   const navigate = useNavigate();
 
@@ -52,6 +54,19 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
         </div>
       </section>
 
+      <ShareCardModal
+        open={sharing}
+        onClose={() => setSharing(false)}
+        data={{
+          code: state.game.code,
+          title: state.game.title,
+          date: state.game.finishedAt,
+          players: state.standings.length,
+          podium: top.map((s) => ({ name: s.name, total: s.total })),
+          championTeam: state.game.teamMode && state.teams[0] ? { team: state.teams[0].team, total: state.teams[0].total } : null,
+        }}
+      />
+
       {state.game.teamMode && state.teams.length > 0 && (
         <section className="card p-5">
           <h2 className="mb-3 font-display text-lg font-bold"><School className="ico" /> {t.teamsTitle}</h2>
@@ -59,7 +74,10 @@ export default function ResultsPanel({ state }: { state: AdminState; act: Act })
         </section>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="gold" icon={<ImageDown />} onClick={() => setSharing(true)}>
+          {ky.shareCard.button}
+        </Button>
         <Button variant="sky" icon={<CirclePlay />} onClick={() => navigate(`/admin/games/${state.game.id}/replay`)}>
           {t.replay}
         </Button>

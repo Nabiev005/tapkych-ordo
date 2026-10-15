@@ -248,6 +248,14 @@ describe('оюндун толук агымы', () => {
 
     const ps = await p[0].waitFor((s) => s.game.status === 'FINISHED' && s.final);
     assert.ok(ps.final.place === 1 || ps.final.place === 2);
+    // Бөлүшүү карточкасы үчүн: жеңүүчүлөр, оюнчулардын саны, бүткөн убакыт
+    assert.equal(ps.podium.length, 3);
+    assert.deepEqual(
+      ps.podium.map((x: any) => x.name),
+      ad.standings.slice(0, 3).map((x: any) => x.name),
+    );
+    assert.equal(ps.players, 4);
+    assert.ok(ps.game.finishedAt > Date.now() - 60_000);
     const sc = await screen.waitFor((s) => s.game.status === 'FINISHED');
     assert.equal(sc.finalRanking.length, 2);
 

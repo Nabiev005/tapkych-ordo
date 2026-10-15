@@ -29,6 +29,7 @@ function base(game: FullGame) {
     total: round ? roundQuestions(game, round).length : 0,
     endsAt: game.questionEndsAt?.getTime() ?? null,
     pausedRemainingMs: game.pausedRemainingMs,
+    finishedAt: game.finishedAt?.getTime() ?? null,
   };
 }
 
@@ -224,8 +225,10 @@ export function playerSnapshot(game: FullGame, playerId: number) {
   const inRound = !!me && !!round && me.status === 'ACTIVE' && playedRound(me, round);
   const ranking = round && inRound ? rankRound(game, round) : [];
   const mine = ranking.find((r) => r.playerId === playerId);
-  const standing = game.status === 'FINISHED' ? overallStandings(game).find((s) => s.playerId === playerId) : undefined;
-  const team = game.teamMode && game.status === 'FINISHED' && me ? teamStandings(game).find((t) => t.team === (me.team || '—')) : undefined;
+  const standings = game.status === 'FINISHED' ? overallStandings(game) : [];
+  const standing = standings.find((s) => s.playerId === playerId);
+  const teams = game.teamMode && game.status === 'FINISHED' ? teamStandings(game) : [];
+  const team = me ? teams.find((t) => t.team === (me.team || '—')) : undefined;
 
   return {
     role: 'player' as const,
@@ -253,6 +256,10 @@ export function playerSnapshot(game: FullGame, playerId: number) {
     roundPlayers: ranking.length,
     final: standing ? { place: standing.place, total: standing.total, rounds: standing.rounds } : null,
     teamFinal: team ? { team: team.team, place: team.place, total: team.total } : null,
+    // Оюн бүткөндө — жеңүүчүлөр (бөлүшүү карточкасы үчүн; аттар экранда да көрүнөт)
+    podium: standings.slice(0, 3).map((s) => ({ name: s.name, total: s.total })),
+    players: standings.length,
+    championTeam: teams[0] ? { team: teams[0].team, total: teams[0].total } : null,
   };
 }
 

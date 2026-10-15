@@ -70,6 +70,25 @@ export const ruDict: Ky = {
     student: 'Кабинет студента',
   },
 
+  shareCard: {
+    button: 'Карточка победителей',
+    playerButton: 'Поделиться результатом',
+    title: 'Карточка для соцсетей',
+    hint: 'Опубликуйте картинку в Instagram, TikTok или Telegram — пусть все узнают об игре!',
+    post: 'Пост (4:5)',
+    story: 'Сторис (9:16)',
+    download: 'Скачать картинку',
+    share: 'Поделиться',
+    winners: 'ПОБЕДИТЕЛИ',
+    untitled: 'Интеллектуальная игра',
+    points: (n: number) => `${n} ${plural(n, 'балл', 'балла', 'баллов')}`,
+    players: (n: number) => `${n} ${plural(n, 'участник', 'участника', 'участников')}`,
+    champion: (team: string) => `Группа-чемпион: ${team}`,
+    me: (place: number) => `${place}-е место`,
+    footer: 'Платформа интеллектуальных игр',
+    file: (code: string) => `tapkych-ordo-${code}.png`,
+  },
+
   practiceBoard: {
     title: 'Рейтинг групп по тренировкам',
     subtitle: 'По «Вопросам дня» за последние 7 дней',

@@ -1,11 +1,12 @@
 import confetti from 'canvas-confetti';
 import { RankMedal } from '../../components/game';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Ban, Crown, Eye, Flag, Hourglass, Lock, Medal, Music, PartyPopper, Pause, School, Smartphone, User, Users, Zap } from 'lucide-react';
+import { Ban, Crown, Eye, Flag, Hourglass, Lock, Medal, Music, PartyPopper, Pause, School, Share2, Smartphone, User, Users, Zap } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { OrnamentBand, SunTunduk } from '../../components/Ornament';
+import { ShareCardModal } from '../../components/ShareCard';
 import { Button, ConnBadge, Spinner, useDialogs } from '../../components/ui';
 import { ky, type OptionKey, type RoundKey } from '../../i18n/ky';
 import { vibrate } from '../../lib/sound';
@@ -418,6 +419,7 @@ function Finished({ state }: { state: PlayerState }) {
   const f = state.final;
   const team = state.teamFinal;
   const winner = state.game.teamMode ? team?.place === 1 : f?.place === 1;
+  const [sharing, setSharing] = useState(false);
   useEffect(() => {
     const top = state.game.teamMode ? (team?.place ?? 99) <= 1 : (f?.place ?? 99) <= 3;
     if (top) {
@@ -451,6 +453,26 @@ function Finished({ state }: { state: PlayerState }) {
               <span className="text-ordo-gold">{ky.common.points(f.total)}</span>
             </div>
           </div>
+        </>
+      )}
+      {state.podium.length > 0 && (
+        <>
+          <Button variant="gold" size="lg" icon={<Share2 />} onClick={() => setSharing(true)}>
+            {ky.shareCard.playerButton}
+          </Button>
+          <ShareCardModal
+            open={sharing}
+            onClose={() => setSharing(false)}
+            data={{
+              code: state.game.code,
+              title: state.game.title,
+              date: state.game.finishedAt,
+              players: state.players,
+              podium: state.podium,
+              championTeam: state.championTeam,
+              me: f && state.me ? { name: state.me.name, place: f.place, total: f.total } : null,
+            }}
+          />
         </>
       )}
     </Shell>
