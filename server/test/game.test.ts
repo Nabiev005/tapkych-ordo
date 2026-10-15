@@ -258,6 +258,9 @@ describe('оюндун толук агымы', () => {
     const qs = (await api(base, 'GET', '/api/questions', { token })).body.questions;
     assert.equal(qs.length, 5);
     assert.ok(qs.every((q: any) => q.archived && q.usedCount === 1));
+    // Статистика: 1-суроого 3 жооп, 2си туура (Азамат жана Жылдыз)
+    assert.deepEqual(qs.find((q: any) => q.text === '1-тур, 1-суроо').stats, { answered: 3, correct: 2 });
+    assert.deepEqual(qs.find((q: any) => q.text === 'Финал суроосу').stats, { answered: 2, correct: 2 });
 
     const hist = (await api(base, 'GET', '/api/games/history', { token })).body.games;
     const h = hist.find((x: any) => x.id === gameId);

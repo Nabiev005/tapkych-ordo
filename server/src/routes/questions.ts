@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { assertOwner, ownerKey, requireAdmin, staff } from '../auth.js';
 import { AppError, DIFFICULTIES, OPTIONS, QUESTION_TYPES, ROUNDS, type Round } from '../types.js';
+import { bankStats } from '../library/stats.js';
 
 export const questionsRouter = Router();
 questionsRouter.use(requireAdmin);
@@ -65,7 +66,9 @@ questionsRouter.get('/', async (_req, res) => {
     where: { ownerId: ownerKey(staff(res)) },
     orderBy: [{ round: 'asc' }, { order: 'asc' }],
   });
-  res.json({ questions });
+  // Оюндардагы натыйжа: канча жооп, канчасы туура
+  const stats = await bankStats(questions.map((q) => q.id));
+  res.json({ questions: questions.map((q) => ({ ...q, stats: stats.get(q.id) ?? { answered: 0, correct: 0 } })) });
 });
 
 /** Ар бир турда суроолор жетиштүүбү — "1-турда 10 суроо бар ✓" (архивдегилер эсептелбейт) */

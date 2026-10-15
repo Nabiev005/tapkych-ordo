@@ -2,7 +2,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, FileSpreadsheet, Image, Import, Info, Library, Music, Pencil, Trash2, Undo2 } from 'lucide-react';
+import { Archive, BarChart3, Feather, FileSpreadsheet, Image, Import, Info, Library, Music, Pencil, Trash2, TriangleAlert, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
@@ -10,7 +10,7 @@ import { fmtDate, ky, type Difficulty, type OptionKey, type QuestionType, type R
 import { api, assetUrl, downloadFile } from '../../lib/api';
 import { resizeImage } from '../../lib/image';
 import { answerText } from '../../lib/questions';
-import { DIFFICULTIES, OPTION_KEYS, QUESTION_TYPES, ROUND_KEYS, optionKeysFor, type Question } from '../../lib/types';
+import { DIFFICULTIES, OPTION_KEYS, QUESTION_TYPES, ROUND_KEYS, optionKeysFor, type Question, type QuestionStats } from '../../lib/types';
 
 const REQUIRED: Record<RoundKey, number> = { ROUND1: 10, ROUND2: 10, FINAL: 5 };
 
@@ -45,6 +45,40 @@ export function QuestionBadges({ q }: { q: Pick<Question, 'type' | 'category' | 
       {q.category && <span className="rounded-md bg-ordo-ink/5 px-2 py-0.5 text-xs font-semibold text-ordo-ink/70">#{q.category}</span>}
       {q.audioUrl && <span className="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700"><Music className="ico" /></span>}
     </div>
+  );
+}
+
+/** Пайыз көрсөтүү үчүн эң аз жооп саны (сервердеги MIN_ANSWERS менен бирдей) */
+const MIN_ANSWERS = 5;
+
+/** Суроонун натыйжасы: канча пайызы туура жооп берди; өтө жеңил же шектүү суроолорду белгилейт */
+export function AccuracyBadge({ stats }: { stats?: QuestionStats }) {
+  const t = ky.admin.questions;
+  if (!stats?.answered) return null;
+  if (stats.answered < MIN_ANSWERS)
+    return (
+      <span title={t.statHint} className="inline-flex items-center gap-1 rounded-md bg-ordo-ink/5 px-2 py-0.5 text-xs font-semibold text-ordo-ink/50">
+        <BarChart3 className="ico" /> {t.statFew(stats.answered)}
+      </span>
+    );
+  const pct = Math.round((stats.correct / stats.answered) * 100);
+  const style = pct >= 90 ? 'bg-sky-100 text-sky-800' : pct <= 25 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800';
+  return (
+    <span title={t.statHint} className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold ${style}`}>
+      <BarChart3 className="ico" /> {t.statAccuracy(pct, stats.answered)}
+      {pct >= 90 && (
+        <>
+          {' · '}
+          <Feather className="ico" /> {t.tooEasy}
+        </>
+      )}
+      {pct <= 25 && (
+        <>
+          {' · '}
+          <TriangleAlert className="ico" /> {t.tooHard}
+        </>
+      )}
+    </span>
   );
 }
 
@@ -321,6 +355,7 @@ function SortableRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <QuestionBadges q={q} />
+          <AccuracyBadge stats={q.stats} />
           {q.libraryId && <span className="rounded-md bg-ordo-sky/10 px-2 py-0.5 text-xs font-semibold text-ordo-sky"><Library className="ico" /> {ky.admin.questions.fromLibrary}</span>}
         </div>
         <div className="mt-1 font-semibold">{q.text}</div>
@@ -678,7 +713,10 @@ function ArchiveList({ list, onChanged, onEdit, onDelete }: { list: Question[]; 
             <div key={q.id} className="card flex items-start gap-3 p-4 opacity-90">
               <span className="shrink-0 rounded-lg bg-ordo-ink/5 px-2 py-1 text-xs font-bold text-ordo-ink/60">{ky.rounds[q.round]}</span>
               <div className="min-w-0 flex-1">
-                <QuestionBadges q={q} />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <QuestionBadges q={q} />
+                  <AccuracyBadge stats={q.stats} />
+                </div>
                 <div className="mt-1 font-semibold">{q.text}</div>
                 <div className="mt-1 text-sm text-emerald-700">✓ {answerText(q.type, q.correct, { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD })}</div>
                 {q.lastUsedAt && <div className="mt-1 text-xs text-ordo-ink/45">{t.usedInfo(q.usedCount, fmtDate(q.lastUsedAt))}</div>}

@@ -7,7 +7,7 @@ import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
 import { ky, type Difficulty, type QuestionType, type RoundKey } from '../../i18n/ky';
 import { api, assetUrl, staffUser } from '../../lib/api';
 import { DIFFICULTIES, QUESTION_TYPES, ROUND_KEYS, type LibraryItem, type LibraryPackInfo } from '../../lib/types';
-import { OptionsPreview, QuestionBadges, QuestionForm, emptyDraft, type Draft } from './Questions';
+import { AccuracyBadge, OptionsPreview, QuestionBadges, QuestionForm, emptyDraft, type Draft } from './Questions';
 
 type Tab = 'LIBRARY' | 'PACKS' | 'PENDING' | 'MINE';
 type RoundChoice = 'AUTO' | RoundKey;
@@ -35,6 +35,7 @@ export default function Library() {
   const [category, setCategory] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty | ''>('');
   const [type, setType] = useState<QuestionType | ''>('');
+  const [sort, setSort] = useState<'' | 'hard' | 'easy'>('');
   const [data, setData] = useState<ListResponse | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -58,6 +59,7 @@ export default function Library() {
     if (category) p.set('category', category);
     if (difficulty) p.set('difficulty', difficulty);
     if (type) p.set('type', type);
+    if (sort) p.set('sort', sort);
     return `/api/library?${p}`;
   };
 
@@ -72,7 +74,7 @@ export default function Library() {
     if (tab === 'PACKS') return;
     setData(null);
     void load();
-  }, [tab, q, category, difficulty, type]);
+  }, [tab, q, category, difficulty, type, sort]);
 
   const loadMore = async () => {
     if (!data) return;
@@ -252,6 +254,18 @@ export default function Library() {
                 </button>
               ))}
             </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold text-ordo-ink/50">{t.sortLabel}</span>
+              {([
+                ['', t.sortDefault],
+                ['hard', t.sortHard],
+                ['easy', t.sortEasy],
+              ] as ['' | 'hard' | 'easy', string][]).map(([key, label]) => (
+                <button key={key || 'default'} onClick={() => setSort(key)} className={chip(sort === key)}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {!data ? (
@@ -293,6 +307,7 @@ export default function Library() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <QuestionBadges q={x} />
+                          <AccuracyBadge stats={x.stats} />
                           {tab === 'MINE' && (
                             <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${x.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
                               {x.status === 'PENDING' ? t.statusPending : t.statusApproved}

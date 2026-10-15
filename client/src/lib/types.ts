@@ -25,10 +25,18 @@ export interface Question {
   lastUsedAt: string | null;
   /** Китепканадан көчүрүлгөн болсо — китепкана суроосунун id'си */
   libraryId?: number | null;
+  /** Оюндардагы жооптор: канча жана канчасы туура */
+  stats?: QuestionStats;
+}
+
+export interface QuestionStats {
+  answered: number;
+  correct: number;
 }
 
 /** Жалпы китепканадагы суроо (тур жок — банкка көчүрүүдө тандалат) */
-export interface LibraryItem extends Omit<Question, 'round' | 'order' | 'archived' | 'usedCount' | 'lastUsedAt' | 'libraryId'> {
+export interface LibraryItem extends Omit<Question, 'round' | 'order' | 'archived' | 'usedCount' | 'lastUsedAt' | 'libraryId' | 'stats'> {
+  stats: QuestionStats;
   status: 'PENDING' | 'APPROVED';
   authorId: number | null;
   authorName: string | null;

@@ -197,6 +197,17 @@ describe('студенттин кабинети', () => {
     assert.equal((await api(base, 'GET', '/api/me/practice?category=Жок-тема', { token })).body.error, 'NO_QUESTIONS');
   });
 
+  it('китепкананын статистикасы: күндүн суроолору жана машыгуу эсептелет, иреттөө иштейт', async () => {
+    const lib = (await api(base, 'GET', '/api/library?limit=200', { token: admin })).body.items;
+    const stat = (id: number) => lib.find((x: any) => x.id === id).stats;
+    // 1–3 туура, 4-ката, 5-жооп жок (ката деп эсептелет)
+    assert.deepEqual(stat(dailyIds[0]), { answered: 1, correct: 1 });
+    assert.deepEqual(stat(dailyIds[3]), { answered: 1, correct: 0 });
+    assert.deepEqual(stat(dailyIds[4]), { answered: 1, correct: 0 });
+    assert.equal((await api(base, 'GET', '/api/library?sort=hard&limit=10', { token: admin })).status, 200);
+    assert.equal((await api(base, 'GET', '/api/library?sort=wrong', { token: admin })).status, 400);
+  });
+
   it('кодду жаңылоо: эски код менен кирүүгө болбойт', async () => {
     const r = await api(base, 'POST', `/api/students/${studentId}/code`, { token: admin });
     assert.notEqual(r.body.accessCode, code);

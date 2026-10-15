@@ -8,6 +8,7 @@ import { AppError, DIFFICULTIES, QUESTION_TYPES, ROUNDS, type Round } from '../t
 import { nextOrder, questionSchema } from './questions.js';
 import { parseQuestionRows, readRows } from './importExport.js';
 import { STARTER_LIBRARY, STARTER_PACKS, buildPack } from '../library/starter.js';
+import { accuracy, libraryStats, type QStat } from '../library/stats.js';
 
 /**
  * Жалпы суроолор китепканасы.
@@ -49,6 +50,8 @@ const listQuery = z.object({
   type: z.enum(QUESTION_TYPES).optional(),
   q: z.string().trim().max(100).optional(),
   mine: z.enum(['1']).optional(),
+  /** hard — эң аз туура жооп алгандар биринчи, easy — эң көп */
+  sort: z.enum(['hard', 'easy']).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -67,12 +70,25 @@ libraryRouter.get('/', async (req, res) => {
     ...(f.type ? { type: f.type } : {}),
     ...(f.q ? { OR: [{ text: { contains: f.q } }, { optionA: { contains: f.q } }, { optionB: { contains: f.q } }, { optionC: { contains: f.q } }, { optionD: { contains: f.q } }] } : {}),
   };
-  const [items, total, cats, pendingCount, inBank] = await Promise.all([
+  // Тактык боюнча иреттөө: адегенде шартка туура келгендердин баарынын статистикасы эсептелет
+  let pageIds: number[] | null = null;
+  let stats: Map<number, QStat> | undefined;
+  if (f.sort) {
+    const all = await prisma.libraryQuestion.findMany({ where, select: { id: true }, orderBy: { id: 'asc' } });
+    const allStats = await libraryStats(all.map((x) => x.id));
+    stats = allStats;
+    const dir = f.sort === 'hard' ? 1 : -1;
+    const sorted = all
+      .map((x) => ({ id: x.id, acc: accuracy(allStats.get(x.id)) }))
+      // Маалымат аз суроолор — аягында
+      .sort((a, b) => (a.acc === null ? 1 : 0) - (b.acc === null ? 1 : 0) || dir * ((a.acc ?? 0) - (b.acc ?? 0)) || a.id - b.id);
+    pageIds = sorted.slice(f.offset, f.offset + f.limit).map((x) => x.id);
+  }
+  const [found, total, cats, pendingCount, inBank] = await Promise.all([
     prisma.libraryQuestion.findMany({
-      where,
+      where: pageIds ? { id: { in: pageIds } } : where,
       orderBy: [{ category: 'asc' }, { id: 'asc' }],
-      skip: f.offset,
-      take: f.limit,
+      ...(pageIds ? {} : { skip: f.offset, take: f.limit }),
       include: { author: { select: { name: true } } },
     }),
     prisma.libraryQuestion.count({ where }),
@@ -80,8 +96,10 @@ libraryRouter.get('/', async (req, res) => {
     isSuper(user) ? prisma.libraryQuestion.count({ where: { status: 'PENDING' } }) : Promise.resolve(0),
     prisma.question.findMany({ where: { ownerId: ownerKey(user), libraryId: { not: null } }, select: { libraryId: true } }),
   ]);
+  const items = pageIds ? pageIds.map((id) => found.find((x) => x.id === id)!).filter(Boolean) : found;
+  const st = stats ?? (await libraryStats(items.map((x) => x.id)));
   res.json({
-    items: items.map(({ author, ...x }) => ({ ...x, authorName: author?.name ?? null })),
+    items: items.map(({ author, ...x }) => ({ ...x, authorName: author?.name ?? null, stats: st.get(x.id) ?? { answered: 0, correct: 0 } })),
     total,
     categories: cats
       .filter((c) => c.category)

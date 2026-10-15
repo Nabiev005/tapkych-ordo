@@ -207,16 +207,22 @@ meRouter.post('/daily', async (req, res) => {
 
 // ───────────────────────── Машыгуу ─────────────────────────
 
-/** Бүгүнкү «Күндүн суроолору» машыгууда чыкпайт — антпесе машыгуу аркылуу жоопторун алдын ала билип алса болот */
-async function todaysDailyIds(): Promise<number[]> {
-  return (await dailyQuestions(bishkekDay())).map((q) => q.id);
+/**
+ * Бүгүнкү «Күндүн суроолору» студент аларды аткарганга чейин машыгууда чыкпайт —
+ * антпесе машыгуу аркылуу жоопторун алдын ала билип алса болот. Аткаргандан кийин чектөө жок
+ * (китепкана кичине болсо да машыгуу иштейт).
+ */
+async function hiddenDailyIds(studentId: number): Promise<number[]> {
+  const day = bishkekDay();
+  if (await prisma.practiceAttempt.findFirst({ where: { studentId, kind: 'DAILY', day } })) return [];
+  return (await dailyQuestions(day)).map((q) => q.id);
 }
 
 meRouter.get('/practice', async (req, res) => {
   await currentStudent(res.locals.studentId as number);
   const { category } = z.object({ category: z.string().trim().max(40).optional() }).parse(req.query);
   const all = await prisma.libraryQuestion.findMany({
-    where: { status: 'APPROVED', id: { notIn: await todaysDailyIds() }, ...(category ? { category } : {}) },
+    where: { status: 'APPROVED', id: { notIn: await hiddenDailyIds(res.locals.studentId as number) }, ...(category ? { category } : {}) },
   });
   if (!all.length) throw new AppError('NO_QUESTIONS');
   const picked = seededShuffle(all, `${Date.now()}:${Math.random()}`).slice(0, PRACTICE_COUNT);
@@ -232,7 +238,7 @@ meRouter.post('/practice', async (req, res) => {
   const answers = [...new Map(body.answers.map((a) => [a.id, a])).values()];
   // Ырасталган суроолор гана текшерилет; бөтөн id'лер жана бүгүнкү күндүн суроолору эсепке алынбайт
   const questions = await prisma.libraryQuestion.findMany({
-    where: { id: { in: answers.map((a) => a.id), notIn: await todaysDailyIds() }, status: 'APPROVED' },
+    where: { id: { in: answers.map((a) => a.id), notIn: await hiddenDailyIds(studentId) }, status: 'APPROVED' },
   });
   if (!questions.length) throw new AppError('NO_QUESTIONS');
   const ordered = answers.map((a) => questions.find((q) => q.id === a.id)).filter((q) => !!q);
