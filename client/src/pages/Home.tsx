@@ -24,6 +24,12 @@ import {
   Users,
   Vote,
   Zap,
+  ChartColumn,
+  Medal,
+  Send,
+  Share2,
+  Swords,
+  Target,
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -57,6 +63,12 @@ const ICONS: Record<string, LucideIcon> = {
   sheet: FileSpreadsheet,
   teacher: Presentation,
   school: School,
+  league: Swords,
+  telegram: Send,
+  analytics: ChartColumn,
+  share: Share2,
+  medal: Medal,
+  target: Target,
 };
 
 function LandingIcon({ name, className }: { name: string; className: string }) {
@@ -262,7 +274,10 @@ export default function Home() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {t.features.map((f, i) => (
             <Reveal key={f.title} delay={(i % 4) * 0.06}>
-              <div className="group h-full rounded-3xl bg-white p-5 ring-1 ring-ordo-gold/20 transition hover:-translate-y-1 hover:shadow-xl">
+              <div className={`group relative h-full rounded-3xl bg-white p-5 transition hover:-translate-y-1 hover:shadow-xl ${'isNew' in f && f.isNew ? 'ring-2 ring-ordo-gold' : 'ring-1 ring-ordo-gold/20'}`}>
+                {'isNew' in f && f.isNew && (
+                  <span className="absolute top-4 right-4 rounded-full bg-ordo-gold px-2.5 py-0.5 text-xs font-bold text-ordo-night">{t.newBadge}</span>
+                )}
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-ordo-red/10 text-ordo-red transition group-hover:scale-110 group-hover:bg-ordo-red group-hover:text-white">
                   <LandingIcon name={f.icon} className="h-6 w-6" />
                 </div>
