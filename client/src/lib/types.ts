@@ -303,6 +303,30 @@ export interface PracticeLeaderboard {
   myId?: number;
 }
 
+export type StudentStatus = 'ACTIVE' | 'STOPPED' | 'NEVER' | 'NO_CODE';
+
+export interface TeacherAnalytics {
+  today: string;
+  days: string[];
+  classes: string[];
+  className: string;
+  summary: { members: number; withCode: number; activeWeek: number; active: number; stopped: number; never: number; accuracyWeek: number | null };
+  topics: { category: string; answered: number; correct: number; accuracy: number | null }[];
+  students: {
+    id: number;
+    name: string;
+    className: string;
+    status: StudentStatus;
+    lastDay: string | null;
+    daysAgo: number | null;
+    streak: number;
+    week: boolean[];
+    answered: number;
+    accuracy: number | null;
+    weakTopic: { category: string; accuracy: number } | null;
+  }[];
+}
+
 export interface MeInfo {
   student: { id: number; name: string; className: string };
   today: string;

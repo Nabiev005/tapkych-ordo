@@ -94,4 +94,25 @@ describe('тактык боюнча иреттөө', () => {
     assert.equal(p.status, 200, JSON.stringify(p.body));
     assert.equal(p.body.questions.length, 4);
   });
+
+  it('мугалимдин аналитикасы: студенттердин абалы, темалар жана алсыз тема', async () => {
+    const r = await api(base, 'GET', `/api/students/analytics?className=${encodeURIComponent('С-1')}`, { token: admin });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.classes, ['С-1', 'С-2']);
+    assert.deepEqual(r.body.summary, { members: 6, withCode: 6, activeWeek: 6, active: 6, stopped: 0, never: 0, accuracyWeek: 56 });
+    assert.equal(r.body.days.length, 7);
+    assert.deepEqual(r.body.topics, [{ category: 'Стат', answered: 18, correct: 10, accuracy: 56 }]);
+    const rows = r.body.students;
+    assert.equal(rows.length, 6);
+    assert.ok(rows.every((x: any) => x.status === 'ACTIVE' && x.daysAgo === 0 && x.streak === 1 && x.week[6] === true && x.week.filter(Boolean).length === 1));
+    const acc = rows.map((x: any) => x.accuracy).sort((a: number, b: number) => a - b);
+    assert.deepEqual(acc, [33, 33, 33, 67, 67, 100]);
+    assert.deepEqual(rows.filter((x: any) => x.weakTopic).map((x: any) => x.weakTopic), Array(3).fill({ category: 'Стат', accuracy: 33 }));
+
+    // Баары: коду жок эки студент «кирген эмес» болуп саналат
+    const all = (await api(base, 'GET', '/api/students/analytics', { token: admin })).body;
+    assert.equal(all.summary.members, 8);
+    assert.equal(all.summary.never, 2);
+    assert.deepEqual(all.students.filter((x: any) => x.status === 'NO_CODE').map((x: any) => x.name).sort(), ['Топсуз Студент', 'Экинчи Топтогу']);
+  });
 });

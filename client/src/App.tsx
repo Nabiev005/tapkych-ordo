@@ -28,6 +28,7 @@ const AssignmentDetail = lazy(() => import('./pages/admin/AssignmentDetail'));
 const Replay = lazy(() => import('./pages/admin/Replay'));
 const Legal = lazy(() => import('./pages/Legal'));
 const Library = lazy(() => import('./pages/admin/Library'));
+const Analytics = lazy(() => import('./pages/admin/Analytics'));
 const Me = lazy(() => import('./pages/student/Me'));
 
 export default function App() {
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="library" element={<Library />} />
           <Route path="import" element={<ImportPage />} />
           <Route path="students" element={<Students />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="history" element={<History />} />
           <Route path="teachers" element={<Teachers />} />
           <Route path="seasons" element={<Seasons />} />

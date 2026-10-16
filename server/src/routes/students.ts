@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 import { randomAccessCode, requireAdmin } from '../auth.js';
 import { practiceLeaderboard } from '../practice/activity.js';
+import { teacherAnalytics } from '../practice/analytics.js';
 import { AppError } from '../types.js';
 
 export const studentsRouter = Router();
@@ -73,6 +74,12 @@ studentsRouter.post('/', async (req, res) => {
 /** Студенттердин өз алдынча машыгуусу: топтордун жумалык рейтинги жана серия чемпиондору */
 studentsRouter.get('/activity', async (_req, res) => {
   res.json(await practiceLeaderboard());
+});
+
+/** Мугалимдин аналитикасы: студенттердин абалы жана темалар боюнча тактык (className бош — баары) */
+studentsRouter.get('/analytics', async (req, res) => {
+  const { className } = z.object({ className: z.string().trim().max(30).default('') }).parse(req.query);
+  res.json(await teacherAnalytics(className));
 });
 
 /** Кабинетке кирүү коду жок студенттерге (же ids'деги студенттерге) код түзөт */

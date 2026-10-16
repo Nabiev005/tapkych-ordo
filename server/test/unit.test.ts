@@ -7,6 +7,7 @@ import { questionSchema } from '../src/routes/questions.js';
 import { FailLimiter } from '../src/rateLimit.js';
 import { AppError } from '../src/types.js';
 import { lastDays, streakFromDays } from '../src/practice/activity.js';
+import { daysBetween } from '../src/practice/analytics.js';
 
 const s = (playerId: number, score: number, timeMs: number): RoundScore => ({ playerId, name: `P${playerId}`, score, timeMs, correct: 0 });
 
@@ -124,6 +125,11 @@ describe('streakFromDays', () => {
   });
   it('ай аралыгы жана кайталанган күндөр туура эсептелет', () => {
     assert.deepEqual(streakFromDays(['2026-09-30', '2026-10-01', '2026-10-01'], '2026-10-01'), { streak: 2, best: 2 });
+  });
+  it('daysBetween: ай жана жыл аралыгы', () => {
+    assert.equal(daysBetween('2026-10-12', '2026-10-15'), 3);
+    assert.equal(daysBetween('2025-12-31', '2026-01-01'), 1);
+    assert.equal(daysBetween('2026-10-15', '2026-10-15'), 0);
   });
   it('lastDays: бүгүнкү күн акыркы, эскиден жаңыга', () => {
     assert.deepEqual(lastDays(3, '2026-03-01'), ['2026-02-27', '2026-02-28', '2026-03-01']);
