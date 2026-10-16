@@ -2,6 +2,7 @@ import { Download, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fmtDate, ky } from '../i18n/ky';
 import { Button, Modal, Spinner, useDialogs } from './ui';
+import { SUN_CX, SUN_CY, SUN_DISC_R, SUN_PATH, SUN_R } from './flagSun';
 
 /**
  * Соц. тармактар үчүн жеңүүчүлөрдүн карточкасы (PNG) — браузерде canvas менен тартылат.
@@ -49,39 +50,17 @@ function nameLines(ctx: CanvasRenderingContext2D, name: string, maxWidth: number
 
 /** Күн-түндүк: алтын нурлар, кызыл тегерек жана түндүктүн тилкелери */
 function drawSun(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  // Туудагы күндүн расмий формасы: кызыл диск түндүктүн сызыктарын кызыл кылат
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.fillStyle = GOLD;
-  for (let i = 0; i < 40; i++) {
-    ctx.rotate((Math.PI * 2) / 40);
-    ctx.beginPath();
-    ctx.moveTo(-r * 0.07, -r * 0.62);
-    ctx.lineTo(0, -r);
-    ctx.lineTo(r * 0.07, -r * 0.62);
-    ctx.fill();
-  }
+  ctx.scale(r / SUN_R, r / SUN_R);
+  ctx.translate(-SUN_CX, -SUN_CY);
   ctx.beginPath();
-  ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
-  ctx.fillStyle = GOLD;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
+  ctx.arc(SUN_CX, SUN_CY, SUN_DISC_R - 0.4, 0, Math.PI * 2);
   ctx.fillStyle = RED;
   ctx.fill();
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = r * 0.05;
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2);
-  ctx.stroke();
-  for (const k of [-1, 0, 1]) {
-    const o = k * r * 0.15;
-    ctx.beginPath();
-    ctx.moveTo(o, -r * 0.48);
-    ctx.lineTo(o, r * 0.48);
-    ctx.moveTo(-r * 0.48, o);
-    ctx.lineTo(r * 0.48, o);
-    ctx.stroke();
-  }
+  ctx.fillStyle = GOLD;
+  ctx.fill(new Path2D(SUN_PATH), 'evenodd');
   ctx.restore();
 }
 

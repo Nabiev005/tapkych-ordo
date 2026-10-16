@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useId } from 'react';
 import { ky } from '../i18n/ky';
+import { SUN_CX, SUN_CY, SUN_DISC_R, SUN_PATH, SUN_R } from './flagSun';
 
 /** «Кочкор мүйүз» — кыргыз оюусунун негизги элементи */
 const HORN =
@@ -59,30 +60,40 @@ export function CornerOrnament({ className = '', color = '#f5b700' }: { classNam
   );
 }
 
-/** 40 нурлуу күн жана түндүк (Кыргызстандын туусундагыдай) */
+/**
+ * Кыргызстандын туусундагы күн жана түндүк — расмий тууданын формасы (flagSun.ts):
+ * 40 түз нур, диск жана кесилишкен жаалардан турган түндүк. spin — нурлар акырын айланат, түндүк кыймылсыз.
+ */
 export function SunTunduk({ size = 120, spin = true, className = '' }: { size?: number; spin?: boolean; className?: string }) {
-  const rays = Array.from({ length: 40 }, (_, i) => {
-    const a = (i * 360) / 40;
-    return <polygon key={i} points="50,2 52.2,22 47.8,22" transform={`rotate(${a} 50 50)`} />;
-  });
+  const uid = useId().replace(/:/g, '');
+  const view = `${SUN_CX - SUN_R} ${SUN_CY - SUN_R} ${SUN_R * 2} ${SUN_R * 2}`;
   return (
     <div className={className} style={{ width: size, height: size, position: 'relative' }}>
+      {/* Нурлар: дисктен тышкары бөлүгү гана (айланат) */}
       <motion.svg
-        viewBox="0 0 100 100"
+        viewBox={view}
         className="absolute inset-0"
         animate={spin ? { rotate: 360 } : undefined}
         transition={{ duration: 80, ease: 'linear', repeat: Infinity }}
         aria-hidden
       >
-        <g fill="#f5b700">{rays}</g>
+        <defs>
+          <mask id={`rays-${uid}`}>
+            <rect x={SUN_CX - SUN_R} y={SUN_CY - SUN_R} width={SUN_R * 2} height={SUN_R * 2} fill="#fff" />
+            <circle cx={SUN_CX} cy={SUN_CY} r={SUN_DISC_R} fill="#000" />
+          </mask>
+        </defs>
+        <path d={SUN_PATH} fill="#f5b700" fillRule="evenodd" mask={`url(#rays-${uid})`} />
       </motion.svg>
-      <svg viewBox="0 0 100 100" className="absolute inset-0" aria-hidden>
-        <circle cx="50" cy="50" r="26" fill="#f5b700" />
-        <g fill="none" stroke="#c8102e" strokeWidth="2.6">
-          <circle cx="50" cy="50" r="21" />
-          <path d="M31 42q19 8 38 0M29 50h42M31 58q19-8 38 0" />
-          <path d="M42 31q8 19 0 38M50 29v42M58 31q-8 19 0 38" />
-        </g>
+      {/* Диск жана түндүк: кызыл фон түндүктүн сызыктарын туудагыдай кызыл кылат */}
+      <svg viewBox={view} className="absolute inset-0" aria-hidden>
+        <defs>
+          <clipPath id={`disc-${uid}`}>
+            <circle cx={SUN_CX} cy={SUN_CY} r={SUN_DISC_R} />
+          </clipPath>
+        </defs>
+        <circle cx={SUN_CX} cy={SUN_CY} r={SUN_DISC_R - 0.4} fill="#c8102e" />
+        <path d={SUN_PATH} fill="#f5b700" fillRule="evenodd" clipPath={`url(#disc-${uid})`} />
       </svg>
     </div>
   );
