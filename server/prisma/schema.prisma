@@ -25,6 +25,7 @@ model Teacher {
   games       Game[]
   assignments Assignment[]
   library     LibraryQuestion[]
+  leagues     League[]
 }
 
 /// Суроолор банкы. ownerId = null — башкы алып баруучунун банкы, болбосо мугалимдики.
@@ -309,9 +310,31 @@ model Assignment {
   closesAt     DateTime?
   createdAt    DateTime  @default(now())
 
+  /// Лиганын туру болсо — League.id (ар кайсы мектептин студенттери аты-жөнү жана мектеби менен кирет)
+  leagueId     Int?
+
   owner       Teacher?             @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  league      League?              @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   questions   AssignmentQuestion[]
   submissions Submission[]
+
+  @@index([leagueId])
+}
+
+/// Мектептер аралык лига: турлары — бирдей суроолор менен ачык тапшырмалар (Assignment.leagueId)
+model League {
+  id          Int      @id @default(autoincrement())
+  ownerId     Int?
+  code        String   @unique // ачык беттин коду (/league/:code)
+  title       String
+  description String   @default("")
+  schools     String   @default("[]") // JSON: катышкан мектептердин аттары
+  /// Мектептин турдагы упайы — эң мыкты ушунча катышуучунун упайларынын суммасы
+  topN        Int      @default(5)
+  createdAt   DateTime @default(now())
+
+  owner  Teacher?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  rounds Assignment[]
 }
 
 model AssignmentQuestion {
@@ -340,6 +363,7 @@ model Submission {
   studentId        Int?
   name             String
   className        String    @default("")
+  school           String    @default("") // лиганын турунда — мектеби
   token            String    @unique
   index            Int       @default(0) // учурдагы суроо
   currentStartedAt DateTime?

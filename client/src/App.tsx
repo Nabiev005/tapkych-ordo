@@ -29,6 +29,9 @@ const Replay = lazy(() => import('./pages/admin/Replay'));
 const Legal = lazy(() => import('./pages/Legal'));
 const Library = lazy(() => import('./pages/admin/Library'));
 const Analytics = lazy(() => import('./pages/admin/Analytics'));
+const Leagues = lazy(() => import('./pages/admin/Leagues'));
+const LeagueDetail = lazy(() => import('./pages/admin/LeagueDetail'));
+const LeaguePage = lazy(() => import('./pages/League'));
 const Me = lazy(() => import('./pages/student/Me'));
 
 export default function App() {
@@ -50,6 +53,7 @@ export default function App() {
         <Route path="/watch/:code" element={<Watch />} />
         <Route path="/hw/:code" element={<Homework />} />
         <Route path="/me" element={<Me />} />
+        <Route path="/league/:code" element={<LeaguePage />} />
         <Route path="/privacy" element={<Legal kind="privacy" />} />
         <Route path="/terms" element={<Legal kind="terms" />} />
         <Route path="/admin/games/:id/replay" element={<Replay />} />
@@ -67,6 +71,8 @@ export default function App() {
           <Route path="seasons" element={<Seasons />} />
           <Route path="assignments" element={<Assignments />} />
           <Route path="assignments/:id" element={<AssignmentDetail />} />
+          <Route path="leagues" element={<Leagues />} />
+          <Route path="leagues/:id" element={<LeagueDetail />} />
           <Route path="rating" element={<Rating embedded />} />
           <Route path="rating/student/:id" element={<StudentProfile embedded />} />
           <Route path="games/new" element={<NewGame />} />

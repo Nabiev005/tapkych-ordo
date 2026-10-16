@@ -21,6 +21,7 @@ import { assignmentsRouter, homeworkRouter } from './routes/assignments.js';
 import { importExportRouter } from './routes/importExport.js';
 import { libraryRouter } from './routes/library.js';
 import { meRouter } from './routes/me.js';
+import { leaguePublicRouter, leaguesRouter } from './routes/leagues.js';
 import { setupSockets } from './sockets/index.js';
 import { restoreTimers } from './game/engine.js';
 
@@ -51,6 +52,8 @@ app.use('/api/assignments', assignmentsRouter);
 app.use('/api/hw', homeworkRouter);
 app.use('/api/library', libraryRouter);
 app.use('/api/me', meRouter);
+app.use('/api/leagues', leaguesRouter);
+app.use('/api/league', leaguePublicRouter);
 app.use('/api', importExportRouter);
 
 app.use('/api', (_req, _res) => {

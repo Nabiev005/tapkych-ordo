@@ -8,6 +8,7 @@ import { AppError, DIFFICULTIES } from '../types.js';
 import { validChoice } from '../game/engine.js';
 import { uniqueCode } from './games.js';
 import { correctLabel } from './importExport.js';
+import { leagueSchools } from '../league/standings.js';
 
 /**
  * Үй тапшырмасы: мугалим суроолорду тандап шилтеме берет, студенттер өз убагында иштешет.
@@ -45,7 +46,7 @@ type StoredAnswer = { choice: string | null; correct: boolean; ms: number };
 
 assignmentsRouter.get('/', async (_req, res) => {
   const list = await prisma.assignment.findMany({
-    where: ownedWhere(staff(res)),
+    where: { ...ownedWhere(staff(res)), leagueId: null },
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { questions: true } }, submissions: { select: { finishedAt: true, score: true } } },
   });
@@ -70,25 +71,22 @@ assignmentsRouter.get('/', async (_req, res) => {
  * Жаңы тапшырма: суроолор банктан тандалат (questionIds) же автоматтык түрдө (count + тема/кыйынчылык).
  * Тапшырмадагы суроолор архивге өтпөйт.
  */
-assignmentsRouter.post('/', async (req, res) => {
-  const body = z
+export const assignmentBodySchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  timerSeconds: z.number().int().min(10).max(300).default(30),
+  closesAt: z.coerce.date().nullish(),
+  questionIds: z.array(z.number().int()).max(100).optional(),
+  auto: z
     .object({
-      title: z.string().trim().min(1).max(120),
-      timerSeconds: z.number().int().min(10).max(300).default(30),
-      closesAt: z.coerce.date().nullish(),
-      questionIds: z.array(z.number().int()).max(100).optional(),
-      auto: z
-        .object({
-          count: z.number().int().min(1).max(100),
-          categories: z.array(z.string()).optional(),
-          difficulty: z.enum(DIFFICULTIES).optional(),
-          includeArchived: z.boolean().optional(),
-        })
-        .optional(),
+      count: z.number().int().min(1).max(100),
+      categories: z.array(z.string()).optional(),
+      difficulty: z.enum(DIFFICULTIES).optional(),
+      includeArchived: z.boolean().optional(),
     })
-    .parse(req.body);
+    .optional(),
+});
 
-  const ownerId = ownerKey(staff(res));
+export async function createAssignment(ownerId: number | null, body: z.infer<typeof assignmentBodySchema>, leagueId: number | null = null) {
   let questions;
   if (body.questionIds?.length) {
     const found = await prisma.question.findMany({ where: { id: { in: body.questionIds }, ownerId } });
@@ -111,9 +109,10 @@ assignmentsRouter.post('/', async (req, res) => {
   } else throw new AppError('BAD_REQUEST');
   if (!questions.length) throw new AppError('NOT_ENOUGH_QUESTIONS', 400, { need: 1, have: 0 });
 
-  const assignment = await prisma.assignment.create({
+  return prisma.assignment.create({
     data: {
       ownerId,
+      leagueId,
       code: await uniqueCode((code) => prisma.assignment.findUnique({ where: { code } })),
       title: body.title,
       timerSeconds: body.timerSeconds,
@@ -135,6 +134,10 @@ assignmentsRouter.post('/', async (req, res) => {
       },
     },
   });
+}
+
+assignmentsRouter.post('/', async (req, res) => {
+  const assignment = await createAssignment(ownerKey(staff(res)), assignmentBodySchema.parse(req.body));
   res.status(201).json({ assignment: { id: assignment.id, code: assignment.code } });
 });
 
@@ -150,6 +153,7 @@ assignmentsRouter.get('/:id', async (req, res) => {
       open: isOpen(a),
       closesAt: a.closesAt,
       createdAt: a.createdAt,
+      leagueId: a.leagueId,
       questions: a.questions.map((q) => ({ id: q.id, order: q.order, type: q.type, text: q.text, correctLabel: correctLabel(q.type, q.correct) })),
       submissions: a.submissions.map((s) => {
         const answers = JSON.parse(s.answers) as StoredAnswer[];
@@ -157,6 +161,7 @@ assignmentsRouter.get('/:id', async (req, res) => {
           id: s.id,
           name: s.name,
           className: s.className,
+          school: s.school,
           score: s.score,
           correct: s.correct,
           total: a.questions.length,
@@ -231,20 +236,27 @@ assignmentsRouter.get('/:id/export.xlsx', async (req, res) => {
 
 homeworkRouter.get('/:code', async (req, res) => {
   if (!/^\d{6}$/.test(req.params.code)) throw new AppError('NOT_FOUND', 404);
-  const a = await prisma.assignment.findUnique({ where: { code: req.params.code }, include: { _count: { select: { questions: true } } } });
+  const a = await prisma.assignment.findUnique({ where: { code: req.params.code }, include: { _count: { select: { questions: true } }, league: true } });
   if (!a) throw new AppError('NOT_FOUND', 404);
+  const assignment = { title: a.title, questions: a._count.questions, timerSeconds: a.timerSeconds, open: isOpen(a), closesAt: a.closesAt };
+  if (a.league) {
+    // Лиганын туру: студенттер тизмеси көрсөтүлбөйт — катышуучу атын жана мектебин өзү жазат
+    res.json({ assignment, students: [], league: { title: a.league.title, code: a.league.code, schools: leagueSchools(a.league) } });
+    return;
+  }
   const students = await prisma.student.findMany({ orderBy: [{ className: 'asc' }, { name: 'asc' }], select: { id: true, name: true, className: true } });
-  res.json({
-    assignment: { title: a.title, questions: a._count.questions, timerSeconds: a.timerSeconds, open: isOpen(a), closesAt: a.closesAt },
-    students,
-  });
+  res.json({ assignment, students, league: null });
 });
 
 /** Баштоо же улантуу: студент тизмеден өзүн тандайт */
 homeworkRouter.post('/:code/start', async (req, res) => {
-  const { studentId } = z.object({ studentId: z.number().int() }).parse(req.body);
-  const a = await prisma.assignment.findUnique({ where: { code: req.params.code } });
+  const a = await prisma.assignment.findUnique({ where: { code: req.params.code }, include: { league: true } });
   if (!a) throw new AppError('NOT_FOUND', 404);
+  if (a.league) {
+    res.status(201).json(await startLeagueRound(a, a.league, req.body));
+    return;
+  }
+  const { studentId } = z.object({ studentId: z.number().int() }).parse(req.body);
   const student = await prisma.student.findUnique({ where: { id: studentId } });
   if (!student) throw new AppError('NOT_FOUND', 404);
   const existing = await prisma.submission.findUnique({ where: { assignmentId_studentId: { assignmentId: a.id, studentId } } });
@@ -259,6 +271,21 @@ homeworkRouter.post('/:code/start', async (req, res) => {
   });
   res.status(201).json({ token: sub.token, finished: false });
 });
+
+/** Лиганын туру: аты-жөнү + мектеп. Ошол эле мектептен ошол эле ат менен кайра кирсе — мурунку жыйынтыгы ачылат */
+async function startLeagueRound(a: { id: number; active: boolean; closesAt: Date | null }, league: { schools: string }, raw: unknown) {
+  const body = z
+    .object({ name: z.string().trim().min(2).max(60), school: z.string().trim().min(1).max(80), className: z.string().trim().max(30).default('') })
+    .parse(raw);
+  const name = body.name.replace(/s+/g, ' ');
+  if (!leagueSchools(league).includes(body.school)) throw new AppError('BAD_REQUEST');
+  const key = name.toLocaleLowerCase('ky');
+  const same = (await prisma.submission.findMany({ where: { assignmentId: a.id, school: body.school } })).find((s) => s.name.toLocaleLowerCase('ky') === key);
+  if (same) return { token: same.token, finished: !!same.finishedAt };
+  if (!isOpen(a)) throw new AppError('ASSIGNMENT_CLOSED');
+  const sub = await prisma.submission.create({ data: { assignmentId: a.id, name, school: body.school, className: body.className, token: randomToken() } });
+  return { token: sub.token, finished: false };
+}
 
 async function loadSession(token: string) {
   const sub = await prisma.submission.findUnique({

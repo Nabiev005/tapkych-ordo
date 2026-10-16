@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Info, NotebookPen, PartyPopper, Trophy } from 'lucide-react';
+import { BookOpen, Info, NotebookPen, PartyPopper, Swords, Trophy } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { Logo, OrnamentBand } from '../../components/Ornament';
 import { LangSwitch } from '../../components/LangSwitch';
@@ -15,6 +15,8 @@ import { OPTION_KEYS, optionKeysFor, type Options, type Student } from '../../li
 interface Info {
   assignment: { title: string; questions: number; timerSeconds: number; open: boolean; closesAt: string | null };
   students: Student[];
+  /** Лиганын туру болсо — студент атын жана мектебин өзү жазат */
+  league: { title: string; code: string; schools: string[] } | null;
 }
 interface Session {
   title: string;
@@ -91,10 +93,10 @@ export default function Homework() {
     );
 
   const a = info.assignment;
-  const start = async (studentId: number) => {
+  const start = async (body: { studentId: number } | { name: string; school: string; className: string }) => {
     setBusy(true);
     try {
-      const r = await api.post<{ token: string }>(`/api/hw/${code}/start`, { studentId });
+      const r = await api.post<{ token: string }>(`/api/hw/${code}/start`, body);
       store.set(code, r.token);
       setToken(r.token);
     } catch (e) {
@@ -119,7 +121,9 @@ export default function Homework() {
           <Logo size="md" />
         </div>
         <div className="rounded-3xl bg-white/[0.07] p-5 text-center ring-1 ring-white/10">
-          <div className="text-sm uppercase tracking-widest text-ordo-sky-light"><NotebookPen className="ico" /> {t.title}</div>
+          <div className="text-sm uppercase tracking-widest text-ordo-sky-light">
+            {info.league ? <><Swords className="ico" /> {info.league.title}</> : <><NotebookPen className="ico" /> {t.title}</>}
+          </div>
           <h1 className="mt-1 font-display text-2xl font-black">{a.title}</h1>
           <div className="mt-1 text-white/70">{t.questions(a.questions, a.timerSeconds)}</div>
           {a.closesAt && <div className="mt-1 text-sm text-ordo-gold-light">{t.closesAt(fmtDateTime(a.closesAt))}</div>}
@@ -130,6 +134,10 @@ export default function Homework() {
         ) : (
           <>
             <p className="rounded-2xl bg-white/5 p-3 text-sm text-white/70"><Info className="ico" /> {t.rules}</p>
+            {info.league ? (
+              <LeagueJoin schools={info.league.schools} busy={busy} onStart={start} />
+            ) : (
+              <>
             <div>
               <div className="mb-2 font-semibold">{t.pickClass}</div>
               <div className="flex flex-wrap gap-2">
@@ -149,7 +157,7 @@ export default function Homework() {
                     <button
                       key={s.id}
                       disabled={busy}
-                      onClick={() => start(s.id)}
+                      onClick={() => start({ studentId: s.id })}
                       className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left font-semibold hover:bg-white/20 disabled:opacity-50"
                     >
                       {s.name}
@@ -159,11 +167,60 @@ export default function Homework() {
                 </div>
               </div>
             )}
+              </>
+            )}
           </>
+        )}
+        {info.league && (
+          <Link to={`/league/${info.league.code}`} className="block text-center text-sm font-semibold text-ordo-gold-light hover:underline">
+            <Trophy className="ico" /> {ky.league.viewTable}
+          </Link>
         )}
       </div>
       <OrnamentBand height={16} flip />
     </div>
+  );
+}
+
+/** Лиганын туру: аты-жөнү, мектеби (тизмеден) жана классы */
+function LeagueJoin({ schools, busy, onStart }: { schools: string[]; busy: boolean; onStart: (b: { name: string; school: string; className: string }) => void }) {
+  const t = ky.league;
+  const [name, setName] = useState('');
+  const [school, setSchool] = useState('');
+  const [className, setClassName] = useState('');
+  const field = 'w-full rounded-2xl bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40 focus:ring-2 focus:ring-ordo-gold';
+  const valid = name.trim().length >= 2 && !!school;
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) onStart({ name: name.trim(), school, className: className.trim() });
+      }}
+    >
+      <div>
+        <div className="mb-2 font-semibold">{t.yourSchool}</div>
+        <div className="flex flex-wrap gap-2">
+          {schools.map((s) => (
+            <button type="button" key={s} onClick={() => setSchool(s)} className={`rounded-full px-4 py-2 text-left font-semibold ${school === s ? 'bg-ordo-gold text-ordo-night' : 'bg-white/10 hover:bg-white/20'}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+      <label className="block">
+        <span className="mb-2 block font-semibold">{t.yourName}</span>
+        <input className={field} maxLength={60} placeholder={t.namePlaceholder} value={name} onChange={(e) => setName(e.target.value)} />
+        <span className="mt-1 block text-xs text-white/50">{t.nameHint}</span>
+      </label>
+      <label className="block">
+        <span className="mb-2 block font-semibold">{t.yourClass}</span>
+        <input className={field} maxLength={30} placeholder={t.classPlaceholder} value={className} onChange={(e) => setClassName(e.target.value)} />
+      </label>
+      <Button type="submit" variant="gold" size="lg" className="w-full" loading={busy} disabled={!valid}>
+        {school ? t.start : t.pickSchool}
+      </Button>
+    </form>
   );
 }
 

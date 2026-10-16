@@ -303,6 +303,52 @@ export interface PracticeLeaderboard {
   myId?: number;
 }
 
+export interface LeagueRoundView {
+  /** Админ панелинде гана */
+  id?: number;
+  number: number;
+  code: string;
+  title: string;
+  open: boolean;
+  closesAt: string | null;
+  questions: number;
+  participants: number;
+  schools: { school: string; participants: number; score: number; place: number; points: number }[];
+}
+
+export interface LeagueStanding {
+  school: string;
+  points: number;
+  score: number;
+  rounds: number;
+  participants: number;
+  place: number;
+  listed: boolean;
+}
+
+export interface LeagueView {
+  id?: number;
+  code: string;
+  title: string;
+  description: string;
+  topN: number;
+  createdAt: string;
+  schools: string[];
+  rounds: LeagueRoundView[];
+  standings: LeagueStanding[];
+  topPlayers: { name: string; school: string; score: number; rounds: number }[];
+}
+
+export interface LeagueRow {
+  id: number;
+  code: string;
+  title: string;
+  schools: number;
+  rounds: number;
+  participants: number;
+  createdAt: string;
+}
+
 export type StudentStatus = 'ACTIVE' | 'STOPPED' | 'NEVER' | 'NO_CODE';
 
 export interface TeacherAnalytics {
@@ -400,11 +446,14 @@ export interface AssignmentRow {
 }
 
 export interface AssignmentDetail extends Omit<AssignmentRow, 'questions' | 'started' | 'finished'> {
+  leagueId?: number | null;
   questions: { id: number; order: number; type: QuestionType; text: string; correctLabel: string }[];
   submissions: {
     id: number;
     name: string;
     className: string;
+    /** Лиганын турунда — мектеби */
+    school?: string;
     score: number;
     correct: number;
     total: number;

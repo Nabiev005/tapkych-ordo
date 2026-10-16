@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { Calendar, ChartColumn, ExternalLink, GraduationCap, House, Library, Menu, NotebookPen, Presentation, ScrollText, CircleHelp, Trophy, X, type LucideIcon } from 'lucide-react';
+import { Calendar, ChartColumn, Swords, ExternalLink, GraduationCap, House, Library, Menu, NotebookPen, Presentation, ScrollText, CircleHelp, Trophy, X, type LucideIcon } from 'lucide-react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Logo, OrnamentBand } from '../../components/Ornament';
 import { LangSwitch } from '../../components/LangSwitch';
@@ -51,6 +51,7 @@ export default function AdminLayout() {
         { to: '/admin/students', icon: GraduationCap, label: n.students },
         { to: '/admin/analytics', icon: ChartColumn, label: n.analytics },
         { to: '/admin/assignments', icon: NotebookPen, label: n.assignments },
+        { to: '/admin/leagues', icon: Swords, label: n.leagues },
         { to: '/admin/rating', icon: Trophy, label: n.rating },
       ],
     },

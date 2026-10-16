@@ -97,7 +97,7 @@ export default function AssignmentDetail() {
                 onClick={async () => {
                   if (!(await confirm({ title: ky.common.delete, message: t.deleteConfirm(a.title), danger: true, confirmText: ky.common.delete }))) return;
                   await api.del(`/api/assignments/${a.id}`).catch((e) => toast(e.message, 'err'));
-                  navigate('/admin/assignments');
+                  navigate(a.leagueId ? `/admin/leagues/${a.leagueId}` : '/admin/assignments');
                 }}
               >
                 <Trash2 className="h-4 w-4" />
@@ -125,7 +125,7 @@ export default function AssignmentDetail() {
                     <tr key={s.id} className="border-b border-ordo-gold/10">
                       <td className="p-2 font-display font-bold">{s.finishedAt ? (i < 3 ? <RankMedal rank={i + 1} className="ico" /> : i + 1) : '…'}</td>
                       <td className="p-2 font-semibold">{s.name}</td>
-                      <td className="p-2 text-ordo-ink/60">{s.className}</td>
+                      <td className="p-2 text-ordo-ink/60">{s.school ? [s.school, s.className].filter(Boolean).join(' · ') : s.className}</td>
                       <td className="p-2 text-center font-display font-black text-ordo-red">
                         {s.correct}/{s.total}
                       </td>
