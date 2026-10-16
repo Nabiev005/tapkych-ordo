@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, CircleCheckBig, CircleX, Dumbbell, Flame, PartyPopper, Play, Sun, Target, Trophy } from 'lucide-react';
+import { BarChart3, CircleCheckBig, CircleX, Dumbbell, Flame, PartyPopper, Play, Send, Sun, Target, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
@@ -96,7 +96,7 @@ function Login({ onLogin }: { onLogin: (token: string) => void }) {
 
 function Cabinet({ onLogout }: { onLogout: () => void }) {
   const t = ky.student;
-  const { toast } = useDialogs();
+  const { confirm, toast } = useDialogs();
   const [me, setMe] = useState<MeInfo | null>(null);
   const [view, setView] = useState<View>({ name: 'home' });
   const [category, setCategory] = useState('');
@@ -120,7 +120,29 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
       });
   useEffect(() => {
     void load();
+    // Telegram'дан кайтып келгенде (туташкандан кийин) абалды жаңыртабыз
+    const onVisible = () => document.visibilityState === 'visible' && void load();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
+
+  const connectTelegram = async () => {
+    setBusy(true);
+    try {
+      const r = await studentApi.post<{ url: string }>('/api/me/telegram/link');
+      window.location.href = r.url;
+    } catch (e) {
+      toast((e as Error).message, 'err');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const unlinkTelegram = async () => {
+    if (!(await confirm({ title: t.telegramUnlink, message: t.telegramUnlinkConfirm, confirmText: t.telegramUnlink }))) return;
+    await studentApi.del('/api/me/telegram').catch((e) => toast(e.message, 'err'));
+    void load();
+  };
 
   const startDaily = async () => {
     setBusy(true);
@@ -245,6 +267,37 @@ function Cabinet({ onLogout }: { onLogout: () => void }) {
           </div>
         </div>
       </section>
+
+      {/* Telegram-бот */}
+      {me.telegram?.bot && (
+        <section className="flex flex-wrap items-center gap-4 rounded-3xl bg-gradient-to-br from-sky-500/25 to-ordo-sky/10 p-5 ring-1 ring-sky-400/40">
+          <Send className="h-10 w-10 shrink-0 text-sky-300" />
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-xl font-bold">{t.telegramTitle}</h2>
+            {me.telegram.linked ? (
+              <p className="font-semibold text-emerald-300">
+                <CircleCheckBig className="ico" /> {t.telegramLinked(me.telegram.bot)}
+              </p>
+            ) : (
+              <p className="text-sm text-white/70">{t.telegramHint}</p>
+            )}
+          </div>
+          {me.telegram.linked ? (
+            <div className="flex gap-2">
+              <a href={`https://t.me/${me.telegram.bot}`} target="_blank" rel="noreferrer">
+                <Button variant="sky">{t.telegramOpen}</Button>
+              </a>
+              <Button variant="outline" onClick={unlinkTelegram}>
+                {t.telegramUnlink}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="sky" size="lg" className="w-full sm:w-auto" loading={busy} onClick={connectTelegram}>
+              <Send className="ico" /> {t.telegramConnect}
+            </Button>
+          )}
+        </section>
+      )}
 
       {/* Машыгуу */}
       <section className="rounded-3xl bg-white/[0.07] p-5 ring-1 ring-white/10">

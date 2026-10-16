@@ -7,6 +7,8 @@ import { FailLimiter } from '../rateLimit.js';
 import { AppError } from '../types.js';
 import { validChoice } from '../game/engine.js';
 import { bishkekDay, lastDays, practiceLeaderboard, streakFromDays } from '../practice/activity.js';
+import { telegramBot } from '../telegram/bot.js';
+import crypto from 'node:crypto';
 
 export { bishkekDay };
 
@@ -51,19 +53,19 @@ const publicQuestion = (q: LibraryQuestion) => ({
   options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
 });
 
-async function dailyQuestions(day: string): Promise<LibraryQuestion[]> {
+export async function dailyQuestions(day: string): Promise<LibraryQuestion[]> {
   const all = await prisma.libraryQuestion.findMany({ where: { status: 'APPROVED' }, orderBy: { id: 'asc' } });
   return seededShuffle(all, `daily:${day}`).slice(0, DAILY_COUNT);
 }
 
-interface Detail {
+export interface Detail {
   id: number;
   choice: string | null;
   correct: string;
 }
 
 /** Жоопторду текшерет. Жооп берилбеген же туура эмес форматтагы жооп — ката. */
-function grade(questions: LibraryQuestion[], answers: Map<number, string>) {
+export function grade(questions: LibraryQuestion[], answers: Map<number, string>) {
   const details: Detail[] = questions.map((q) => {
     const raw = answers.get(q.id)?.toUpperCase() ?? null;
     const choice = raw && validChoice(q.type, raw) ? raw : null;
@@ -84,7 +86,7 @@ async function review(details: Detail[]) {
 }
 
 /** Катар күндөр: бүгүн (же бүгүн али аткара элек болсо — кечээ) аяктаган серия */
-async function streakOf(studentId: number): Promise<{ streak: number; best: number }> {
+export async function streakOf(studentId: number): Promise<{ streak: number; best: number }> {
   const rows = await prisma.practiceAttempt.findMany({ where: { studentId, kind: 'DAILY' }, select: { day: true } });
   return streakFromDays(rows.map((r) => r.day));
 }
@@ -150,7 +152,28 @@ meRouter.get('/', async (_req, res) => {
       .map((c) => ({ name: c.category, count: c._count._all }))
       .sort((a, b) => a.name.localeCompare(b.name, 'ky')),
     libraryTotal: cats.reduce((s, c) => s + c._count._all, 0),
+    telegram: { bot: telegramBot(), linked: !!student.telegramChatId },
   });
+});
+
+// ───────────────────────── Telegram-бот ─────────────────────────
+
+/** Туташтыруу шилтемеси: t.me/бот?start=КОД (код бир жолку, жаңы шилтеме мурункусун жокко чыгарат) */
+meRouter.post('/telegram/link', async (_req, res) => {
+  const studentId = res.locals.studentId as number;
+  await currentStudent(studentId);
+  const bot = telegramBot();
+  if (!bot) throw new AppError('TELEGRAM_DISABLED');
+  const code = crypto.randomBytes(12).toString('base64url');
+  await prisma.student.update({ where: { id: studentId }, data: { telegramLinkCode: code } });
+  res.json({ url: `https://t.me/${bot}?start=${code}` });
+});
+
+meRouter.delete('/telegram', async (_req, res) => {
+  const studentId = res.locals.studentId as number;
+  await currentStudent(studentId);
+  await prisma.student.update({ where: { id: studentId }, data: { telegramChatId: null, telegramLinkCode: null } });
+  res.json({ ok: true });
 });
 
 /** Топтордун жумалык машыгуу рейтинги жана серия чемпиондору; myGroup — студенттин өз тобу */

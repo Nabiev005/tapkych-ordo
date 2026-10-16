@@ -62,6 +62,7 @@ export type ErrorCode =
   | 'DUPLICATE_QUESTION'
   | 'INVALID_CODE'
   | 'NO_QUESTIONS'
+  | 'TELEGRAM_DISABLED'
   | 'SERVER_ERROR';
 
 export class AppError extends Error {

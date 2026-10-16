@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ChartColumn, CircleCheck, Flame, KeyRound, Target, TrendingDown, UserCheck, UserX, Users, type LucideIcon } from 'lucide-react';
+import { ChartColumn, CircleCheck, Flame, KeyRound, Send, Target, TrendingDown, UserCheck, UserX, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Spinner, useDialogs } from '../../components/ui';
@@ -200,6 +200,7 @@ function StudentRow({ r, days, showClass }: { r: Row; days: string[]; showClass:
         <Link to={`/admin/rating/student/${r.id}`} className="font-semibold hover:text-ordo-red">
           {r.name}
         </Link>
+        {r.telegram && <Send className="ico ml-1.5 text-sky-500" aria-label={t.telegram} />}
         {showClass && r.className && <div className="text-xs text-ordo-ink/45">{r.className}</div>}
       </td>
       <td className="py-2.5 pr-3">

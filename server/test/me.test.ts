@@ -127,6 +127,11 @@ describe('студенттин кабинети', () => {
     assert.equal(r.body.calendar.length, 14);
     assert.equal(r.body.calendar.at(-1).day, bishkekDay());
     assert.ok(r.body.categories.length >= 5);
+    // TELEGRAM_BOT_TOKEN коюлбаса — бот өчүк, туташтыруу баскычы иштебейт
+    assert.deepEqual(r.body.telegram, { bot: null, linked: false });
+    const link = await api(base, 'POST', '/api/me/telegram/link', { token });
+    assert.equal(link.status, 400);
+    assert.equal(link.body.error, 'TELEGRAM_DISABLED');
   });
 
   it('күндүн суроолору: 5 суроо, туура жооп жөнөтүлбөйт, баарына бирдей', async () => {

@@ -23,6 +23,7 @@ import { libraryRouter } from './routes/library.js';
 import { meRouter } from './routes/me.js';
 import { leaguePublicRouter, leaguesRouter } from './routes/leagues.js';
 import { setupSockets } from './sockets/index.js';
+import { startTelegram, telegramRouter } from './telegram/bot.js';
 import { restoreTimers } from './game/engine.js';
 
 const app = express();
@@ -54,6 +55,7 @@ app.use('/api/library', libraryRouter);
 app.use('/api/me', meRouter);
 app.use('/api/leagues', leaguesRouter);
 app.use('/api/league', leaguePublicRouter);
+app.use('/api/telegram', telegramRouter);
 app.use('/api', importExportRouter);
 
 app.use('/api', (_req, _res) => {
@@ -102,6 +104,7 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 });
 
 server.listen(config.port, '0.0.0.0', () => {
+  void startTelegram().catch((e) => console.error('Telegram-бот:', e));
   const ip = getLanIp();
   console.log('\n  🏆 ТАПКЫЧ ОРДО сервери иштеп жатат');
   console.log(`  ➜ Бул компьютерде: http://localhost:${config.port}`);

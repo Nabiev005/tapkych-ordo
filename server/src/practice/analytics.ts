@@ -38,7 +38,7 @@ export async function teacherAnalytics(className = '') {
   const from = days[0];
 
   const allStudents = await prisma.student.findMany({
-    select: { id: true, name: true, className: true, accessCode: true },
+    select: { id: true, name: true, className: true, accessCode: true, telegramChatId: true },
     orderBy: [{ className: 'asc' }, { name: 'asc' }],
   });
   const classes = [...new Set(allStudents.map((s) => s.className).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ky', { numeric: true }));
@@ -120,6 +120,7 @@ export async function teacherAnalytics(className = '') {
       id: s.id,
       name: s.name,
       className: s.className,
+      telegram: !!s.telegramChatId,
       status,
       lastDay,
       daysAgo,

@@ -45,3 +45,6 @@ services:
         sync: false
       - key: ADMIN_EMAILS
         sync: false
+      # Telegram-бот (милдеттүү эмес): @BotFather берген токен (README, 6.2)
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false

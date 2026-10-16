@@ -281,6 +281,12 @@ model Student {
   className  String   @default("") // мис. 9А
   /// Студенттин кабинетине (/me) кирүү коду — мугалим берет
   accessCode String?  @unique
+  /// Telegram-бот: туташкан чат (эскертмелер жана күндүн суроолору ушул жерге келет)
+  telegramChatId      String? @unique
+  /// Туташтыруу үчүн бир жолку код (t.me/бот?start=КОД)
+  telegramLinkCode    String? @unique
+  /// Акыркы эскертме жөнөтүлгөн күн (YYYY-MM-DD) — күнүнө бир эле жолу
+  telegramRemindedDay String  @default("")
   createdAt  DateTime @default(now())
 
   players     Player[]

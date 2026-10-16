@@ -137,6 +137,7 @@ export const api = {
 export const studentApi = {
   get: <T>(p: string) => request<T>('GET', p, undefined, false, true),
   post: <T>(p: string, b?: unknown) => request<T>('POST', p, b ?? {}, false, true),
+  del: <T>(p: string) => request<T>('DELETE', p, undefined, false, true),
 };
 
 /** Авторизация менен файл жүктөп алуу (Excel экспорт, шаблон) */

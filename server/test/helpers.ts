@@ -31,7 +31,7 @@ export interface TestServer {
 }
 
 /** Таза база менен серверди иштетет (миграциялар колдонулат, seed жок) */
-export async function startServer(name: string): Promise<TestServer> {
+export async function startServer(name: string, extraEnv: NodeJS.ProcessEnv = {}): Promise<TestServer> {
   const port = await freePort();
   const dbFile = `test-${name}-${process.pid}.db`;
   const dbPath = path.join(SERVER_DIR, 'prisma', dbFile);
@@ -47,6 +47,9 @@ export async function startServer(name: string): Promise<TestServer> {
     TURSO_DATABASE_URL: '',
     TURSO_AUTH_TOKEN: '',
     RENDER: '',
+    RENDER_EXTERNAL_URL: '',
+    TELEGRAM_BOT_TOKEN: '',
+    ...extraEnv,
   };
   for (const f of [dbPath, `${dbPath}-journal`]) fs.rmSync(f, { force: true });
   execSync('npx prisma migrate deploy', { cwd: SERVER_DIR, env, stdio: 'pipe' });

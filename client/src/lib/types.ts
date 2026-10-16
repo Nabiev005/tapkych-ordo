@@ -362,6 +362,8 @@ export interface TeacherAnalytics {
     id: number;
     name: string;
     className: string;
+    /** Telegram-ботко туташкан (эскертмелер келет) */
+    telegram: boolean;
     status: StudentStatus;
     lastDay: string | null;
     daysAgo: number | null;
@@ -384,6 +386,8 @@ export interface MeInfo {
   recentPractice: { category: string; correct: number; total: number; createdAt: string }[];
   categories: { name: string; count: number }[];
   libraryTotal: number;
+  /** Telegram-бот: bot — боттун аты (null — өчүк), linked — студент туташканбы */
+  telegram?: { bot: string | null; linked: boolean };
 }
 
 export interface RatingRow {
