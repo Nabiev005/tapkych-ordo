@@ -99,6 +99,21 @@ export const sfx = {
     }),
   /** Оюнчу кошулду */
   join: () => play(() => tone(880, 0, 0.12, 'sine', 0.12)),
+  /** Финалда биринчи басты */
+  buzz: () =>
+    play(() => {
+      tone(988, 0, 0.12, 'square', 0.14);
+      tone(1319, 0.1, 0.22, 'square', 0.14);
+    }),
+  /** Оюндун интросу: акырын көтөрүлгөн арпеджио жана салтанаттуу аккорд */
+  intro: () =>
+    play(() => {
+      [196, 262, 330, 392, 523, 659].forEach((f, i) => tone(f, 0.4 + i * 0.28, 0.5, 'triangle', 0.14));
+      [523, 659, 784].forEach((f) => tone(f, 2.4, 1.6, 'triangle', 0.16));
+      [262, 330].forEach((f) => tone(f, 2.4, 1.6, 'sine', 0.12));
+      [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 5.2 + i * 0.12, 0.4, 'triangle', 0.18));
+      [523, 784, 1047].forEach((f) => tone(f, 5.9, 1.4, 'triangle', 0.2));
+    }),
 };
 
 export function vibrate(pattern: number | number[]) {

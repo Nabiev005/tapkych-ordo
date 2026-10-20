@@ -58,6 +58,8 @@ export interface Settings {
   fiftyFifty: boolean;
   selectionMode: 'ORDER' | 'DIFFICULTY';
   categories: string;
+  introEnabled: boolean;
+  introVideoUrl: string | null;
 }
 
 export interface GameRow extends Settings {
@@ -91,6 +93,15 @@ export interface BaseGame {
   endsAt: number | null;
   pausedRemainingMs: number | null;
   finishedAt: number | null;
+  startedAt: number | null;
+  intro: { videoUrl: string | null } | null;
+}
+
+/** Финалда ким биринчи басканы (жооп берген тартибинде) */
+export interface PressEntry {
+  playerId: number;
+  name: string;
+  responseMs: number;
 }
 
 export interface Ranked {
@@ -146,6 +157,8 @@ export interface AdminState {
   game: BaseGame & { settings: Settings };
   bank: Record<RoundKey, number>;
   bankTotal: number;
+  spare: number;
+  pressOrder: PressEntry[] | null;
   players: {
     id: number;
     name: string;
@@ -200,6 +213,7 @@ export interface ScreenState {
         audience: AudienceStats;
       })
     | null;
+  pressOrder: PressEntry[] | null;
   leaderboard: Ranked[] | null;
   teams: TeamStanding[] | null;
   qualifiers: { id: number; name: string }[] | null;

@@ -5,7 +5,7 @@ import { Ban, Crown, Eye, Flag, Hourglass, Lock, Medal, Music, PartyPopper, Paus
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
-import { OrnamentBand, SunTunduk } from '../../components/Ornament';
+import { Mascot, OrnamentBand, SunTunduk } from '../../components/Ornament';
 import { ShareCardModal } from '../../components/ShareCard';
 import { Button, ConnBadge, Spinner, useDialogs } from '../../components/ui';
 import { ky, type OptionKey, type RoundKey } from '../../i18n/ky';
@@ -84,7 +84,7 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
   if (g.status === 'LOBBY')
     return (
       <Shell>
-        <SunTunduk size={130} />
+        <Mascot size={140} className="animate-[bounce_2.4s_ease-in-out_infinite]" />
         <h1 className="font-display text-3xl font-black text-gold-gradient">{t.hello(me.name)}</h1>
         {me.team && g.teamMode && <div className="rounded-full bg-white/10 px-4 py-1 font-semibold text-ordo-sky-light"><School className="ico" /> {me.team}</div>}
         <motion.div animate={{ opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 2 }} className="font-display text-xl font-bold">

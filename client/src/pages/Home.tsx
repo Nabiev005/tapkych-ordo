@@ -36,7 +36,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../components/game';
 import { LangSwitch } from '../components/LangSwitch';
-import { HornMotif, Logo, OrnamentBand, SunTunduk } from '../components/Ornament';
+import { HornMotif, Logo, Mascot, OrnamentBand, SunTunduk } from '../components/Ornament';
 import { ky } from '../i18n/ky';
 import { OPTION_KEYS } from '../lib/types';
 
@@ -213,8 +213,8 @@ export default function Home() {
                 ))}
               </div>
             </motion.div>
-            <div className="absolute -left-6 -top-8 hidden md:block">
-              <SunTunduk size={80} />
+            <div className="absolute -left-10 -top-14 hidden drop-shadow-xl md:block">
+              <Mascot size={120} />
             </div>
           </motion.div>
         </div>

@@ -1,12 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link2, Monitor, Pencil, Play, Printer, RefreshCw, Trash2 } from 'lucide-react';
+import { Clapperboard, Link2, Monitor, Pencil, Play, Printer, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { JoinQr } from '../../../components/game';
+import IntroSettings from '../../../components/IntroSettings';
 import { Button, useDialogs } from '../../../components/ui';
 import { ky, type RoundKey } from '../../../i18n/ky';
 import { api, getJoinBase } from '../../../lib/api';
 import type { AdminState } from '../../../lib/types';
 import type { Act } from '../GameControl';
+import RoundCounts from './RoundCounts';
+
+const COUNT_KEY: Record<RoundKey, string> = { ROUND1: 'round1Count', ROUND2: 'round2Count', FINAL: 'finalQuestionCount' };
 
 export default function LobbyPanel({ state, act, busy }: { state: AdminState; act: Act; busy: string | null }) {
   const t = ky.admin.control;
@@ -142,6 +146,19 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
             ))}
           </AnimatePresence>
         </div>
+      </section>
+
+      {/* Суроолордун саны жана интро — баштоодон мурун өзгөртсө болот */}
+      <div className="lg:col-span-2">
+        <RoundCounts state={state} onSet={(round, count) => rest(() => api.patch(`/api/games/${g.id}/settings`, { [COUNT_KEY[round]]: count }))} />
+      </div>
+      <section className="card space-y-3 p-5 lg:col-span-3">
+        <h3 className="font-display text-lg font-bold"><Clapperboard className="ico" /> {ky.admin.newGame.introTitle}</h3>
+        <IntroSettings
+          enabled={g.settings.introEnabled}
+          videoUrl={g.settings.introVideoUrl}
+          onChange={(patch) => rest(() => api.patch(`/api/games/${g.id}/settings`, patch))}
+        />
       </section>
 
       {/* Баштоо */}

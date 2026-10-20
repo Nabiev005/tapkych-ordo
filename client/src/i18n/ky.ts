@@ -1009,6 +1009,14 @@ const kyDict = {
       categories: 'Темалар',
       categoriesHint: 'Эч бири тандалбаса — бардык темалар колдонулат.',
       bankTotal: (n: number) => `Банкта ${n} активдүү суроо`,
+      introTitle: 'Оюндун башталышындагы интро',
+      introEnabled: 'Башталганда экранда интро көрсөтүү',
+      introHint: 'Алып баруучу «Оюнду баштоо» баскычын басканда проектордо кыскача интро жүрөт. Өзүңүздүн видеоңуз болбосо — анимациялык интро көрсөтүлөт.',
+      introVideo: 'Өзүңүздүн видеоңуз (MP4/WEBM, 25 МБ чейин)',
+      introUpload: 'Видео жүктөө',
+      introRemove: 'Видеону алып салуу',
+      introDefault: 'Видео жок — анимациялык интро көрсөтүлөт',
+      introBadFile: 'MP4 же WEBM форматындагы, 25 МБ чейинки видео тандаңыз',
     },
 
     pins: {
@@ -1050,6 +1058,13 @@ const kyDict = {
           : `Бардык ${total} оюнчу кирди. Оюнду баштайлыбы?`,
       startBlocked: 'Оюнду баштоо мүмкүн эмес:',
       settingsSummary: (p: number, s: number) => `Туура жооп = ${p} упай · ${s} сек`,
+      countsTitle: 'Суроолордун саны',
+      countsHint: 'Ар бир турдагы суроолорду көбөйтүп же азайтсаңыз болот. Көрсөтүлгөн суроолорду алып салууга болбойт.',
+      countsSpare: (n: number) => `Банкта кошууга даяр суроолор: ${n}`,
+      countsDone: 'бүттү',
+      countsAsked: (n: number) => `${n} суралды`,
+      pressFirst: 'Биринчи басты',
+      pressOrder: 'Басуу тартиби',
 
       // Оюн учурунда
       roundProgress: (round: RoundKey, i: number, total: number) => `${kyDict.rounds[round]} · ${i}/${total}`,
@@ -1255,6 +1270,9 @@ const kyDict = {
     orderTitle: 'Туура ирет',
     members: (n: number) => `${n} оюнчу`,
     bestPlayer: 'Эң мыкты оюнчу',
+    pressFirst: 'БИРИНЧИ БАСТЫ',
+    pressSec: (ms: number) => `${(ms / 1000).toFixed(2)} сек`,
+    introStarts: 'ОЮН БАШТАЛАТ!',
   },
 };
 

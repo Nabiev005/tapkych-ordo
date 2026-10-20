@@ -28,6 +28,12 @@ const settingsSchema = z.object({
   fiftyFifty: z.boolean(),
   selectionMode: z.enum(['ORDER', 'DIFFICULTY']),
   categories: z.string().trim().max(500),
+  introEnabled: z.boolean(),
+  introVideoUrl: z
+    .string()
+    .trim()
+    .regex(/^\/uploads\/[\w.-]+$/)
+    .nullable(),
 });
 
 function parseId(raw: string): number {

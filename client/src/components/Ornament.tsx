@@ -99,24 +99,37 @@ export function SunTunduk({ size = 120, spin = true, className = '' }: { size?: 
   );
 }
 
+/** Бренддин SVG файлдары: client/public/brand/ */
+export const BRAND = {
+  icon: '/brand/tapkych-icon.svg',
+  mascot: '/brand/tapkych-mascot.svg',
+  logoDark: '/brand/tapkych-logo-dark.svg',
+  logoLight: '/brand/tapkych-logo-light.svg',
+  headerLight: '/brand/tapkych-header-light.svg',
+};
+
+/**
+ * Логотип. sm — тилкелер жана меню үчүн (иконка + аталыш), калгандары — маскот менен толук логотип.
+ * onDark — караңгы фон (демейки), false — ачык фон.
+ */
 export function Logo({ size = 'md', onDark = true }: { size?: 'sm' | 'md' | 'lg' | 'xl'; onDark?: boolean }) {
-  const s = { sm: [36, 'text-lg'], md: [56, 'text-2xl'], lg: [110, 'text-5xl'], xl: [190, 'text-7xl md:text-8xl'] }[size] as [number, string];
-  const vertical = size === 'lg' || size === 'xl';
-  return (
-    <div className={`flex items-center ${vertical ? 'flex-col gap-4' : 'gap-3'}`}>
-      <SunTunduk size={s[0]} spin={vertical} />
-      <div className={vertical ? 'text-center' : ''}>
-        <div
-          className={`font-display font-black tracking-wide leading-none ${s[1]} ${onDark ? 'text-gold-gradient drop-shadow-[0_4px_20px_rgba(245,183,0,0.35)]' : 'text-ordo-red'}`}
-        >
-          {ky.appNameUpper}
+  if (size === 'sm') {
+    if (!onDark) return <img src={BRAND.headerLight} alt={ky.appName} className="h-10 w-auto" />;
+    return (
+      <div className="flex items-center gap-2.5">
+        <img src={BRAND.icon} alt="" className="h-10 w-10" />
+        <div className="font-display leading-none">
+          <div className="text-xl font-black lowercase tracking-wide text-ordo-gold">{ky.appNameUpper.split(' ')[0]}</div>
+          <div className="mt-0.5 text-sm font-bold tracking-[0.3em] text-white/85">{ky.appNameUpper.split(' ').slice(1).join(' ')}</div>
         </div>
-        {vertical && (
-          <div className={`mt-2 font-display text-sm tracking-[0.4em] uppercase md:text-base ${onDark ? 'text-ordo-sky-light/80' : 'text-ordo-ink/60'}`}>
-            {ky.tagline}
-          </div>
-        )}
       </div>
-    </div>
-  );
+    );
+  }
+  const h = { md: 'h-16', lg: 'h-28', xl: 'h-[clamp(9rem,22vh,15rem)]' }[size];
+  return <img src={onDark ? BRAND.logoDark : BRAND.logoLight} alt={ky.appName} className={`${h} w-auto drop-shadow-[0_6px_24px_rgba(0,0,0,0.25)]`} />;
+}
+
+/** «Тапкыч» маскоту — бүркүт балапан */
+export function Mascot({ size = 120, className = '' }: { size?: number; className?: string }) {
+  return <img src={BRAND.mascot} alt="" width={size} height={(size * 340) / 300} className={className} />;
 }

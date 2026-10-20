@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Ban, Check, CircleCheckBig, Eye, Flag, Monitor, Pause, Play, School, SkipForward, TriangleAlert, Trophy, Users, WifiOff, Zap } from 'lucide-react';
+import { Ban, Check, CircleCheckBig, Eye, Flag, Hand, Monitor, Pause, Play, School, SkipForward, TriangleAlert, Trophy, Users, WifiOff, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { LeaderboardList, OPTION_STYLE, RingTimer, TeamBoard } from '../../../components/game';
 import { Button, Modal, useDialogs } from '../../../components/ui';
@@ -9,6 +9,7 @@ import { answerLabel } from '../../../lib/questions';
 import { useCountdown } from '../../../lib/useGameSocket';
 import { assetUrl } from '../../../lib/api';
 import type { Act } from '../GameControl';
+import RoundCounts from './RoundCounts';
 
 export default function LivePanel({ state, act, busy, offset }: { state: AdminState; act: Act; busy: string | null; offset: number }) {
   const t = ky.admin.control;
@@ -25,6 +26,8 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
   const correctCount = active.filter((p) => state.answers[p.id]?.isCorrect).length;
 
   // ───── Баскычтар ─────
+  const setCount = (r: RoundKey, count: number) => act({ type: 'setRoundCount', round: r, count });
+
   const doReveal = async () => {
     const unanswered = active.length - answeredCount;
     if (msLeft > 0 && unanswered > 0) {
@@ -97,7 +100,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
       </div>
 
       {g.phase === 'ROUND_END' ? (
-        <RoundEndPanel state={state} act={act} busy={busy} onAdjust={setAdjusting} />
+        <RoundEndPanel state={state} act={act} busy={busy} onAdjust={setAdjusting} onSetCount={setCount} />
       ) : (
         <div className="grid gap-5 xl:grid-cols-3">
           <div className="space-y-5 xl:col-span-2">
@@ -202,6 +205,19 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                   <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-sm font-bold text-emerald-700">{t.correctCount(correctCount)}</span>
                   <span className="rounded-full bg-ordo-red/10 px-3 py-0.5 text-sm font-bold text-ordo-red">{t.wrongCount(answeredCount - correctCount)}</span>
                 </div>
+                {/* Финалда — ким биринчи басканы */}
+                {state.pressOrder && state.pressOrder.length > 0 && (
+                  <div className="mb-3 rounded-2xl bg-ordo-gold/15 p-3">
+                    <div className="font-display text-lg font-black">
+                      <Hand className="ico text-ordo-gold-dark" /> {t.pressFirst}: {state.pressOrder[0].name} · {ky.screen.pressSec(state.pressOrder[0].responseMs)}
+                    </div>
+                    {state.pressOrder.length > 1 && (
+                      <div className="mt-1 text-sm text-ordo-ink/60">
+                        {t.pressOrder}: {state.pressOrder.map((x, i) => `${i + 1}. ${x.name} (${ky.screen.pressSec(x.responseMs)})`).join(' · ')}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
                   {active.map((p) => {
                     const a = state.answers[p.id];
@@ -247,6 +263,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
               <h3 className="mb-3 font-display text-lg font-bold">{t.leaderboardTitle(round)}</h3>
               <LeaderboardList rows={state.leaderboard} light />
             </section>
+            <RoundCounts state={state} onSet={setCount} />
             <PlayersManage state={state} act={act} onAdjust={setAdjusting} />
           </aside>
         </div>
@@ -346,7 +363,19 @@ function AdjustModal({ state, act, playerId, onClose }: { state: AdminState; act
   );
 }
 
-function RoundEndPanel({ state, act, busy, onAdjust }: { state: AdminState; act: Act; busy: string | null; onAdjust: (id: number) => void }) {
+function RoundEndPanel({
+  state,
+  act,
+  busy,
+  onAdjust,
+  onSetCount,
+}: {
+  state: AdminState;
+  act: Act;
+  busy: string | null;
+  onAdjust: (id: number) => void;
+  onSetCount: (round: RoundKey, count: number) => Promise<unknown>;
+}) {
   const t = ky.admin.control;
   const { confirm } = useDialogs();
   const re = state.roundEnd!;
@@ -416,12 +445,15 @@ function RoundEndPanel({ state, act, busy, onAdjust }: { state: AdminState; act:
           {isFinal ? <><Trophy className="ico" /> {t.btn.finish}</> : <><Check className="ico" /> {t.confirmAdvance}</>}
         </Button>
       </section>
-      <aside className="card space-y-3 p-5">
-        <h3 className="font-display text-lg font-bold"><Monitor className="ico" /> {ky.admin.control.screenLink}</h3>
-        <p className="text-sm text-ordo-ink/60">{ky.screen.roundResults(re.round)}</p>
-        <Button variant="outline" className="w-full" loading={busy === 'togglePause'} onClick={() => act({ type: 'togglePause' })}>
-          {state.game.paused ? <><Play className="ico" /> {t.btn.resume}</> : <><Pause className="ico" /> {t.btn.pause}</>}
-        </Button>
+      <aside className="space-y-5">
+        <section className="card space-y-3 p-5">
+          <h3 className="font-display text-lg font-bold"><Monitor className="ico" /> {ky.admin.control.screenLink}</h3>
+          <p className="text-sm text-ordo-ink/60">{ky.screen.roundResults(re.round)}</p>
+          <Button variant="outline" className="w-full" loading={busy === 'togglePause'} onClick={() => act({ type: 'togglePause' })}>
+            {state.game.paused ? <><Play className="ico" /> {t.btn.resume}</> : <><Pause className="ico" /> {t.btn.pause}</>}
+          </Button>
+        </section>
+        {!isFinal && <RoundCounts state={state} onSet={onSetCount} />}
       </aside>
     </div>
   );

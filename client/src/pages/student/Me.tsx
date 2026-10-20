@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { PracticeBoard } from '../../components/PracticeBoard';
 import { LangSwitch } from '../../components/LangSwitch';
-import { Logo, OrnamentBand, SunTunduk } from '../../components/Ornament';
+import { Logo, Mascot, OrnamentBand, SunTunduk } from '../../components/Ornament';
 import { Button, Spinner, useDialogs } from '../../components/ui';
 import { fmtDateTime, ky } from '../../i18n/ky';
 import { assetUrl, studentApi, studentToken } from '../../lib/api';
@@ -63,7 +63,7 @@ function Login({ onLogin }: { onLogin: (token: string) => void }) {
         </Link>
         <LangSwitch dark />
       </div>
-      <SunTunduk size={110} />
+      <Mascot size={120} />
       <div>
         <h1 className="font-display text-3xl font-black text-gold-gradient">{t.loginTitle}</h1>
         <p className="mt-2 text-white/70">{t.loginHint}</p>

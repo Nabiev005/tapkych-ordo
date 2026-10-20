@@ -30,7 +30,21 @@ function base(game: FullGame) {
     endsAt: game.questionEndsAt?.getTime() ?? null,
     pausedRemainingMs: game.pausedRemainingMs,
     finishedAt: game.finishedAt?.getTime() ?? null,
+    startedAt: game.startedAt?.getTime() ?? null,
+    // Оюн башталганда экранда көрсөтүлүүчү интро (видео жок болсо — анимация)
+    intro: game.introEnabled ? { videoUrl: game.introVideoUrl } : null,
   };
+}
+
+/**
+ * Финалда ким биринчи басканы: жооп берген тартибинде (аты жана убактысы).
+ * Туура/ката экени бул жерде жок — ал REVEAL'дан кийин гана players[].correct аркылуу көрүнөт.
+ */
+function pressOrder(game: FullGame, q: FullQuestion | null) {
+  if (currentRound(game) !== 'FINAL' || !q || (game.phase !== 'QUESTION' && game.phase !== 'REVEAL')) return null;
+  return [...q.answers]
+    .sort((a, b) => a.responseMs - b.responseMs || a.id - b.id)
+    .map((a) => ({ playerId: a.playerId, name: game.players.find((p) => p.id === a.playerId)?.name ?? '?', responseMs: a.responseMs }));
 }
 
 const options = (q: FullQuestion) => ({ A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD });
@@ -77,6 +91,21 @@ export async function adminSnapshot(game: FullGame) {
   const bank = Object.fromEntries(ROUNDS.map((r) => [r, bankGroups.find((g) => g.round === r)?._count._all ?? 0]));
   const bankTotal = Object.values(bank).reduce((s, n) => s + n, 0);
   const active = round ? participants(game, round).filter((p) => p.status === 'ACTIVE').map((p) => p.id) : [];
+  // Оюн учурунда суроо кошуу үчүн: банкта ушул оюнга али алына элек суроолор
+  const categories = game.categories
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean);
+  const spare = round
+    ? await prisma.question.count({
+        where: {
+          ownerId: game.ownerId,
+          archived: false,
+          id: { notIn: game.questions.map((x) => x.questionId).filter((id): id is number => id !== null) },
+          ...(categories.length ? { category: { in: categories } } : {}),
+        },
+      })
+    : 0;
 
   return {
     role: 'admin' as const,
@@ -98,10 +127,14 @@ export async function adminSnapshot(game: FullGame) {
         fiftyFifty: game.fiftyFifty,
         selectionMode: game.selectionMode,
         categories: game.categories,
+        introEnabled: game.introEnabled,
+        introVideoUrl: game.introVideoUrl,
       },
     },
     bank,
     bankTotal,
+    spare,
+    pressOrder: pressOrder(game, q),
     players: game.players.map((p) => ({
       id: p.id,
       name: p.name,
@@ -201,6 +234,7 @@ export function screenSnapshot(game: FullGame) {
             audience: revealed ? audienceStats(q) : { total: q.votes.length, counts: null },
           }
         : null,
+    pressOrder: pressOrder(game, q),
     leaderboard: showBoard ? rankRound(game, round!) : null,
     teams: game.teamMode && (showBoard || game.status === 'FINISHED') ? teamStandings(game) : null,
     // Жаңы турдун башында: мурунку турдан өткөндөр салтанаттуу көрсөтүлөт

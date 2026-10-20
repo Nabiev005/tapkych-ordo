@@ -40,7 +40,7 @@ server/
                        Submission, Upload, LibraryQuestion (Question.libraryId — көчүрмөнүн булагы),
                        LibraryPack + LibraryPackItem, PracticeAttempt (Student.accessCode)
   prisma/migrations/   init, phases, archive_students_rating, school_features, teacher_google,
-                       teacher_approval, library, packs_student_practice
+                       teacher_approval, library, packs_student_practice, league, telegram, game_intro
   prisma/seed.ts       база бош болсо, 25 мисал суроо кошот
   src/index.ts         Express + Socket.IO; client/dist'ти да берет
   src/migrate.ts       өзүнчө жазылган migrator (`_ordo_migrations` таблицасы; Turso'до да иштейт)
@@ -138,6 +138,11 @@ cd server && npx tsc --noEmit
 
 21. (2026-10-16) **Башкы бет жаңыланды:** hero'до лига жана Telegram-бот, badges'ке «Мектептер аралык лига», «Telegram-бот», «Акысыз»; «Мүмкүнчүлүктөр» башында 6 жаңы карта `isNew` (сары рамка + «Жаңы» белгиси): лига, бот, аналитика, бөлүшүү карточкасы, топтордун рейтинги, суроолордун статистикасы (жалпы 20 карта, 4 тилке); FAQ'ко лига, бот жана акысыздык; index.html meta description.
 22. (2026-10-16) **Түндүк туудагыдай:** `components/flagSun.ts` — Кыргызстандын азыркы туусундагы күндүн расмий SVG формасы (Wikimedia, коомдук менчик; 40 түз нур + кесилишкен жаалуу түндүк, evenodd). `SunTunduk`: нурлар маска менен дисктен тышкары айланат, диск/түндүк кыймылсыз, астындагы кызыл тегерек түндүктүн сызыктарын кызыл кылат. ShareCard'дагы `drawSun` (Path2D) жана `public/favicon.svg` да ушул форма менен.
+23. (2026-10-20) **Кардардын үч талабы** (миграция `20261020120000_game_intro`, тест `test/extras.test.ts`):
+    - **Интро:** `Game.introEnabled` (демейки true) + `introVideoUrl` (`POST /api/uploads/video`, mp4/webm ≤25 МБ, `/uploads/:id` Range колдойт). Экранда `pages/screen/Intro.tsx` — ROUND1 + IDLE + index −1 болгондо: видео болсо видео (үнү бөгөттөлсө — үнсүз), жок болсо 9 сек анимация (`sfx.intro`). «Биринчи суроо» басылса токтойт; `base().startedAt` боюнча кайра жүктөлгөндө кайталанбайт. Жөндөө — `components/IntroSettings.tsx` (NewGame жана Lobby; акыркы видео localStorage `ordo_intro_video`'до).
+    - **Суроолордун саны:** лоббиде PATCH settings, оюн учурунда `setRoundCount { round, count }` аракети (учурдагы/кийинки тур; көрсөтүлгөн суроодон азайбайт; кошулганда банктан ушул оюнда жок суроо алынат — ошол тур/кыйынчылык биринчи). adminSnapshot'то `spare`. UI — `control/RoundCounts.tsx`.
+    - **Финалда ким биринчи басты:** `pressOrder` (screen + admin snapshot, FINAL'да гана, QUESTION/REVEAL): жооп берген тартибинде аты жана убактысы, туура/ката жок. Экранда «БИРИНЧИ БАСТЫ» баннери (`sfx.buzz`) жана оюнчулардын чиптеринде тартип номери.
+24. (2026-10-20) **Бренд логолору** `client/public/brand/` (icon, mascot, logo-dark, logo-light, header-light; булагы — кардар берген SVG'лер). `Logo` (Ornament.tsx): `sm` — иконка + HTML аталыш (караңгы фон) же header-light (`onDark={false}`); md/lg/xl — logo-dark/light сүрөтү. `Mascot` — оюнчунун лоббиси (Play), `/me` кирүү, Home hero. `public/favicon.svg` = tapkych-icon (мурунку туудагы күн формасы ShareCard'да жана SunTunduk'та калды).
 ## Калган иштер жана идеялар
 
 - [x] **Google менен кирүү иштейт (2026-10-10, www.tapkych.com'до сыналды).** OAuth Client ID «My Project 5063» (`clear-destiny-500409-u9`) долбоорунда түзүлгөн («peak-bricolage-6mn89» Starter Tier болгондуктан колдонулбайт). Колдонмо жарыяланган (In production). Origins: onrender, vercel.app, www.tapkych.com, tapkych.com, localhost:3000/5173. Render'де `GOOGLE_CLIENT_ID` жана `ADMIN_EMAILS` коюлган.

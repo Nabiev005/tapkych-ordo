@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Gamepad2, Settings as SettingsIcon, Tag, Target, TriangleAlert, Users, Zap } from 'lucide-react';
+import { Clapperboard, Gamepad2, Settings as SettingsIcon, Tag, Target, TriangleAlert, Users, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import IntroSettings from '../../components/IntroSettings';
 import { Button, useDialogs } from '../../components/ui';
 import { ky, type RoundKey } from '../../i18n/ky';
 import { api } from '../../lib/api';
@@ -21,7 +22,20 @@ const DEFAULTS: Omit<Settings, 'soundEnabled'> = {
   fiftyFifty: false,
   selectionMode: 'ORDER',
   categories: '',
+  introEnabled: true,
+  introVideoUrl: null,
 };
+
+/** Акыркы жүктөлгөн интро видео кийинки оюндарда демейки болуп калат */
+const INTRO_KEY = 'ordo_intro_video';
+function savedIntro(): string | null {
+  try {
+    const v = localStorage.getItem(INTRO_KEY);
+    return v && v.startsWith('/uploads/') ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 type NumKey = 'pointsPerCorrect' | 'timerSeconds' | 'expectedPlayers' | 'round1Count' | 'round2Count' | 'finalQuestionCount' | 'advanceToRound2' | 'advanceToFinal';
 const FIELDS: { key: NumKey; min: number; max: number }[] = [
@@ -46,7 +60,7 @@ export default function NewGame() {
   const [query, setQuery] = useState('');
   const [cls, setCls] = useState('');
   const [quick, setQuick] = useState({ name: '', className: '' });
-  const [s, setS] = useState(DEFAULTS);
+  const [s, setS] = useState(() => ({ ...DEFAULTS, introVideoUrl: savedIntro() }));
   const [busy, setBusy] = useState(false);
   const [bank, setBank] = useState<Record<RoundKey, number> | null>(null);
   const [bankInfo, setBankInfo] = useState<{ total: number; categories: { name: string; count: number }[] } | null>(null);
@@ -272,6 +286,25 @@ export default function NewGame() {
               </div>
             )}
             {bankInfo && <div className="text-xs text-ordo-ink/45">{t.bankTotal(bankInfo.total)}</div>}
+          </section>
+
+          <section className="card space-y-4 p-5">
+            <h2 className="font-display text-lg font-bold"><Clapperboard className="ico" /> {t.introTitle}</h2>
+            <IntroSettings
+              enabled={s.introEnabled}
+              videoUrl={s.introVideoUrl}
+              onChange={(patch) => {
+                setS((x) => ({ ...x, ...patch }));
+                if (patch.introVideoUrl !== undefined) {
+                  try {
+                    if (patch.introVideoUrl) localStorage.setItem(INTRO_KEY, patch.introVideoUrl);
+                    else localStorage.removeItem(INTRO_KEY);
+                  } catch {
+                    /* жеке режимде localStorage иштебеши мүмкүн */
+                  }
+                }
+              }}
+            />
           </section>
 
           <section className="card space-y-4 p-5">

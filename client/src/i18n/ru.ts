@@ -948,6 +948,14 @@ export const ruDict: Ky = {
       categories: 'Темы',
       categoriesHint: 'Если ничего не выбрано — используются все темы.',
       bankTotal: (n: number) => `Активных вопросов в банке: ${n}`,
+      introTitle: 'Интро в начале игры',
+      introEnabled: 'Показывать интро на экране при старте',
+      introHint: 'Когда ведущий нажимает «Начать игру», на проекторе проигрывается короткое интро. Если своего видео нет — показывается анимированное интро.',
+      introVideo: 'Своё видео (MP4/WEBM, до 25 МБ)',
+      introUpload: 'Загрузить видео',
+      introRemove: 'Убрать видео',
+      introDefault: 'Видео нет — будет показано анимированное интро',
+      introBadFile: 'Выберите видео MP4 или WEBM размером до 25 МБ',
     },
 
     pins: {
@@ -987,6 +995,13 @@ export const ruDict: Ky = {
         j < total ? `Вошли только ${j} из ${total} игроков. Остальные смогут подключиться позже. Начинаем?` : `Все ${total} игроков на месте. Начинаем?`,
       startBlocked: 'Начать игру нельзя:',
       settingsSummary: (p: number, s: number) => `Верный ответ = ${p} б. · ${s} сек`,
+      countsTitle: 'Количество вопросов',
+      countsHint: 'Количество вопросов в каждом туре можно увеличить или уменьшить. Уже показанные вопросы убрать нельзя.',
+      countsSpare: (n: number) => `В банке доступно для добавления: ${n}`,
+      countsDone: 'завершён',
+      countsAsked: (n: number) => `задано: ${n}`,
+      pressFirst: 'Первым нажал',
+      pressOrder: 'Порядок нажатия',
 
       roundProgress: (round: RoundKey, i: number, total: number) => `${ruDict.rounds[round]} · ${i}/${total}`,
       roundIntro: (round: RoundKey) => `${ruDict.rounds[round]} начался`,
@@ -1188,6 +1203,9 @@ export const ruDict: Ky = {
     orderTitle: 'Правильный порядок',
     members: (n: number) => `${n} игр.`,
     bestPlayer: 'Лучший игрок',
+    pressFirst: 'ПЕРВЫМ НАЖАЛ',
+    pressSec: (ms: number) => `${(ms / 1000).toFixed(2)} сек`,
+    introStarts: 'ИГРА НАЧИНАЕТСЯ!',
   },
 };
 

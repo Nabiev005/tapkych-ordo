@@ -143,6 +143,74 @@ async function startGame(gameId: number) {
   ]);
 }
 
+const COUNT_FIELD = { ROUND1: 'round1Count', ROUND2: 'round2Count', FINAL: 'finalQuestionCount' } as const;
+export const MAX_ROUND_COUNT = 50;
+
+/**
+ * Оюн учурунда турдагы суроолордун санын өзгөртүү (учурдагы же кийинки тур).
+ * Азайтканда — али көрсөтүлө элек суроолор оюндан алынат (банкта калат).
+ * Көбөйткөндө — банктан ушул оюнда жок суроолор кошулат (адегенде ошол турдун/кыйынчылыктын суроолору).
+ */
+async function setRoundCount(gameId: number, round: Round, count: number) {
+  const game = await mustLoad(gameId);
+  const cur = currentRound(game);
+  if (!cur || !Number.isInteger(count) || count < 1 || count > MAX_ROUND_COUNT) throw new AppError('BAD_REQUEST');
+  const ri = ROUNDS.indexOf(round);
+  const ci = ROUNDS.indexOf(cur);
+  if (ri < ci || (ri === ci && game.phase === 'ROUND_END')) throw new AppError('INVALID_ACTION');
+  // Учурдагы турда көрсөтүлгөн (же даярдалган) суроолордон азайтууга болбойт
+  const min = ri === ci ? Math.max(1, game.currentIndex + 1) : 1;
+  if (count < min) throw new AppError('INVALID_ACTION');
+
+  const list = roundQuestions(game, round);
+  const ops: Prisma.PrismaPromise<unknown>[] = [];
+  if (count < list.length) {
+    const drop = list.slice(count);
+    if (drop.some((q) => q.startedAt)) throw new AppError('INVALID_ACTION');
+    ops.push(prisma.gameQuestion.deleteMany({ where: { id: { in: drop.map((q) => q.id) } } }));
+  } else if (count > list.length) {
+    const need = count - list.length;
+    const inGame = game.questions.map((q) => q.questionId).filter((id): id is number => id !== null);
+    const categories = game.categories
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean);
+    const pool = await prisma.question.findMany({
+      where: { ownerId: game.ownerId, archived: false, id: { notIn: inGame }, ...(categories.length ? { category: { in: categories } } : {}) },
+      orderBy: [{ round: 'asc' }, { order: 'asc' }],
+    });
+    const prefer: Record<Round, string[]> = { ROUND1: ['EASY', 'MEDIUM', 'HARD'], ROUND2: ['MEDIUM', 'EASY', 'HARD'], FINAL: ['HARD', 'MEDIUM', 'EASY'] };
+    const rank = (q: (typeof pool)[number]) =>
+      game.selectionMode === 'DIFFICULTY' ? prefer[round].indexOf(q.difficulty) : q.round === round ? 0 : 1;
+    const picked = [...pool].sort((a, b) => rank(a) - rank(b)).slice(0, need);
+    if (picked.length < need) throw new AppError('NOT_ENOUGH_QUESTIONS', 400, { round, need: count, have: list.length + picked.length });
+    const start = list.length ? list[list.length - 1].order + 1 : 0;
+    ops.push(
+      prisma.gameQuestion.createMany({
+        data: picked.map((q, i) => ({
+          gameId,
+          questionId: q.id,
+          round,
+          order: start + i,
+          type: q.type,
+          category: q.category,
+          difficulty: q.difficulty,
+          text: q.text,
+          imageUrl: q.imageUrl,
+          audioUrl: q.audioUrl,
+          optionA: q.optionA,
+          optionB: q.optionB,
+          optionC: q.optionC,
+          optionD: q.optionD,
+          correct: q.correct,
+        })),
+      }),
+    );
+  }
+  ops.push(prisma.game.update({ where: { id: gameId }, data: { [COUNT_FIELD[round]]: count } }));
+  await prisma.$transaction(ops);
+}
+
 async function nextQuestion(gameId: number) {
   const game = await mustLoad(gameId);
   const round = mustRound(game);
@@ -338,7 +406,8 @@ export type AdminAction =
   | { type: 'kickPlayer'; playerId: number }
   | { type: 'restorePlayer'; playerId: number }
   | { type: 'adjustScore'; playerId: number; delta: number; round?: Round }
-  | { type: 'setSound'; enabled: boolean };
+  | { type: 'setSound'; enabled: boolean }
+  | { type: 'setRoundCount'; round: Round; count: number };
 
 export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
   return withLock(gameId, async () => {
@@ -359,6 +428,10 @@ export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
         await adjustScore(gameId, Number(a.playerId), Number(a.delta), ROUNDS.includes(a.round as Round) ? a.round : undefined);
         break;
       case 'setSound': await setSound(gameId, !!a.enabled); break;
+      case 'setRoundCount':
+        if (!ROUNDS.includes(a.round)) throw new AppError('BAD_REQUEST');
+        await setRoundCount(gameId, a.round, Number(a.count));
+        break;
       default: throw new AppError('INVALID_ACTION');
     }
     changed(gameId);

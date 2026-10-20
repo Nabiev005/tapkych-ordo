@@ -156,6 +156,8 @@ model Game {
   fiftyFifty         Boolean @default(false) // «50/50» жардамы
   selectionMode      String  @default("ORDER") // ORDER — турлар боюнча; DIFFICULTY — кыйынчылык боюнча
   categories         String  @default("") // үтүр менен: «Тарых,География» (бош — баары)
+  introEnabled       Boolean @default(true) // оюн башталганда экранда интро көрсөтүлөт
+  introVideoUrl      String? // өзүнүн интро видеосу (/uploads/...); жок болсо — анимациялык интро
 
   createdAt  DateTime  @default(now())
   startedAt  DateTime?

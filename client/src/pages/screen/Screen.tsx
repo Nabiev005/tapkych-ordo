@@ -1,6 +1,6 @@
 import confetti from 'canvas-confetti';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Lock, School, Star, Trophy, Users, Volume1, Zap } from 'lucide-react';
+import { Hand, Lock, School, Star, Trophy, Users, Volume1, Zap } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { AudienceBars, JoinQr, LeaderboardList, OPTION_STYLE, OptionCard, Podium, RingTimer, TeamBoard } from '../../components/game';
@@ -11,6 +11,7 @@ import { assetUrl, getJoinBase } from '../../lib/api';
 import { audioUnlocked, setSoundEnabled, sfx, unlockAudio } from '../../lib/sound';
 import { optionKeysFor, type ScreenState } from '../../lib/types';
 import { useCountdown, useGameSocket } from '../../lib/useGameSocket';
+import IntroOverlay from './Intro';
 
 const COLORS = ['#c8102e', '#f5b700', '#1ba4e3', '#ffffff'];
 
@@ -63,6 +64,8 @@ export default function Screen() {
         <Stage state={state} offset={offset} />
       </div>
       <OrnamentBand height={26} flip />
+
+      <IntroOverlay state={state} offset={offset} />
 
       <AnimatePresence>
         {state.game.paused && (
@@ -333,9 +336,12 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
       {q.audioUrl && g.phase === 'QUESTION' && <QuestionAudio src={assetUrl(q.audioUrl)!} />}
       {!revealed && q.audience.total > 0 && <div className="text-center text-lg text-violet-200/70"><Users className="ico" /> {ky.screen.audienceVotes(q.audience.total)}</div>}
 
+      {state.pressOrder && state.pressOrder.length > 0 && <FirstPress entry={state.pressOrder[0]} />}
+
       {/* Оюнчулар: ким жооп бергени (жооптун өзү көрүнбөйт), ачылгандан кийин ✓/✗ */}
       <div className="flex flex-wrap justify-center gap-2.5">
         {state.players.map((p) => {
+          const pressed = state.pressOrder?.findIndex((x) => x.playerId === p.id) ?? -1;
           const cls =
             p.correct === true
               ? 'bg-emerald-500 ring-emerald-300'
@@ -351,13 +357,35 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
               animate={p.answered && !revealed ? { scale: [1, 1.15, 1] } : { scale: 1 }}
               className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 font-display text-[clamp(1rem,1.5vw,1.6rem)] font-bold ring-2 ${cls}`}
             >
+              {pressed >= 0 && <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/25 text-base">{pressed + 1}</span>}
               {p.correct === true ? '✓' : p.correct === false ? '✗' : p.answered ? '●' : '○'} {p.name}
+              {pressed >= 0 && <span className="text-base font-semibold opacity-80">{ky.screen.pressSec(state.pressOrder![pressed].responseMs)}</span>}
               {p.bonus > 0 && <span className="rounded-lg bg-black/20 px-2 text-base"><Zap className="ico" />+{p.bonus}</span>}
             </motion.div>
           );
         })}
       </div>
     </div>
+  );
+}
+
+/** Финал: биринчи баскан оюнчунун аты-жөнү */
+function FirstPress({ entry }: { entry: { playerId: number; name: string; responseMs: number } }) {
+  return (
+    <motion.div
+      key={entry.playerId}
+      initial={{ scale: 0.4, opacity: 0, y: 30 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ type: 'spring', damping: 11 }}
+      className="mx-auto flex items-center gap-5 rounded-3xl bg-gradient-to-b from-ordo-gold-light to-ordo-gold-dark px-10 py-4 text-ordo-night shadow-[0_0_60px_rgba(245,183,0,0.55)]"
+    >
+      <Hand className="h-12 w-12" />
+      <div>
+        <div className="font-display text-xl font-black tracking-[0.25em]">{ky.screen.pressFirst}</div>
+        <div className="font-display text-[clamp(2rem,3.6vw,4rem)] font-black leading-none">{entry.name}</div>
+      </div>
+      <div className="rounded-2xl bg-black/15 px-4 py-2 font-display text-3xl font-black tabular-nums">{ky.screen.pressSec(entry.responseMs)}</div>
+    </motion.div>
   );
 }
 
@@ -474,6 +502,12 @@ function Finale({ state }: { state: ScreenState }) {
 function SoundDirector({ state, offset }: { state: ScreenState; offset: number }) {
   const g = state.game;
   const prev = useRef<{ phase: string; status: string; board: boolean; players: number; q: number | undefined } | null>(null);
+  const firstPress = state.pressOrder?.[0]?.playerId ?? null;
+  const prevPress = useRef<number | null>(null);
+  useEffect(() => {
+    if (firstPress !== null && prevPress.current === null && g.phase === 'QUESTION') sfx.buzz();
+    prevPress.current = firstPress;
+  }, [firstPress, g.phase]);
   const msLeft = useCountdown(g.phase === 'QUESTION' && !g.paused ? g.endsAt : null, offset);
   const lastSec = useRef<number | null>(null);
 
