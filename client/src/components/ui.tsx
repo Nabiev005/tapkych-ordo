@@ -233,3 +233,24 @@ export function ConnBadge({ status, dark }: { status: string; dark?: boolean }) 
 export function FullCenter({ children, dark = true }: { children: ReactNode; dark?: boolean }) {
   return <div className={`flex min-h-dvh flex-col items-center justify-center p-6 text-center ${dark ? 'bg-night text-white' : ''}`}>{children}</div>;
 }
+
+/** Күйгүзүү/өчүрүү которгучу аталышы жана түшүндүрмөсү менен */
+export function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint: string }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition ${checked ? 'bg-emerald-500' : 'bg-slate-300'}`}
+      >
+        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? 'left-6' : 'left-1'}`} />
+      </button>
+      <span>
+        <span className="block text-sm font-semibold text-ordo-ink/80">{label}</span>
+        <span className="block text-xs text-ordo-ink/50">{hint}</span>
+      </span>
+    </label>
+  );
+}

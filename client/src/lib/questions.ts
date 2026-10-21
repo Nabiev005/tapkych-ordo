@@ -4,6 +4,7 @@ import type { Options } from './types';
 /** Жоопту түрүнө жараша кыскача көрсөтүү: «Б», «Туура», «В→А→Г→Б» */
 export function answerLabel(type: QuestionType, choice: string | null | undefined): string {
   if (!choice) return '—';
+  if (choice === 'BUZZ') return ky.buzzChoice;
   if (type === 'TF') return ky.tf[choice] ?? choice;
   if (type === 'ORDER') return [...choice].map((c) => ky.options[c as OptionKey] ?? c).join('→');
   return ky.options[choice as OptionKey] ?? choice;

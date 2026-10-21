@@ -33,6 +33,11 @@ export function currentQuestion(game: FullGame): FullQuestion | null {
   return roundQuestions(game, round)[game.currentIndex] ?? null;
 }
 
+/** Финалдын «биринчи баскан жооп берет» режими: варианттын ордуна баскыч, жоопту алып баруучу баалайт */
+export function isBuzzer(game: { finalBuzzer: boolean }, round: Round | null): boolean {
+  return game.finalBuzzer && round === 'FINAL';
+}
+
 export function roundSize(game: FullGame, round: Round): number {
   return round === 'ROUND1' ? game.round1Count : round === 'ROUND2' ? game.round2Count : game.finalQuestionCount;
 }

@@ -319,7 +319,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
                 index={i}
                 correct={revealed && q.correct === k}
                 dim={revealed && q.correct !== k}
-                count={revealed ? (q.stats?.[k] ?? 0) : null}
+                count={revealed && q.stats ? (q.stats[k] ?? 0) : null}
               />
             ))}
           </div>
@@ -336,16 +336,19 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
       {q.audioUrl && g.phase === 'QUESTION' && <QuestionAudio src={assetUrl(q.audioUrl)!} />}
       {!revealed && q.audience.total > 0 && <div className="text-center text-lg text-violet-200/70"><Users className="ico" /> {ky.screen.audienceVotes(q.audience.total)}</div>}
 
-      {state.pressOrder && state.pressOrder.length > 0 && <FirstPress entry={state.pressOrder[0]} />}
+      {g.buzzer ? <BuzzBanner state={state} /> : state.pressOrder && state.pressOrder.length > 0 && <FirstPress entry={state.pressOrder[0]} />}
 
       {/* Оюнчулар: ким жооп бергени (жооптун өзү көрүнбөйт), ачылгандан кийин ✓/✗ */}
       <div className="flex flex-wrap justify-center gap-2.5">
         {state.players.map((p) => {
           const pressed = state.pressOrder?.findIndex((x) => x.playerId === p.id) ?? -1;
+          // «Биринчи баскан» режиминде ката жооп ошол замат көрүнөт (алып баруучу баалаган)
+          const status = pressed >= 0 ? state.pressOrder![pressed].status : undefined;
+          const correct = status === 'wrong' ? false : status === 'correct' ? true : p.correct;
           const cls =
-            p.correct === true
+            correct === true
               ? 'bg-emerald-500 ring-emerald-300'
-              : p.correct === false
+              : correct === false
                 ? 'bg-ordo-red ring-red-300'
                 : p.answered
                   ? 'bg-ordo-gold text-ordo-night ring-ordo-gold-light shadow-[0_0_24px_rgba(245,183,0,0.6)]'
@@ -358,7 +361,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
               className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 font-display text-[clamp(1rem,1.5vw,1.6rem)] font-bold ring-2 ${cls}`}
             >
               {pressed >= 0 && <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/25 text-base">{pressed + 1}</span>}
-              {p.correct === true ? '✓' : p.correct === false ? '✗' : p.answered ? '●' : '○'} {p.name}
+              {correct === true ? '✓' : correct === false ? '✗' : p.answered ? '●' : '○'} {p.name}
               {pressed >= 0 && <span className="text-base font-semibold opacity-80">{ky.screen.pressSec(state.pressOrder![pressed].responseMs)}</span>}
               {p.bonus > 0 && <span className="rounded-lg bg-black/20 px-2 text-base"><Zap className="ico" />+{p.bonus}</span>}
             </motion.div>
@@ -370,18 +373,38 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
 }
 
 /** Финал: биринчи баскан оюнчунун аты-жөнү */
-function FirstPress({ entry }: { entry: { playerId: number; name: string; responseMs: number } }) {
+/** Финал, «биринчи баскан» режими: ким жооп берип жатат / ким туура айтты */
+function BuzzBanner({ state }: { state: ScreenState }) {
+  const order = state.pressOrder ?? [];
+  if (state.game.phase === 'REVEAL') {
+    const winner = order.find((x) => x.status === 'correct');
+    return winner ? <FirstPress entry={winner} label={ky.screen.buzzWinner} tone="green" /> : null;
+  }
+  const current = order.find((x) => x.status === 'pending');
+  if (current) return <FirstPress entry={current} label={ky.screen.buzzAnswering} />;
+  return (
+    <motion.div
+      animate={{ scale: [1, 1.05, 1], opacity: [0.75, 1, 0.75] }}
+      transition={{ repeat: Infinity, duration: 1.6 }}
+      className="mx-auto flex items-center gap-4 rounded-3xl bg-white/10 px-8 py-3 font-display text-[clamp(1.4rem,2.4vw,2.6rem)] font-black text-ordo-gold-light ring-2 ring-ordo-gold/40"
+    >
+      <Hand className="h-10 w-10" /> {ky.screen.buzzHint}
+    </motion.div>
+  );
+}
+
+function FirstPress({ entry, label = ky.screen.pressFirst, tone = 'gold' }: { entry: { playerId: number; name: string; responseMs: number }; label?: string; tone?: 'gold' | 'green' }) {
   return (
     <motion.div
       key={entry.playerId}
       initial={{ scale: 0.4, opacity: 0, y: 30 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={{ type: 'spring', damping: 11 }}
-      className="mx-auto flex items-center gap-5 rounded-3xl bg-gradient-to-b from-ordo-gold-light to-ordo-gold-dark px-10 py-4 text-ordo-night shadow-[0_0_60px_rgba(245,183,0,0.55)]"
+      className={`mx-auto flex items-center gap-5 rounded-3xl px-10 py-4 ${tone === 'green' ? 'bg-gradient-to-b from-emerald-400 to-emerald-700 text-white shadow-[0_0_60px_rgba(16,185,129,0.55)]' : 'bg-gradient-to-b from-ordo-gold-light to-ordo-gold-dark text-ordo-night shadow-[0_0_60px_rgba(245,183,0,0.55)]'}`}
     >
       <Hand className="h-12 w-12" />
       <div>
-        <div className="font-display text-xl font-black tracking-[0.25em]">{ky.screen.pressFirst}</div>
+        <div className="font-display text-xl font-black tracking-[0.25em]">{label}</div>
         <div className="font-display text-[clamp(2rem,3.6vw,4rem)] font-black leading-none">{entry.name}</div>
       </div>
       <div className="rounded-2xl bg-black/15 px-4 py-2 font-display text-3xl font-black tabular-nums">{ky.screen.pressSec(entry.responseMs)}</div>
@@ -502,12 +525,18 @@ function Finale({ state }: { state: ScreenState }) {
 function SoundDirector({ state, offset }: { state: ScreenState; offset: number }) {
   const g = state.game;
   const prev = useRef<{ phase: string; status: string; board: boolean; players: number; q: number | undefined } | null>(null);
-  const firstPress = state.pressOrder?.[0]?.playerId ?? null;
+  const firstPress = (g.buzzer ? state.pressOrder?.find((x) => x.status === 'pending') : state.pressOrder?.[0])?.playerId ?? null;
   const prevPress = useRef<number | null>(null);
   useEffect(() => {
-    if (firstPress !== null && prevPress.current === null && g.phase === 'QUESTION') sfx.buzz();
+    if (firstPress !== null && firstPress !== prevPress.current && g.phase === 'QUESTION') sfx.buzz();
     prevPress.current = firstPress;
   }, [firstPress, g.phase]);
+  const wrongCount = state.pressOrder?.filter((x) => x.status === 'wrong').length ?? 0;
+  const prevWrong = useRef(0);
+  useEffect(() => {
+    if (wrongCount > prevWrong.current) sfx.wrong();
+    prevWrong.current = wrongCount;
+  }, [wrongCount]);
   const msLeft = useCountdown(g.phase === 'QUESTION' && !g.paused ? g.endsAt : null, offset);
   const lastSec = useRef<number | null>(null);
 

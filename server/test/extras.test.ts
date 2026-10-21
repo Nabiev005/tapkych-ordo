@@ -176,10 +176,113 @@ describe('интро, суроолордун саны, финалдагы бас
     assert.ok(sc.players.every((x: any) => x.correct === null));
     const ad = await admin.waitFor((s) => s.pressOrder?.length === 3);
     assert.equal(ad.pressOrder[0].playerId, ids[1]);
+    // Телефондо: «Сиз N-болуп бастыңыз» (кадимки режимде туура/ката жок)
+    const me1 = await p[1].waitFor((s) => s.myPress?.place === 1);
+    assert.deepEqual(me1.myPress, { place: 1, status: null, queue: null });
+    assert.equal((await p[2].waitFor((s) => s.myPress)).myPress.place, 2);
+    assert.equal(sc.game.buzzer, false);
 
     await act(admin, { type: 'revealAnswer' });
     const rv = await screen.waitFor((s) => s.game.phase === 'REVEAL');
     assert.equal(rv.pressOrder.length, 3);
     assert.equal(rv.players.find((x: any) => x.id === ids[1]).correct, false);
+  });
+});
+
+describe('финал: «биринчи баскан жооп берет» режими', () => {
+  let gameId: number;
+  let admin: Client;
+  let screen: Client;
+  const p: Client[] = [];
+  const ids: number[] = [];
+
+  before(async () => {
+    for (const [round, text] of [['ROUND1', 'Б1'], ['ROUND2', 'Б2'], ['FINAL', 'БФ1'], ['FINAL', 'БФ2']] as const) {
+      await api(base, 'POST', '/api/questions', { token, body: choiceQuestion(round, text, 'A') });
+    }
+    const settings = { round1Count: 1, round2Count: 1, finalQuestionCount: 2, advanceToRound2: 3, advanceToFinal: 3, timerSeconds: 30, pointsPerCorrect: 5, finalBuzzer: true, introEnabled: false };
+    const g = await api(base, 'POST', '/api/games', { token, body: { players: ['Эрмек', 'Гүлзат', 'Данияр'], settings } });
+    assert.equal(g.status, 201, JSON.stringify(g.body));
+    assert.equal(g.body.game.finalBuzzer, true);
+    gameId = g.body.game.id;
+    admin = connect({ role: 'admin', token, gameId });
+    screen = connect({ role: 'screen', code: g.body.game.code });
+    await Promise.all([admin.connected(), screen.connected()]);
+    for (const pl of g.body.game.players) {
+      ids.push(pl.id);
+      const r = await api(base, 'POST', '/api/join', { body: { code: g.body.game.code, pin: pl.pin } });
+      const c = connect({ role: 'player', token: r.body.token });
+      await c.connected();
+      p.push(c);
+    }
+  });
+
+  it('1-турда режим иштебейт: баскыч жок, кадимки жооп', async () => {
+    await act(admin, { type: 'startGame' });
+    await act(admin, { type: 'nextQuestion' });
+    await act(admin, { type: 'showQuestion' });
+    const sc = await screen.waitFor((s) => s.game.phase === 'QUESTION');
+    assert.equal(sc.game.buzzer, false);
+    assert.equal((await p[0].emit('player:buzz', {})).error, 'INVALID_ACTION');
+    assert.equal((await p[0].emit('player:answer', { choice: 'A' })).ok, true);
+    await act(admin, { type: 'revealAnswer' });
+    await act(admin, { type: 'endRound' });
+    await act(admin, { type: 'confirmAdvance', playerIds: ids });
+    await playQuestion(admin);
+    await act(admin, { type: 'endRound' });
+    await act(admin, { type: 'confirmAdvance', playerIds: ids });
+    await admin.waitFor((s) => s.game.status === 'FINAL');
+  });
+
+  it('финал: басуу кезеги, ката → кийинкиге, туура → упай жана REVEAL', async () => {
+    await act(admin, { type: 'nextQuestion' });
+    await act(admin, { type: 'showQuestion' });
+    const sc0 = await screen.waitFor((s) => s.game.phase === 'QUESTION');
+    assert.equal(sc0.game.buzzer, true);
+    assert.equal((await p[0].emit('player:answer', { choice: 'A' })).error, 'INVALID_ACTION');
+    assert.equal((await admin.emit('admin:action', { type: 'judgeBuzz', correct: true })).error, 'INVALID_ACTION');
+
+    assert.equal((await p[1].emit('player:buzz', {})).ok, true);
+    await sleep(40);
+    assert.equal((await p[0].emit('player:buzz', {})).ok, true);
+    assert.equal((await p[1].emit('player:buzz', {})).error, 'ALREADY_ANSWERED');
+
+    const sc = await screen.waitFor((s) => s.pressOrder?.length === 2);
+    assert.deepEqual(sc.pressOrder.map((x: any) => [x.name, x.status]), [['Гүлзат', 'pending'], ['Эрмек', 'pending']]);
+    assert.equal(sc.question.correct, null);
+    assert.deepEqual((await p[1].waitFor((s) => s.myPress)).myPress, { place: 1, status: 'pending', queue: 1 });
+    assert.equal((await p[0].waitFor((s) => s.myPress)).myPress.queue, 2);
+
+    // Гүлзат ката айтты — кезек Эрмекке өтөт, суроо уланат
+    await act(admin, { type: 'judgeBuzz', correct: false });
+    const after = await screen.waitFor((s) => s.pressOrder?.[0]?.status === 'wrong');
+    assert.equal(after.game.phase, 'QUESTION');
+    assert.equal(after.question.correct, null);
+    assert.deepEqual((await p[0].waitFor((s) => s.myPress?.queue === 1)).myPress, { place: 2, status: 'pending', queue: 1 });
+
+    // Эрмек туура айтты — упай, туура жооп ачылат
+    await act(admin, { type: 'judgeBuzz', correct: true });
+    const rv = await screen.waitFor((s) => s.game.phase === 'REVEAL');
+    assert.deepEqual(rv.pressOrder.map((x: any) => x.status), ['wrong', 'correct']);
+    assert.equal(rv.question.correct, 'A');
+    const me0 = await p[0].waitFor((s) => s.game.phase === 'REVEAL');
+    assert.equal(me0.question.myCorrect, true);
+    assert.equal(me0.question.myPoints, 5);
+    const me1 = await p[1].waitFor((s) => s.game.phase === 'REVEAL');
+    assert.equal(me1.question.myCorrect, false);
+    const ad = await admin.waitFor((s) => s.game.phase === 'REVEAL');
+    assert.equal(ad.leaderboard.find((r: any) => r.playerId === ids[0]).score, 5);
+  });
+
+  it('эч ким туура айтпаса — алып баруучу өзү ачат', async () => {
+    await act(admin, { type: 'nextQuestion' });
+    await act(admin, { type: 'showQuestion' });
+    await p[2].waitFor((s) => s.game.phase === 'QUESTION');
+    assert.equal((await p[2].emit('player:buzz', {})).ok, true);
+    await act(admin, { type: 'judgeBuzz', correct: false });
+    assert.equal((await admin.emit('admin:action', { type: 'judgeBuzz', correct: true })).error, 'INVALID_ACTION');
+    await act(admin, { type: 'revealAnswer' });
+    const rv = await screen.waitFor((s) => s.game.phase === 'REVEAL');
+    assert.deepEqual(rv.pressOrder.map((x: any) => x.status), ['wrong']);
   });
 });

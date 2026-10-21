@@ -6,7 +6,7 @@ import { AppError } from '../types.js';
 import { presence } from '../game/presence.js';
 import { loadFull } from '../game/load.js';
 import { adminSnapshot, audienceSnapshot, playerSnapshot, screenSnapshot } from '../game/state.js';
-import { audienceVote, runAdminAction, submitAnswer, useFiftyFifty, type AdminAction } from '../game/engine.js';
+import { audienceVote, buzz, runAdminAction, submitAnswer, useFiftyFifty, type AdminAction } from '../game/engine.js';
 
 /**
  * Бөлмөлөр:
@@ -154,6 +154,14 @@ export function setupSockets(server: Server) {
       socket.on('player:answer', async (payload: { choice?: unknown }, ack?: Ack) => {
         try {
           await submitAnswer(data.gameId, data.playerId, payload?.choice);
+          ack?.({ ok: true });
+        } catch (e) {
+          replyError(ack, e);
+        }
+      });
+      socket.on('player:buzz', async (_payload: unknown, ack?: Ack) => {
+        try {
+          await buzz(data.gameId, data.playerId);
           ack?.({ ok: true });
         } catch (e) {
           replyError(ack, e);

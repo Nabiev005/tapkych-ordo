@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 import { bus } from '../events.js';
-import { AppError, OPTIONS, ROUNDS, nextRound, type Option, type Round } from '../types.js';
-import { currentQuestion, currentRound, loadFull, participants, roundQuestions, roundSize, type FullGame } from './load.js';
+import { AppError, BUZZ_CHOICE, OPTIONS, ROUNDS, nextRound, type Option, type Round } from '../types.js';
+import { currentQuestion, currentRound, isBuzzer, loadFull, participants, roundQuestions, roundSize, type FullGame, type FullQuestion } from './load.js';
 
 /**
  * Оюндун кыймылдаткычы. Бардык абал БДда сакталат, ошондуктан сервер же
@@ -282,6 +282,31 @@ async function restartQuestion(gameId: number) {
   ]);
 }
 
+/** Бааланбаган басуулар — басуу тартибинде; биринчиси — азыр жооп берип жаткан оюнчу */
+export function buzzQueue(q: FullQuestion) {
+  return q.answers.filter((a) => a.choice === BUZZ_CHOICE && !a.judgedAt).sort((a, b) => a.responseMs - b.responseMs || a.id - b.id);
+}
+
+/**
+ * «Биринчи баскан» режими: алып баруучу кезектеги оюнчунун оозеки жообун баалайт.
+ * Туура — упай берилет жана туура жооп ачылат. Ката — кезек кийинки баскан оюнчуга өтөт.
+ */
+async function judgeBuzz(gameId: number, correct: boolean) {
+  const game = await mustLoad(gameId);
+  const round = mustRound(game);
+  const q = currentQuestion(game);
+  if (!isBuzzer(game, round) || game.phase !== 'QUESTION' || !q) throw new AppError('INVALID_ACTION');
+  const current = buzzQueue(q)[0];
+  if (!current) throw new AppError('INVALID_ACTION');
+  const fullMs = game.timerSeconds * 1000;
+  const bonus = correct && game.speedBonus > 0 && current.responseMs <= fullMs / 3 ? game.speedBonus : 0;
+  await prisma.answer.update({
+    where: { id: current.id },
+    data: { judgedAt: new Date(), isCorrect: correct, bonus, points: correct ? game.pointsPerCorrect + bonus : 0 },
+  });
+  if (correct) await revealAnswer(gameId);
+}
+
 async function toggleLeaderboard(gameId: number) {
   const game = await mustLoad(gameId);
   mustRound(game);
@@ -407,7 +432,8 @@ export type AdminAction =
   | { type: 'restorePlayer'; playerId: number }
   | { type: 'adjustScore'; playerId: number; delta: number; round?: Round }
   | { type: 'setSound'; enabled: boolean }
-  | { type: 'setRoundCount'; round: Round; count: number };
+  | { type: 'setRoundCount'; round: Round; count: number }
+  | { type: 'judgeBuzz'; correct: boolean };
 
 export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
   return withLock(gameId, async () => {
@@ -428,6 +454,7 @@ export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
         await adjustScore(gameId, Number(a.playerId), Number(a.delta), ROUNDS.includes(a.round as Round) ? a.round : undefined);
         break;
       case 'setSound': await setSound(gameId, !!a.enabled); break;
+      case 'judgeBuzz': await judgeBuzz(gameId, a.correct === true); break;
       case 'setRoundCount':
         if (!ROUNDS.includes(a.round)) throw new AppError('BAD_REQUEST');
         await setRoundCount(gameId, a.round, Number(a.count));
@@ -455,6 +482,7 @@ export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknow
     const q = currentQuestion(game);
     const player = game.players.find((p) => p.id === playerId);
     if (!round || !q || !player) throw new AppError('INVALID_ACTION');
+    if (isBuzzer(game, round)) throw new AppError('INVALID_ACTION');
     if (!validChoice(q.type, choice)) throw new AppError('BAD_REQUEST');
     if (player.status !== 'ACTIVE') throw new AppError('NOT_IN_ROUND');
     if (game.phase !== 'QUESTION') throw new AppError('TIME_UP');
@@ -490,6 +518,35 @@ export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknow
   });
 }
 
+/** «Биринчи баскан» режими: оюнчу баскычты басат (бир суроого бир жолу), кезекке турат */
+export function buzz(gameId: number, playerId: number): Promise<void> {
+  return withLock(gameId, async () => {
+    const game = await mustLoad(gameId);
+    const round = currentRound(game);
+    const q = currentQuestion(game);
+    const player = game.players.find((p) => p.id === playerId);
+    if (!round || !q || !player || !isBuzzer(game, round)) throw new AppError('INVALID_ACTION');
+    if (player.status !== 'ACTIVE') throw new AppError('NOT_IN_ROUND');
+    if (game.phase !== 'QUESTION') throw new AppError('TIME_UP');
+    if (game.paused) throw new AppError('GAME_PAUSED');
+    const now = Date.now();
+    const endsAt = game.questionEndsAt?.getTime();
+    if (!endsAt || now > endsAt + ANSWER_GRACE_MS) throw new AppError('TIME_UP');
+    if (q.answers.some((a) => a.playerId === playerId)) throw new AppError('ALREADY_ANSWERED');
+    const fullMs = game.timerSeconds * 1000;
+    const responseMs = Math.min(fullMs, Math.max(0, fullMs - (endsAt - now)));
+    try {
+      await prisma.answer.create({
+        data: { gameId, playerId, gameQuestionId: q.id, choice: BUZZ_CHOICE, isCorrect: false, responseMs, points: 0 },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw new AppError('ALREADY_ANSWERED');
+      throw e;
+    }
+    changed(gameId);
+  });
+}
+
 /**
  * «50/50» жардамы: оюнчу бир оюнда бир жолу эки ката вариантты жашырат.
  * Жашырылган варианттар ошол оюнчуга гана жөнөтүлөт.
@@ -499,7 +556,7 @@ export function useFiftyFifty(gameId: number, playerId: number): Promise<void> {
     const game = await mustLoad(gameId);
     const q = currentQuestion(game);
     const player = game.players.find((p) => p.id === playerId);
-    if (!game.fiftyFifty || !q || !player || q.type !== 'CHOICE') throw new AppError('INVALID_ACTION');
+    if (!game.fiftyFifty || !q || !player || q.type !== 'CHOICE' || isBuzzer(game, currentRound(game))) throw new AppError('INVALID_ACTION');
     if (player.status !== 'ACTIVE') throw new AppError('NOT_IN_ROUND');
     if (game.phase !== 'QUESTION' || game.paused) throw new AppError('TIME_UP');
     if (player.fiftyQuestionId) throw new AppError('LIFELINE_USED');

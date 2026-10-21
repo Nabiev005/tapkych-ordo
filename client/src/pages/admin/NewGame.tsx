@@ -3,7 +3,7 @@ import { Clapperboard, Gamepad2, Settings as SettingsIcon, Tag, Target, Triangle
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import IntroSettings from '../../components/IntroSettings';
-import { Button, useDialogs } from '../../components/ui';
+import { Button, Toggle, useDialogs } from '../../components/ui';
 import { ky, type RoundKey } from '../../i18n/ky';
 import { api } from '../../lib/api';
 import type { GameRow, Settings, Student } from '../../lib/types';
@@ -23,6 +23,7 @@ const DEFAULTS: Omit<Settings, 'soundEnabled'> = {
   selectionMode: 'ORDER',
   categories: '',
   introEnabled: true,
+  finalBuzzer: false,
   introVideoUrl: null,
 };
 
@@ -248,6 +249,7 @@ export default function NewGame() {
             <h2 className="font-display text-lg font-bold"><Gamepad2 className="ico" /> {t.modesTitle}</h2>
             <Toggle checked={s.teamMode} onChange={(v) => setS({ ...s, teamMode: v })} label={t.teamMode} hint={t.teamModeHint} />
             <Toggle checked={s.fiftyFifty} onChange={(v) => setS({ ...s, fiftyFifty: v })} label={t.fiftyFifty} hint={t.fiftyFiftyHint} />
+            <Toggle checked={s.finalBuzzer} onChange={(v) => setS({ ...s, finalBuzzer: v })} label={t.finalBuzzer} hint={t.finalBuzzerHint} />
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-ordo-ink/80"><Zap className="ico" /> {t.speedBonus}</div>
@@ -347,22 +349,3 @@ export default function NewGame() {
   );
 }
 
-function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint: string }) {
-  return (
-    <label className="flex cursor-pointer items-start gap-3">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition ${checked ? 'bg-emerald-500' : 'bg-slate-300'}`}
-      >
-        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? 'left-6' : 'left-1'}`} />
-      </button>
-      <span>
-        <span className="block text-sm font-semibold text-ordo-ink/80">{label}</span>
-        <span className="block text-xs text-ordo-ink/50">{hint}</span>
-      </span>
-    </label>
-  );
-}

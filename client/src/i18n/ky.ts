@@ -514,6 +514,7 @@ const kyDict = {
     UNKNOWN: 'Белгисиз ката кетти',
   } as Record<string, string>,
 
+  buzzChoice: 'оозеки жооп',
   notEnoughQuestions: (round: RoundKey, need: number, have: number) =>
     `${kyDict.rounds[round]} үчүн ${need} суроо керек, банкта ${have} гана бар. «Суроолор» бөлүмүнөн кошуңуз.`,
 
@@ -1009,6 +1010,8 @@ const kyDict = {
       categories: 'Темалар',
       categoriesHint: 'Эч бири тандалбаса — бардык темалар колдонулат.',
       bankTotal: (n: number) => `Банкта ${n} активдүү суроо`,
+      finalBuzzer: 'Финал: биринчи баскан жооп берет',
+      finalBuzzerHint: 'Финалда телефондо варианттардын ордуна «БАСУУ» баскычы чыгат. Биринчи баскан оюнчу жоопту оозеки айтат, алып баруучу «Туура» же «Ката» деп белгилейт. Ката болсо — кезек кийинки баскан оюнчуга өтөт.',
       introTitle: 'Оюндун башталышындагы интро',
       introEnabled: 'Башталганда экранда интро көрсөтүү',
       introHint: 'Алып баруучу «Оюнду баштоо» баскычын басканда проектордо кыскача интро жүрөт. Өзүңүздүн видеоңуз болбосо — анимациялык интро көрсөтүлөт.',
@@ -1065,6 +1068,14 @@ const kyDict = {
       countsAsked: (n: number) => `${n} суралды`,
       pressFirst: 'Биринчи басты',
       pressOrder: 'Басуу тартиби',
+      buzzTitle: 'Биринчи баскан жооп берет',
+      buzzAnswering: 'Жооп берип жатат',
+      buzzWaiting: 'Оюнчулар баскычты басышын күтүңүз…',
+      buzzQueueEmpty: 'Кезекте эч ким жок. Дагы басышын күтсөңүз болот же туура жоопту ачыңыз.',
+      buzzCorrect: 'Туура',
+      buzzWrong: 'Ката',
+      buzzHint: 'Оюнчу жоопту оозеки айтат. Туура болсо — упай берилип, туура жооп ачылат. Ката болсо — кезек кийинкиге өтөт.',
+      buzzStatus: { pending: 'кезекте', wrong: 'ката', correct: 'туура' },
 
       // Оюн учурунда
       roundProgress: (round: RoundKey, i: number, total: number) => `${kyDict.rounds[round]} · ${i}/${total}`,
@@ -1236,6 +1247,12 @@ const kyDict = {
     watchAsAudience: 'Залдагы көрүүчү катары добуш берүү',
     teamPlace: (team: string, p: number) => `${team} командасы: ${p}-орун`,
     listen: 'Аудиону угуңуз',
+    buzzButton: 'БАСУУ!',
+    buzzHint: 'Жоопту билсеңиз — биринчи болуп басыңыз',
+    buzzYourTurn: 'Сиз биринчисиз! Жоопту катуу айтыңыз',
+    buzzQueued: (n: number) => `Сиз кезекте ${n}-орундасыз. Күтө туруңуз`,
+    buzzWrong: 'Жообуңуз туура эмес деп бааланды',
+    pressPlace: (n: number) => `Сиз ${n}-болуп бастыңыз`,
   },
 
   // ─────────────────────────── Жалпы экран ───────────────────────────
@@ -1271,6 +1288,9 @@ const kyDict = {
     members: (n: number) => `${n} оюнчу`,
     bestPlayer: 'Эң мыкты оюнчу',
     pressFirst: 'БИРИНЧИ БАСТЫ',
+    buzzAnswering: 'ЖООП БЕРЕТ',
+    buzzWinner: 'ТУУРА ЖООП БЕРДИ',
+    buzzHint: 'Жоопту билсеңиз — баскычты басыңыз!',
     pressSec: (ms: number) => `${(ms / 1000).toFixed(2)} сек`,
     introStarts: 'ОЮН БАШТАЛАТ!',
   },

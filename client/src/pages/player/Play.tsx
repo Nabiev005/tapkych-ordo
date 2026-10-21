@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
 import { RankMedal } from '../../components/game';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Ban, Crown, Eye, Flag, Hourglass, Lock, Medal, Music, PartyPopper, Pause, School, Share2, Smartphone, User, Users, Zap } from 'lucide-react';
+import { Ban, Crown, Eye, Flag, Hand, Hourglass, Lock, Medal, Music, PartyPopper, Pause, School, Share2, Smartphone, User, Users, Zap } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
@@ -148,7 +148,12 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
       </Shell>
     );
 
-  if (g.phase === 'QUESTION' && q) return <AnswerPad key={q.number} state={state} offset={offset} emit={emit} toast={toast} />;
+  if (g.phase === 'QUESTION' && q)
+    return g.buzzer ? (
+      <BuzzPad key={q.number} state={state} offset={offset} emit={emit} toast={toast} />
+    ) : (
+      <AnswerPad key={q.number} state={state} offset={offset} emit={emit} toast={toast} />
+    );
 
   if (g.phase === 'REVEAL' && q) return <RevealView state={state} />;
 
@@ -267,6 +272,11 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
             )}
             <div className="max-w-sm text-2xl font-semibold">{q.type === 'CHOICE' ? q.options?.[choice as OptionKey] : answerText(q.type, choice, q.options)}</div>
             <div className="font-display text-2xl font-bold">✓ {t.answered}</div>
+            {state.myPress && (
+              <div className={`rounded-full px-5 py-1.5 font-display text-lg font-black ${state.myPress.place === 1 ? 'bg-ordo-gold text-ordo-night' : 'bg-white/10'}`}>
+                <Hand className="ico" /> {t.pressPlace(state.myPress.place)}
+              </div>
+            )}
             <div className="text-white/60">{t.waitReveal}</div>
             <div className="text-sm text-white/40"><Lock className="ico" /> {t.alreadyAnswered}</div>
           </motion.div>
@@ -365,6 +375,92 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** Финал, «биринчи баскан жооп берет»: варианттардын ордуна бир чоң баскыч */
+function BuzzPad({ state, offset, emit, toast }: { state: PlayerState; offset: number; emit: Emit; toast: Toast }) {
+  const t = ky.player;
+  const g = state.game;
+  const q = state.question!;
+  const msLeft = useCountdown(g.endsAt, offset, g.pausedRemainingMs);
+  const [sending, setSending] = useState(false);
+  const mine = state.myPress;
+  const frac = Math.max(0, Math.min(1, msLeft / (g.timerSeconds * 1000)));
+  const myTurn = mine?.status === 'pending' && mine.queue === 1;
+
+  useEffect(() => {
+    if (myTurn) vibrate([80, 40, 80]);
+  }, [myTurn]);
+
+  const press = async () => {
+    if (sending || mine || msLeft <= 0 || g.paused) return;
+    setSending(true);
+    vibrate(60);
+    try {
+      await emit('player:buzz', {});
+    } catch (e) {
+      toast((e as Error).message, 'err');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-night flex min-h-dvh flex-col p-4 text-white">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="font-display text-lg font-bold">{t.questionNo(q.number, g.total)}</div>
+        <div className="font-display text-3xl font-black tabular-nums">{g.paused ? <Pause className="ico" /> : Math.ceil(msLeft / 1000)}</div>
+      </div>
+      <div className="mb-4 h-3 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-ordo-sky transition-[width] duration-100 ease-linear" style={{ width: `${frac * 100}%` }} />
+      </div>
+      {q.text && (
+        <div className="mb-4 rounded-3xl bg-white/[0.08] p-4 ring-1 ring-white/10">
+          {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="mb-3 max-h-40 w-full rounded-2xl object-contain" />}
+          <div className="text-xl font-semibold leading-snug">{q.text}</div>
+        </div>
+      )}
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center">
+        {!mine ? (
+          msLeft <= 0 ? (
+            <>
+              <Hourglass className="h-16 w-16 text-white/70" />
+              <div className="font-display text-3xl font-black">{t.timeUp}</div>
+            </>
+          ) : (
+            <>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                animate={{ scale: [1, 1.04, 1] }}
+                transition={{ repeat: Infinity, duration: 1.4 }}
+                disabled={sending || g.paused}
+                onClick={press}
+                className="flex aspect-square w-[min(72vw,320px)] items-center justify-center rounded-full bg-gradient-to-b from-[#ff3b55] to-ordo-red-dark font-display text-5xl font-black text-white shadow-[0_14px_0_#5c0613,0_0_60px_rgba(200,16,46,0.6)] ring-8 ring-ordo-gold/60 active:translate-y-2 active:shadow-[0_6px_0_#5c0613] disabled:opacity-50"
+              >
+                {t.buzzButton}
+              </motion.button>
+              <div className="text-white/70">{t.buzzHint}</div>
+            </>
+          )
+        ) : mine.status === 'wrong' ? (
+          <>
+            <div className="text-8xl">✗</div>
+            <div className="max-w-xs font-display text-2xl font-black">{t.buzzWrong}</div>
+          </>
+        ) : myTurn ? (
+          <motion.div animate={{ scale: [1, 1.06, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="rounded-[2rem] bg-gradient-to-b from-ordo-gold-light to-ordo-gold px-6 py-8 text-ordo-night shadow-[0_0_60px_rgba(245,183,0,0.6)]">
+            <Hand className="mx-auto mb-3 h-16 w-16" />
+            <div className="max-w-xs font-display text-3xl font-black">{t.buzzYourTurn}</div>
+          </motion.div>
+        ) : (
+          <>
+            <div className="font-display text-7xl font-black text-ordo-gold">{mine.queue}</div>
+            <div className="max-w-xs font-display text-2xl font-bold">{t.buzzQueued(mine.queue ?? mine.place)}</div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

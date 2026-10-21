@@ -23,6 +23,9 @@ export type GameStatus = 'LOBBY' | Round | 'FINISHED';
  */
 export type Phase = 'IDLE' | 'READY' | 'QUESTION' | 'REVEAL' | 'ROUND_END';
 
+/** Финалдын «биринчи баскан» режиминде Answer.choice — оозеки жооп */
+export const BUZZ_CHOICE = 'BUZZ';
+
 export const nextRound = (r: Round): Round | null =>
   r === 'ROUND1' ? 'ROUND2' : r === 'ROUND2' ? 'FINAL' : null;
 export type PlayerStatus = 'ACTIVE' | 'ELIMINATED' | 'KICKED';

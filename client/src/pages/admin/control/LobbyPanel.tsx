@@ -3,7 +3,7 @@ import { Clapperboard, Link2, Monitor, Pencil, Play, Printer, RefreshCw, Trash2 
 import { useEffect, useState } from 'react';
 import { JoinQr } from '../../../components/game';
 import IntroSettings from '../../../components/IntroSettings';
-import { Button, useDialogs } from '../../../components/ui';
+import { Button, Toggle, useDialogs } from '../../../components/ui';
 import { ky, type RoundKey } from '../../../i18n/ky';
 import { api, getJoinBase } from '../../../lib/api';
 import type { AdminState } from '../../../lib/types';
@@ -149,7 +149,15 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
       </section>
 
       {/* Суроолордун саны жана интро — баштоодон мурун өзгөртсө болот */}
-      <div className="lg:col-span-2">
+      <div className="space-y-5 lg:col-span-2">
+        <section className="card p-5">
+          <Toggle
+            checked={g.settings.finalBuzzer}
+            onChange={(v) => rest(() => api.patch(`/api/games/${g.id}/settings`, { finalBuzzer: v }))}
+            label={ky.admin.newGame.finalBuzzer}
+            hint={ky.admin.newGame.finalBuzzerHint}
+          />
+        </section>
         <RoundCounts state={state} onSet={(round, count) => rest(() => api.patch(`/api/games/${g.id}/settings`, { [COUNT_KEY[round]]: count }))} />
       </div>
       <section className="card space-y-3 p-5 lg:col-span-3">

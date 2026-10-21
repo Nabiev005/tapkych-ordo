@@ -1,7 +1,7 @@
 import { prisma } from '../db.js';
-import { ROUNDS, type Round } from '../types.js';
+import { BUZZ_CHOICE, ROUNDS, type Round } from '../types.js';
 import { presence } from './presence.js';
-import { currentQuestion, currentRound, participants, playedRound, roundIndex, roundQuestions, type FullGame, type FullQuestion } from './load.js';
+import { currentQuestion, currentRound, isBuzzer, participants, playedRound, roundIndex, roundQuestions, type FullGame, type FullQuestion } from './load.js';
 import { advanceSuggestion, overallStandings, rankRound, teamStandings } from './scoring.js';
 
 /**
@@ -33,25 +33,34 @@ function base(game: FullGame) {
     startedAt: game.startedAt?.getTime() ?? null,
     // Оюн башталганда экранда көрсөтүлүүчү интро (видео жок болсо — анимация)
     intro: game.introEnabled ? { videoUrl: game.introVideoUrl } : null,
+    // Финалдын «биринчи баскан жооп берет» режими (учурдагы турда)
+    buzzer: isBuzzer(game, round),
   };
 }
 
 /**
  * Финалда ким биринчи басканы: жооп берген тартибинде (аты жана убактысы).
- * Туура/ката экени бул жерде жок — ал REVEAL'дан кийин гана players[].correct аркылуу көрүнөт.
+ * Кадимки режимде туура/ката бул жерде жок — ал REVEAL'дан кийин гана players[].correct аркылуу көрүнөт.
+ * «Биринчи баскан» режиминде status бар: алып баруучу оозеки жоопту баалагандан кийин баары көрөт
+ * (туура жооптун өзү ачылбайт — туура бааланса, суроо ошол замат REVEAL'га өтөт).
  */
 function pressOrder(game: FullGame, q: FullQuestion | null) {
   if (currentRound(game) !== 'FINAL' || !q || (game.phase !== 'QUESTION' && game.phase !== 'REVEAL')) return null;
   return [...q.answers]
     .sort((a, b) => a.responseMs - b.responseMs || a.id - b.id)
-    .map((a) => ({ playerId: a.playerId, name: game.players.find((p) => p.id === a.playerId)?.name ?? '?', responseMs: a.responseMs }));
+    .map((a) => ({
+      playerId: a.playerId,
+      name: game.players.find((p) => p.id === a.playerId)?.name ?? '?',
+      responseMs: a.responseMs,
+      ...(a.choice === BUZZ_CHOICE ? { status: !a.judgedAt ? ('pending' as const) : a.isCorrect ? ('correct' as const) : ('wrong' as const) } : {}),
+    }));
 }
 
 const options = (q: FullQuestion) => ({ A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD });
 
 /** Ар бир вариантты канча оюнчу тандаганы (ORDER түрүндө — туура/ката гана) */
 function optionStats(q: FullQuestion) {
-  if (q.type === 'ORDER') return null;
+  if (q.type === 'ORDER' || q.answers.some((a) => a.choice === BUZZ_CHOICE)) return null;
   const stats = { A: 0, B: 0, C: 0, D: 0 } as Record<string, number>;
   for (const a of q.answers) stats[a.choice] = (stats[a.choice] ?? 0) + 1;
   return stats;
@@ -129,6 +138,7 @@ export async function adminSnapshot(game: FullGame) {
         categories: game.categories,
         introEnabled: game.introEnabled,
         introVideoUrl: game.introVideoUrl,
+        finalBuzzer: game.finalBuzzer,
       },
     },
     bank,
@@ -263,6 +273,8 @@ export function playerSnapshot(game: FullGame, playerId: number) {
   const standing = standings.find((s) => s.playerId === playerId);
   const teams = game.teamMode && game.status === 'FINISHED' ? teamStandings(game) : [];
   const team = me ? teams.find((t) => t.team === (me.team || '—')) : undefined;
+  const presses = pressOrder(game, q);
+  const myPressIdx = presses ? presses.findIndex((x) => x.playerId === playerId) : -1;
 
   return {
     role: 'player' as const,
@@ -285,6 +297,16 @@ export function playerSnapshot(game: FullGame, playerId: number) {
           myBonus: revealed ? (myAnswer?.bonus ?? 0) : null,
         }
       : null,
+    // Финалда: мен канчанчы болуп бастым (жана «биринчи баскан» режиминде — баалоонун абалы)
+    myPress:
+      myPressIdx >= 0
+        ? {
+            place: myPressIdx + 1,
+            status: presses![myPressIdx].status ?? null,
+            // Кезекте канчанчы (1 — азыр жооп берип жатат)
+            queue: presses![myPressIdx].status === 'pending' ? presses!.filter((x) => x.status === 'pending').findIndex((x) => x.playerId === playerId) + 1 : null,
+          }
+        : null,
     roundScore: mine?.score ?? 0,
     roundRank: mine?.rank ?? null,
     roundPlayers: ranking.length,

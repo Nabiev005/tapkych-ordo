@@ -29,6 +29,7 @@ const settingsSchema = z.object({
   selectionMode: z.enum(['ORDER', 'DIFFICULTY']),
   categories: z.string().trim().max(500),
   introEnabled: z.boolean(),
+  finalBuzzer: z.boolean(),
   introVideoUrl: z
     .string()
     .trim()

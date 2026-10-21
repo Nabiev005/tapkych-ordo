@@ -454,6 +454,7 @@ export const ruDict: Ky = {
     UNKNOWN: 'Неизвестная ошибка',
   } as Record<string, string>,
 
+  buzzChoice: 'устный ответ',
   notEnoughQuestions: (round: RoundKey, need: number, have: number) =>
     `Для «${ruDict.rounds[round]}» нужно ${need} ${plural(need, 'вопрос', 'вопроса', 'вопросов')}, в банке только ${have}. Добавьте в разделе «Вопросы».`,
 
@@ -948,6 +949,8 @@ export const ruDict: Ky = {
       categories: 'Темы',
       categoriesHint: 'Если ничего не выбрано — используются все темы.',
       bankTotal: (n: number) => `Активных вопросов в банке: ${n}`,
+      finalBuzzer: 'Финал: отвечает нажавший первым',
+      finalBuzzerHint: 'В финале на телефонах вместо вариантов появляется кнопка «ЖМИ». Нажавший первым отвечает устно, ведущий отмечает «Верно» или «Неверно». Если неверно — ход переходит к следующему нажавшему.',
       introTitle: 'Интро в начале игры',
       introEnabled: 'Показывать интро на экране при старте',
       introHint: 'Когда ведущий нажимает «Начать игру», на проекторе проигрывается короткое интро. Если своего видео нет — показывается анимированное интро.',
@@ -1002,6 +1005,14 @@ export const ruDict: Ky = {
       countsAsked: (n: number) => `задано: ${n}`,
       pressFirst: 'Первым нажал',
       pressOrder: 'Порядок нажатия',
+      buzzTitle: 'Отвечает нажавший первым',
+      buzzAnswering: 'Отвечает',
+      buzzWaiting: 'Ждите, пока игроки нажмут кнопку…',
+      buzzQueueEmpty: 'В очереди никого нет. Можно подождать нажатий или открыть правильный ответ.',
+      buzzCorrect: 'Верно',
+      buzzWrong: 'Неверно',
+      buzzHint: 'Игрок отвечает устно. Если верно — начисляются баллы и открывается ответ. Если неверно — ход переходит к следующему.',
+      buzzStatus: { pending: 'в очереди', wrong: 'неверно', correct: 'верно' },
 
       roundProgress: (round: RoundKey, i: number, total: number) => `${ruDict.rounds[round]} · ${i}/${total}`,
       roundIntro: (round: RoundKey) => `${ruDict.rounds[round]} начался`,
@@ -1170,6 +1181,12 @@ export const ruDict: Ky = {
     watchAsAudience: 'Голосовать как зритель в зале',
     teamPlace: (team: string, p: number) => `Команда ${team}: ${p}-е место`,
     listen: 'Послушайте аудио',
+    buzzButton: 'ЖМИ!',
+    buzzHint: 'Знаете ответ — нажмите первым',
+    buzzYourTurn: 'Вы первый! Скажите ответ вслух',
+    buzzQueued: (n: number) => `Вы ${n}-й в очереди. Подождите`,
+    buzzWrong: 'Ваш ответ признан неверным',
+    pressPlace: (n: number) => `Вы нажали ${n}-м`,
   },
 
   screen: {
@@ -1204,6 +1221,9 @@ export const ruDict: Ky = {
     members: (n: number) => `${n} игр.`,
     bestPlayer: 'Лучший игрок',
     pressFirst: 'ПЕРВЫМ НАЖАЛ',
+    buzzAnswering: 'ОТВЕЧАЕТ',
+    buzzWinner: 'ОТВЕТИЛ ВЕРНО',
+    buzzHint: 'Знаете ответ — жмите кнопку!',
     pressSec: (ms: number) => `${(ms / 1000).toFixed(2)} сек`,
     introStarts: 'ИГРА НАЧИНАЕТСЯ!',
   },

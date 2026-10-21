@@ -60,6 +60,7 @@ export interface Settings {
   categories: string;
   introEnabled: boolean;
   introVideoUrl: string | null;
+  finalBuzzer: boolean;
 }
 
 export interface GameRow extends Settings {
@@ -95,6 +96,7 @@ export interface BaseGame {
   finishedAt: number | null;
   startedAt: number | null;
   intro: { videoUrl: string | null } | null;
+  buzzer: boolean;
 }
 
 /** Финалда ким биринчи басканы (жооп берген тартибинде) */
@@ -102,6 +104,8 @@ export interface PressEntry {
   playerId: number;
   name: string;
   responseMs: number;
+  /** «Биринчи баскан» режиминде гана */
+  status?: 'pending' | 'wrong' | 'correct';
 }
 
 export interface Ranked {
@@ -228,6 +232,7 @@ export interface PlayerState {
   me: { id: number; name: string; status: PlayerStatus; eliminatedAfter: RoundKey | null; team: string } | null;
   inRound: boolean;
   fiftyAvailable: boolean;
+  myPress: { place: number; status: 'pending' | 'wrong' | 'correct' | null; queue: number | null } | null;
   question:
     | (QuestionInfo & {
         hidden: OptionKey[];

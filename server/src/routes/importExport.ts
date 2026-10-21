@@ -42,6 +42,7 @@ const LETTER: Record<string, Option> = { А: 'A', A: 'A', Б: 'B', B: 'B', В: '
 /** Жоопту адамга түшүнүктүү кылып жазуу: «Б», «Туура», «ВАГБ» */
 export function correctLabel(type: string, correct: string): string {
   if (type === 'TF') return correct === 'A' ? 'Туура' : 'Туура эмес';
+  if (correct === 'BUZZ') return 'Оозеки';
   return [...correct].map((l) => OPT_KY[l as Option] ?? l).join('');
 }
 

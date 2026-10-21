@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Ban, Check, CircleCheckBig, Eye, Flag, Hand, Monitor, Pause, Play, School, SkipForward, TriangleAlert, Trophy, Users, WifiOff, Zap } from 'lucide-react';
+import { Ban, Check, CircleCheckBig, CircleX, Eye, Flag, Hand, Monitor, Pause, Play, School, SkipForward, TriangleAlert, Trophy, Users, WifiOff, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { LeaderboardList, OPTION_STYLE, RingTimer, TeamBoard } from '../../../components/game';
 import { Button, Modal, useDialogs } from '../../../components/ui';
@@ -49,7 +49,10 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
       : g.phase === 'READY'
         ? { label: t.btn.showQuestion, onClick: () => act({ type: 'showQuestion' }), type: 'showQuestion', variant: 'green' }
         : g.phase === 'QUESTION'
-          ? { label: t.btn.reveal, onClick: doReveal, type: 'revealAnswer', variant: 'gold' }
+          ? // «Биринчи баскан» режиминде оюнчу жооп берип жатканда негизги кадам — баалоо (BuzzPanel)
+            g.buzzer && state.pressOrder?.some((x) => x.status === 'pending')
+            ? null
+            : { label: t.btn.reveal, onClick: doReveal, type: 'revealAnswer', variant: 'gold' }
           : g.phase === 'REVEAL'
             ? isLast
               ? { label: t.btn.endRound, onClick: doEndRound, type: 'endRound', variant: 'red' }
@@ -143,6 +146,9 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
               )}
             </section>
 
+            {/* Финал, «биринчи баскан» режими: кезек жана баалоо */}
+            {q && g.buzzer && (g.phase === 'QUESTION' || g.phase === 'REVEAL') && <BuzzPanel state={state} act={act} busy={busy} />}
+
             {/* Суроо (алып баруучу туура жоопту дайыма көрөт) */}
             {q && (
               <section className="card p-5">
@@ -198,7 +204,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
             )}
 
             {/* Жооптор — аты-жөнү менен */}
-            {q && (g.phase === 'QUESTION' || g.phase === 'REVEAL') && (
+            {q && !g.buzzer && (g.phase === 'QUESTION' || g.phase === 'REVEAL') && (
               <section className="card p-5">
                 <div className="mb-3 flex flex-wrap items-center gap-3">
                   <h3 className="font-display text-lg font-bold">{t.answeredCount(answeredCount, active.length)}</h3>
@@ -271,6 +277,55 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
 
       <AdjustModal state={state} act={act} playerId={adjusting} onClose={() => setAdjusting(null)} />
     </div>
+  );
+}
+
+function BuzzPanel({ state, act, busy }: { state: AdminState; act: Act; busy: string | null }) {
+  const t = ky.admin.control;
+  const g = state.game;
+  const order = state.pressOrder ?? [];
+  const current = order.find((x) => x.status === 'pending');
+  const open = g.phase === 'QUESTION';
+  const STATUS_CLS = { pending: 'bg-ordo-gold/20 text-ordo-ink', wrong: 'bg-ordo-red text-white', correct: 'bg-emerald-500 text-white' } as const;
+
+  return (
+    <section className="card space-y-4 p-5">
+      <div>
+        <h3 className="font-display text-lg font-bold"><Hand className="ico text-ordo-gold-dark" /> {t.buzzTitle}</h3>
+        <p className="text-sm text-ordo-ink/55">{t.buzzHint}</p>
+      </div>
+      {open && current ? (
+        <div className="rounded-3xl bg-gradient-to-b from-ordo-gold-light to-ordo-gold p-5 text-ordo-night shadow-lg">
+          <div className="text-xs font-bold uppercase tracking-widest opacity-70">{t.buzzAnswering}</div>
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <div className="font-display text-3xl font-black">{current.name}</div>
+            <div className="font-display text-xl font-bold tabular-nums">{ky.screen.pressSec(current.responseMs)}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Button size="xl" variant="green" icon={<Check />} loading={busy === 'judgeBuzz'} disabled={g.paused} onClick={() => act({ type: 'judgeBuzz', correct: true })}>
+              {t.buzzCorrect}
+            </Button>
+            <Button size="xl" variant="red" icon={<CircleX />} loading={busy === 'judgeBuzz'} disabled={g.paused} onClick={() => act({ type: 'judgeBuzz', correct: false })}>
+              {t.buzzWrong}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        open && <div className="rounded-2xl bg-ordo-ink/[0.04] p-4 text-center font-semibold text-ordo-ink/60">{order.length ? t.buzzQueueEmpty : t.buzzWaiting}</div>
+      )}
+      {order.length > 0 && (
+        <ol className="space-y-1.5">
+          {order.map((x, i) => (
+            <li key={x.playerId} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${x === current ? 'ring-2 ring-ordo-gold' : ''} ${STATUS_CLS[x.status ?? 'pending']}`}>
+              <span className="w-6 font-display font-black">{i + 1}</span>
+              <span className="flex-1 truncate font-semibold">{x.name}</span>
+              <span className="text-sm tabular-nums opacity-80">{ky.screen.pressSec(x.responseMs)}</span>
+              <span className="text-xs font-bold uppercase">{t.buzzStatus[x.status ?? 'pending']}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }
 
