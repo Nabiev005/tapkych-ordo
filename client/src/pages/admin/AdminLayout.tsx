@@ -111,7 +111,7 @@ export default function AdminLayout() {
 
       <div className="space-y-3 border-t border-white/10 p-4">
         <div className="flex items-center justify-between gap-2">
-          <LangSwitch dark />
+          <LangSwitch dark up />
           <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-white/50 hover:text-white">
             {ky.admin.openSite} <ExternalLink className="h-3 w-3" />
           </a>

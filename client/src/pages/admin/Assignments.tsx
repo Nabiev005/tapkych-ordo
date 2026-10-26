@@ -123,7 +123,8 @@ export function AssignmentFormModal({
     setForm({ title: defaultTitle, timerSeconds: 30, closesAt: '', mode: 'auto', count: 10, categories: [], difficulty: '', includeArchived: false, ids: [] });
     api
       .get<{ questions: Question[] }>('/api/questions')
-      .then((r) => setBank(r.questions))
+      // Ачык жооп суроолору үй тапшырмасына кирбейт
+      .then((r) => setBank(r.questions.filter((q) => q.type !== 'OPEN')))
       .catch(() => undefined);
   }, [open]);
 

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 import { ownerKey, requireAdmin, requireSuper, staff, type StaffUser } from '../auth.js';
-import { AppError, DIFFICULTIES, QUESTION_TYPES, ROUNDS, type Round } from '../types.js';
+import { AppError, DIFFICULTIES, LIBRARY_TYPES, ROUNDS, type Round } from '../types.js';
 import { nextOrder, questionSchema } from './questions.js';
 import { parseQuestionRows, readRows } from './importExport.js';
 import { STARTER_LIBRARY, STARTER_PACKS, buildPack } from '../library/starter.js';
@@ -29,7 +29,10 @@ const AUTO_ROUND: Record<string, Round> = { EASY: 'ROUND1', MEDIUM: 'ROUND2', HA
 
 /** Суроо китепкана үчүн текшерилет (тур талап кылынбайт) */
 function parseLibraryQuestion(body: unknown) {
-  const { round: _round, ...q } = questionSchema.parse({ ...(body as object), round: 'ROUND1' });
+  // Китепканада видео жана өзүнчө убакыт жок (машыгууда жана ботто колдонулбайт)
+  const { round: _round, videoUrl: _video, timerSeconds: _timer, ...q } = questionSchema.parse({ ...(body as object), round: 'ROUND1' });
+  // Ачык жооп китепканага кирбейт (машыгууда жана ботто варианттар менен гана текшерилет)
+  if (q.type === 'OPEN') throw new AppError('BAD_REQUEST');
   return { ...q, imageUrl: q.imageUrl || null, audioUrl: q.audioUrl || null };
 }
 
@@ -47,7 +50,7 @@ const listQuery = z.object({
   status: z.enum(STATUSES).optional(),
   category: z.string().trim().max(40).optional(),
   difficulty: z.enum(DIFFICULTIES).optional(),
-  type: z.enum(QUESTION_TYPES).optional(),
+  type: z.enum(LIBRARY_TYPES).optional(),
   q: z.string().trim().max(100).optional(),
   mine: z.enum(['1']).optional(),
   /** hard — эң аз туура жооп алгандар биринчи, easy — эң көп */
@@ -252,7 +255,7 @@ libraryRouter.post('/share', async (req, res) => {
   const data: Prisma.LibraryQuestionCreateManyInput[] = [];
   for (const q of own) {
     // Китепканадан алынган суроо же китепканада бар текст кайра бөлүшүлбөйт
-    if (q.libraryId || seen.has(norm(q.text))) continue;
+    if (q.libraryId || q.type === 'OPEN' || seen.has(norm(q.text))) continue;
     seen.add(norm(q.text));
     data.push({
       authorId: user.teacherId,
@@ -320,7 +323,7 @@ libraryRouter.post('/reject', requireSuper, async (req, res) => {
 /** Excel/CSV'ден китепканага жүктөө (суроолор банкынын шаблону; «Тур» мамычасы эске алынбайт) */
 libraryRouter.post('/import', requireSuper, upload.single('file'), async (req, res) => {
   if (!req.file) throw new AppError('INVALID_FILE');
-  const { valid, errors } = parseQuestionRows(await readRows(req.file), true);
+  const { valid, errors } = parseQuestionRows(await readRows(req.file), true, false);
   const seen = await existingTexts();
   const data: Prisma.LibraryQuestionCreateManyInput[] = [];
   for (const { round: _round, ...q } of valid) {

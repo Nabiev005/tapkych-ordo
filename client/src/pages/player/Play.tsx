@@ -1,7 +1,9 @@
 import confetti from 'canvas-confetti';
+import { ReactionBar } from '../../components/Reactions';
+import { Avatar, AvatarPicker } from '../../components/Avatar';
 import { RankMedal } from '../../components/game';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Ban, Crown, Eye, Flag, Hand, Hourglass, Lock, Medal, Music, PartyPopper, Pause, School, Share2, Smartphone, User, Users, Zap } from 'lucide-react';
+import { Clapperboard, Ban, Crown, Eye, Flag, Hand, Hourglass, Lock, Medal, Music, PartyPopper, Pause, School, Share2, Smartphone, User, Users, Zap } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
@@ -23,7 +25,7 @@ export default function Play({ session, onLeave }: { session: PlayerSession; onL
   const t = ky.player;
   const { toast } = useDialogs();
   const [ended, setEnded] = useState<null | 'kicked' | 'replaced' | 'deleted'>(null);
-  const { state, status, offset, emit } = useGameSocket<PlayerState>(ended ? null : { role: 'player', token: session.token }, {
+  const { state, status, offset, emit, send } = useGameSocket<PlayerState>(ended ? null : { role: 'player', token: session.token }, {
     'player:kicked': () => setEnded('kicked'),
     'session:replaced': () => setEnded('replaced'),
     'game:deleted': () => setEnded('deleted'),
@@ -55,7 +57,7 @@ export default function Play({ session, onLeave }: { session: PlayerSession; onL
 
   return (
     <>
-      <PlayView state={state} offset={offset} emit={emit} toast={toast} />
+      <PlayView state={state} offset={offset} emit={emit} send={send} toast={toast} />
       <ConnBadge status={status} dark />
     </>
   );
@@ -72,7 +74,7 @@ function Shell({ children, name }: { children: ReactNode; name?: string }) {
   );
 }
 
-function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: number; emit: Emit; toast: Toast }) {
+function PlayView({ state, offset, emit, send, toast }: { state: PlayerState; offset: number; emit: Emit; send: (e: string, p: unknown) => void; toast: Toast }) {
   const t = ky.player;
   const g = state.game;
   const me = state.me;
@@ -84,13 +86,18 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
   if (g.status === 'LOBBY')
     return (
       <Shell>
-        <Mascot size={140} className="animate-[bounce_2.4s_ease-in-out_infinite]" />
+        {me.avatar ? <Avatar id={me.avatar} name={me.name} size={96} /> : <Mascot size={120} className="animate-[bounce_2.4s_ease-in-out_infinite]" />}
         <h1 className="font-display text-3xl font-black text-gold-gradient">{t.hello(me.name)}</h1>
         {me.team && g.teamMode && <div className="rounded-full bg-white/10 px-4 py-1 font-semibold text-ordo-sky-light"><School className="ico" /> {me.team}</div>}
         <motion.div animate={{ opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 2 }} className="font-display text-xl font-bold">
           {t.waitingTitle}
         </motion.div>
         <p className="max-w-xs text-white/60">{t.waitingHint}</p>
+        <div className="w-full max-w-xs">
+          <div className="mb-2 text-sm font-semibold text-white/70">{t.avatarTitle}</div>
+          <AvatarPicker value={me.avatar} onPick={(id) => emit('player:avatar', { avatar: id }).catch((e: Error) => toast(e.message, 'err'))} />
+        </div>
+        <ReactionBar label={t.reactions} onSend={(kind) => send('reaction', { kind })} />
       </Shell>
     );
 
@@ -112,6 +119,7 @@ function PlayView({ state, offset, emit, toast }: { state: PlayerState; offset: 
         <Link to={`/watch/${g.code}`} className="rounded-2xl bg-violet-600 px-6 py-3 font-semibold shadow-lg hover:bg-violet-500">
           <Users className="ico" /> {t.watchAsAudience}
         </Link>
+        <ReactionBar label={t.reactions} onSend={(kind) => send('reaction', { kind })} />
       </Shell>
     );
 
@@ -189,6 +197,7 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
   const msLeft = useCountdown(g.endsAt, offset, g.pausedRemainingMs);
   const [pending, setPending] = useState<string | null>(null);
   const [order, setOrder] = useState('');
+  const [text, setText] = useState('');
   const [fiftyBusy, setFiftyBusy] = useState(false);
   const choice = q.myChoice ?? pending;
   const locked = !!choice || msLeft <= 0 || g.paused;
@@ -251,6 +260,7 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 rounded-3xl bg-white/[0.08] p-4 ring-1 ring-white/10">
           {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="mb-3 max-h-44 w-full rounded-2xl object-contain" />}
           <div className="text-xl font-semibold leading-snug">{q.text}</div>
+          {q.videoUrl && <div className="mt-2 text-sm text-ordo-gold-light"><Clapperboard className="ico" /> {t.watchVideo}</div>}
           {q.audioUrl && (
             <div className="mt-3">
               <div className="mb-1 text-sm text-white/60"><Music className="ico" /> {t.listen}</div>
@@ -286,6 +296,31 @@ function AnswerPad({ state, offset, emit, toast }: { state: PlayerState; offset:
             <div className="font-display text-3xl font-black">{t.timeUp}</div>
             <div className="text-white/60">{t.noAnswer}</div>
           </motion.div>
+        ) : q.type === 'OPEN' ? (
+          // Ачык жооп: студент жоопту өзү жазат
+          <motion.form
+            key="open"
+            className="flex flex-1 flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (text.trim()) void answer(text.trim());
+            }}
+          >
+            <div className="text-center text-white/60">{t.openHint}</div>
+            <input
+              autoFocus
+              maxLength={100}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={t.openPlaceholder}
+              autoComplete="off"
+              enterKeyHint="send"
+              className="w-full rounded-3xl bg-white px-5 py-5 text-center text-2xl font-bold text-ordo-ink shadow-xl outline-none ring-4 ring-ordo-gold/60 placeholder:font-normal placeholder:text-ordo-ink/35 focus:ring-ordo-gold"
+            />
+            <Button type="submit" variant="gold" size="xl" disabled={!text.trim() || locked}>
+              {t.openSubmit} →
+            </Button>
+          </motion.form>
         ) : q.type === 'TF' ? (
           // Туура / Туура эмес — эки чоң баскыч
           <motion.div key="tf" className="flex flex-1 flex-col gap-3">

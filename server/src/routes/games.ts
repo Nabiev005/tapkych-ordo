@@ -5,7 +5,7 @@ import { prisma } from '../db.js';
 import { assertOwner, ownedWhere, ownerKey, requireAdmin, staff } from '../auth.js';
 import { bus } from '../events.js';
 import { AppError, ROUNDS, type Round } from '../types.js';
-import { loadFull, participants, roundQuestions } from '../game/load.js';
+import { loadFull, participants, questionMs, roundQuestions } from '../game/load.js';
 import { overallStandings, rankScores, teamStandings } from '../game/scoring.js';
 
 export const gamesRouter = Router();
@@ -30,6 +30,7 @@ const settingsSchema = z.object({
   categories: z.string().trim().max(500),
   introEnabled: z.boolean(),
   finalBuzzer: z.boolean(),
+  shuffle: z.boolean(),
   introVideoUrl: z
     .string()
     .trim()
@@ -207,7 +208,7 @@ gamesRouter.get('/:id/replay', async (req, res) => {
         const r = acc.get(p.id)!;
         const a = q.answers.find((x) => x.playerId === p.id);
         r.score += a?.points ?? 0;
-        r.timeMs += a ? a.responseMs : game.timerSeconds * 1000;
+        r.timeMs += a ? a.responseMs : questionMs(game, q);
         if (a?.isCorrect) r.correct++;
       }
       steps.push({

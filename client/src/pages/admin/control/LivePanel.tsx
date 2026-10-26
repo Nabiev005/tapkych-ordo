@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Ban, Check, CircleCheckBig, CircleX, Eye, Flag, Hand, Monitor, Pause, Play, School, SkipForward, TriangleAlert, Trophy, Users, WifiOff, Zap } from 'lucide-react';
+import { Avatar } from '../../../components/Avatar';
+import { Ban, Check, CircleCheckBig, CircleX, Eye, Flag, Hand, Monitor, Pause, Play, School, SkipForward, TriangleAlert, Trophy, Users, WifiOff, Zap, Timer } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { LeaderboardList, OPTION_STYLE, RingTimer, TeamBoard } from '../../../components/game';
 import { Button, Modal, useDialogs } from '../../../components/ui';
@@ -159,13 +160,25 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {q.type !== 'CHOICE' && <span className="rounded-md bg-ordo-sky/15 px-2 py-0.5 text-xs font-bold text-ordo-sky">{ky.qtypesShort[q.type]}</span>}
                   {q.category && <span className="rounded-md bg-ordo-ink/5 px-2 py-0.5 text-xs font-semibold text-ordo-ink/70">#{q.category}</span>}
+                  {q.timerSeconds && <span className="rounded-md bg-ordo-gold/20 px-2 py-0.5 text-xs font-bold text-ordo-ink/70"><Timer className="ico" /> {t.ownTimer(q.timerSeconds)}</span>}
                 </div>
                 <div className="flex gap-4">
                   {q.imageUrl && <img src={assetUrl(q.imageUrl)} alt="" className="h-28 w-40 shrink-0 rounded-2xl object-cover" />}
                   <div className="text-xl font-semibold leading-snug">{q.text}</div>
                 </div>
                 {q.audioUrl && <audio controls src={assetUrl(q.audioUrl)} className="mt-3 w-full" />}
-                {q.type === 'ORDER' ? (
+                {q.videoUrl && <video controls muted src={assetUrl(q.videoUrl)} className="mt-3 max-h-56 w-full rounded-2xl bg-black" />}
+                {q.type === 'OPEN' ? (
+                  <div className="mt-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-3">
+                    <div className="text-xs font-bold uppercase tracking-wide text-emerald-700">✓ {t.correctAnswer}</div>
+                    <div className="font-display text-2xl font-black text-emerald-900">{q.options.A}</div>
+                    {[q.options.B, q.options.C, q.options.D].some((x) => x.trim()) && (
+                      <div className="mt-1 text-sm text-emerald-800/80">
+                        {t.openAlso}: {[q.options.B, q.options.C, q.options.D].filter((x) => x.trim()).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ) : q.type === 'ORDER' ? (
                   <div className="mt-4">
                     <div className="mb-1 text-xs font-bold uppercase tracking-wide text-emerald-700">✓ {t.orderCorrect}</div>
                     <ol className="space-y-1.5">
@@ -224,15 +237,21 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
                     )}
                   </div>
                 )}
+                {q.type === 'OPEN' && answeredCount > 0 && <p className="mb-2 text-sm text-ordo-ink/55">{t.openFixHint}</p>}
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
                   {active.map((p) => {
                     const a = state.answers[p.id];
+                    // Ачык жооп: басканда туура ↔ ката (алып баруучунун оңдоосу)
+                    const fixable = q.type === 'OPEN' && !!a;
                     return (
                       <motion.div
                         key={p.id}
                         layout
                         animate={a ? { scale: [1, 1.06, 1] } : undefined}
-                        className={`rounded-2xl border-2 p-3 ${!a ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400' : a.isCorrect ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-ordo-red bg-ordo-red text-white'}`}
+                        role={fixable ? 'button' : undefined}
+                        title={fixable ? (a.isCorrect ? t.openMarkWrong : t.openMarkCorrect) : undefined}
+                        onClick={fixable ? () => act({ type: 'markAnswer', playerId: p.id, correct: !a.isCorrect }) : undefined}
+                        className={`rounded-2xl border-2 p-3 ${fixable ? 'cursor-pointer hover:brightness-110' : ''} ${!a ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400' : a.isCorrect ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-ordo-red bg-ordo-red text-white'}`}
                       >
                         <div className="flex items-center gap-1.5">
                           {!p.online && <span title={ky.common.offline}><WifiOff className="ico text-ordo-red" /></span>}
@@ -344,6 +363,7 @@ function PlayersManage({ state, act, onAdjust }: { state: AdminState; act: Act; 
           {active.map((p) => (
             <div key={p.id} className="group flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-ordo-gold/10">
               <span className={`h-2.5 w-2.5 rounded-full ${p.online ? 'bg-emerald-500' : 'bg-slate-300'}`} title={p.online ? ky.common.online : ky.common.offline} />
+              <Avatar id={p.avatar} name={p.name} size={22} />
               <span className="flex-1 truncate">{p.name}</span>
               <button className="rounded-lg px-2 py-0.5 text-sm font-semibold text-ordo-sky hover:bg-ordo-sky/10" onClick={() => onAdjust(p.id)}>
                 ± {t.adjust}

@@ -5,6 +5,7 @@ import type { Options } from './types';
 export function answerLabel(type: QuestionType, choice: string | null | undefined): string {
   if (!choice) return '—';
   if (choice === 'BUZZ') return ky.buzzChoice;
+  if (type === 'OPEN') return choice;
   if (type === 'TF') return ky.tf[choice] ?? choice;
   if (type === 'ORDER') return [...choice].map((c) => ky.options[c as OptionKey] ?? c).join('→');
   return ky.options[choice as OptionKey] ?? choice;
@@ -15,6 +16,8 @@ export function answerText(type: QuestionType, choice: string | null | undefined
   if (!choice) return '—';
   if (type === 'TF') return ky.tf[choice] ?? choice;
   if (type === 'ORDER') return [...choice].map((c) => options?.[c as OptionKey] ?? c).join(' → ');
+  // Ачык жооп: суроонун туура жообу 'A' (= optionA), оюнчунун жообу — жазылган текст
+  if (type === 'OPEN') return choice === 'A' && options?.A ? options.A : choice;
   return `${ky.options[choice as OptionKey] ?? choice} — ${options?.[choice as OptionKey] ?? ''}`;
 }
 

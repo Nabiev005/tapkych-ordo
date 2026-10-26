@@ -24,6 +24,7 @@ const DEFAULTS: Omit<Settings, 'soundEnabled'> = {
   categories: '',
   introEnabled: true,
   finalBuzzer: false,
+  shuffle: false,
   introVideoUrl: null,
 };
 
@@ -249,6 +250,7 @@ export default function NewGame() {
             <h2 className="font-display text-lg font-bold"><Gamepad2 className="ico" /> {t.modesTitle}</h2>
             <Toggle checked={s.teamMode} onChange={(v) => setS({ ...s, teamMode: v })} label={t.teamMode} hint={t.teamModeHint} />
             <Toggle checked={s.fiftyFifty} onChange={(v) => setS({ ...s, fiftyFifty: v })} label={t.fiftyFifty} hint={t.fiftyFiftyHint} />
+            <Toggle checked={s.shuffle} onChange={(v) => setS({ ...s, shuffle: v })} label={t.shuffle} hint={t.shuffleHint} />
             <Toggle checked={s.finalBuzzer} onChange={(v) => setS({ ...s, finalBuzzer: v })} label={t.finalBuzzer} hint={t.finalBuzzerHint} />
             <div className="flex items-start justify-between gap-3">
               <div>

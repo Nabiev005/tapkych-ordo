@@ -38,6 +38,11 @@ export function isBuzzer(game: { finalBuzzer: boolean }, round: Round | null): b
   return game.finalBuzzer && round === 'FINAL';
 }
 
+/** Суроонун убактысы (мс): суроого өзүнчө коюлса — ошол, болбосо оюндун жөндөөсү */
+export function questionMs(game: { timerSeconds: number }, q: { timerSeconds: number | null } | null | undefined): number {
+  return (q?.timerSeconds ?? game.timerSeconds) * 1000;
+}
+
 export function roundSize(game: FullGame, round: Round): number {
   return round === 'ROUND1' ? game.round1Count : round === 'ROUND2' ? game.round2Count : game.finalQuestionCount;
 }

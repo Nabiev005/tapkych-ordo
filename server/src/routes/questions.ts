@@ -24,17 +24,25 @@ export const questionSchema = z
     text: z.string().trim().min(1).max(1000),
     imageUrl: z.string().trim().max(500).nullish(),
     audioUrl: z.string().trim().max(500).nullish(),
+    videoUrl: z.string().trim().max(500).nullish(),
+    // Ушул суроонун убактысы; null — оюндун жөндөөсү
+    timerSeconds: z.number().int().min(5).max(180).nullish(),
     optionA: opt.default(''),
     optionB: opt.default(''),
     optionC: opt.default(''),
     optionD: opt.default(''),
     correct: z.string().trim().toUpperCase(),
   })
-  .transform((q) => (q.type === 'TF' ? { ...q, ...TF_OPTIONS } : q))
+  // OPEN: optionA — туура жооп, B/C/D — кошумча кабыл алынуучу жазылыштар (милдеттүү эмес)
+  .transform((q) => (q.type === 'TF' ? { ...q, ...TF_OPTIONS } : q.type === 'OPEN' ? { ...q, correct: 'A' } : q))
   .superRefine((q, ctx) => {
     const fail = () => ctx.addIssue({ code: 'custom', message: 'INVALID_QUESTION' });
     if (q.type === 'TF') {
       if (q.correct !== 'A' && q.correct !== 'B') fail();
+      return;
+    }
+    if (q.type === 'OPEN') {
+      if (!q.optionA || [q.optionA, q.optionB, q.optionC, q.optionD].some((x) => x.length > 100)) fail();
       return;
     }
     if (![q.optionA, q.optionB, q.optionC, q.optionD].every(Boolean)) fail();

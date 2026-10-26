@@ -1,8 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 import { bus } from '../events.js';
-import { AppError, BUZZ_CHOICE, OPTIONS, ROUNDS, nextRound, type Option, type Round } from '../types.js';
-import { currentQuestion, currentRound, isBuzzer, loadFull, participants, roundQuestions, roundSize, type FullGame, type FullQuestion } from './load.js';
+import { AVATARS, AppError, BUZZ_CHOICE, OPTIONS, ROUNDS, nextRound, type Option, type Round } from '../types.js';
+import { OPEN_MAX_LENGTH, checkOpen, openAccepted } from './openAnswer.js';
+import { currentQuestion, currentRound, isBuzzer, loadFull, participants, questionMs, roundQuestions, roundSize, type FullGame, type FullQuestion } from './load.js';
 
 /**
  * Оюндун кыймылдаткычы. Бардык абал БДда сакталат, ошондуктан сервер же
@@ -66,6 +67,13 @@ function notPaused(game: FullGame) {
   if (game.paused) throw new AppError('GAME_PAUSED');
 }
 
+function shuffleInPlace<T>(list: T[]) {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+}
+
 // ───────────────────────── Алып баруучунун аракеттери ─────────────────────────
 
 async function startGame(gameId: number) {
@@ -83,6 +91,8 @@ async function startGame(gameId: number) {
     where: { ownerId: game.ownerId, archived: false, ...(categories.length ? { category: { in: categories } } : {}) },
     orderBy: [{ round: 'asc' }, { order: 'asc' }],
   });
+  // «Аралаштыруу» күйүк болсо — банктагы тартиптин ордуна кокус тартип
+  if (game.shuffle) shuffleInPlace(pool);
 
   const picked = new Map<Round, typeof pool>();
   if (game.selectionMode === 'DIFFICULTY') {
@@ -124,6 +134,8 @@ async function startGame(gameId: number) {
         text: q.text,
         imageUrl: q.imageUrl,
         audioUrl: q.audioUrl,
+        videoUrl: q.videoUrl,
+        timerSeconds: q.timerSeconds,
         optionA: q.optionA,
         optionB: q.optionB,
         optionC: q.optionC,
@@ -182,6 +194,7 @@ async function setRoundCount(gameId: number, round: Round, count: number) {
     const prefer: Record<Round, string[]> = { ROUND1: ['EASY', 'MEDIUM', 'HARD'], ROUND2: ['MEDIUM', 'EASY', 'HARD'], FINAL: ['HARD', 'MEDIUM', 'EASY'] };
     const rank = (q: (typeof pool)[number]) =>
       game.selectionMode === 'DIFFICULTY' ? prefer[round].indexOf(q.difficulty) : q.round === round ? 0 : 1;
+    if (game.shuffle) shuffleInPlace(pool);
     const picked = [...pool].sort((a, b) => rank(a) - rank(b)).slice(0, need);
     if (picked.length < need) throw new AppError('NOT_ENOUGH_QUESTIONS', 400, { round, need: count, have: list.length + picked.length });
     const start = list.length ? list[list.length - 1].order + 1 : 0;
@@ -198,6 +211,8 @@ async function setRoundCount(gameId: number, round: Round, count: number) {
           text: q.text,
           imageUrl: q.imageUrl,
           audioUrl: q.audioUrl,
+          videoUrl: q.videoUrl,
+          timerSeconds: q.timerSeconds,
           optionA: q.optionA,
           optionB: q.optionB,
           optionC: q.optionC,
@@ -230,7 +245,7 @@ async function showQuestion(gameId: number) {
   const q = currentQuestion(game);
   if (game.phase !== 'READY' || !q) throw new AppError('INVALID_ACTION');
   const now = new Date();
-  const endsAt = new Date(now.getTime() + game.timerSeconds * 1000);
+  const endsAt = new Date(now.getTime() + questionMs(game, q));
   await prisma.$transaction([
     prisma.gameQuestion.update({ where: { id: q.id }, data: { startedAt: now, endsAt } }),
     // Суралган суроо банктан архивге өтөт — кийинки оюнда кайталанбайт
@@ -298,13 +313,29 @@ async function judgeBuzz(gameId: number, correct: boolean) {
   if (!isBuzzer(game, round) || game.phase !== 'QUESTION' || !q) throw new AppError('INVALID_ACTION');
   const current = buzzQueue(q)[0];
   if (!current) throw new AppError('INVALID_ACTION');
-  const fullMs = game.timerSeconds * 1000;
+  const fullMs = questionMs(game, q);
   const bonus = correct && game.speedBonus > 0 && current.responseMs <= fullMs / 3 ? game.speedBonus : 0;
   await prisma.answer.update({
     where: { id: current.id },
     data: { judgedAt: new Date(), isCorrect: correct, bonus, points: correct ? game.pointsPerCorrect + bonus : 0 },
   });
   if (correct) await revealAnswer(gameId);
+}
+
+/**
+ * Ачык жооп: алып баруучу оюнчунун жообун кол менен туура же ката деп белгилейт
+ * (мис. синоним же автоматтык текшерүү кабыл албаган туура жазылыш).
+ */
+async function markAnswer(gameId: number, playerId: number, correct: boolean) {
+  const game = await mustLoad(gameId);
+  mustRound(game);
+  const q = currentQuestion(game);
+  if (!q || q.type !== 'OPEN' || (game.phase !== 'QUESTION' && game.phase !== 'REVEAL')) throw new AppError('INVALID_ACTION');
+  const a = q.answers.find((x) => x.playerId === playerId);
+  if (!a) throw new AppError('NOT_FOUND', 404);
+  const fullMs = questionMs(game, q);
+  const bonus = correct && game.speedBonus > 0 && a.responseMs <= fullMs / 3 ? game.speedBonus : 0;
+  await prisma.answer.update({ where: { id: a.id }, data: { isCorrect: correct, bonus, points: correct ? game.pointsPerCorrect + bonus : 0 } });
 }
 
 async function toggleLeaderboard(gameId: number) {
@@ -433,7 +464,8 @@ export type AdminAction =
   | { type: 'adjustScore'; playerId: number; delta: number; round?: Round }
   | { type: 'setSound'; enabled: boolean }
   | { type: 'setRoundCount'; round: Round; count: number }
-  | { type: 'judgeBuzz'; correct: boolean };
+  | { type: 'judgeBuzz'; correct: boolean }
+  | { type: 'markAnswer'; playerId: number; correct: boolean };
 
 export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
   return withLock(gameId, async () => {
@@ -454,6 +486,7 @@ export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
         await adjustScore(gameId, Number(a.playerId), Number(a.delta), ROUNDS.includes(a.round as Round) ? a.round : undefined);
         break;
       case 'setSound': await setSound(gameId, !!a.enabled); break;
+      case 'markAnswer': await markAnswer(gameId, Number(a.playerId), a.correct === true); break;
       case 'judgeBuzz': await judgeBuzz(gameId, a.correct === true); break;
       case 'setRoundCount':
         if (!ROUNDS.includes(a.round)) throw new AppError('BAD_REQUEST');
@@ -471,17 +504,20 @@ export function runAdminAction(gameId: number, a: AdminAction): Promise<void> {
 export function validChoice(type: string, choice: string): boolean {
   if (type === 'TF') return choice === 'A' || choice === 'B';
   if (type === 'ORDER') return choice.length === 4 && [...choice].sort().join('') === 'ABCD';
+  if (type === 'OPEN') return choice.length > 0 && choice.length <= OPEN_MAX_LENGTH;
   return (OPTIONS as readonly string[]).includes(choice);
 }
 
 export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknown): Promise<void> {
   return withLock(gameId, async () => {
-    const choice = String(choiceRaw ?? '').toUpperCase() as Option;
     const game = await mustLoad(gameId);
     const round = currentRound(game);
     const q = currentQuestion(game);
     const player = game.players.find((p) => p.id === playerId);
     if (!round || !q || !player) throw new AppError('INVALID_ACTION');
+    // Ачык жооп — жазылган текст ошол бойдон (боштуктары тазаланат), калгандары — тамгалар
+    const raw = String(choiceRaw ?? '');
+    const choice = q.type === 'OPEN' ? raw.replace(/s+/g, ' ').trim() : raw.toUpperCase();
     if (isBuzzer(game, round)) throw new AppError('INVALID_ACTION');
     if (!validChoice(q.type, choice)) throw new AppError('BAD_REQUEST');
     if (player.status !== 'ACTIVE') throw new AppError('NOT_IN_ROUND');
@@ -492,9 +528,9 @@ export function submitAnswer(gameId: number, playerId: number, choiceRaw: unknow
     if (!endsAt || now > endsAt + ANSWER_GRACE_MS) throw new AppError('TIME_UP');
     if (q.answers.some((a) => a.playerId === playerId)) throw new AppError('ALREADY_ANSWERED');
 
-    const fullMs = game.timerSeconds * 1000;
+    const fullMs = questionMs(game, q);
     const responseMs = Math.min(fullMs, Math.max(0, fullMs - (endsAt - now)));
-    const isCorrect = choice === q.correct;
+    const isCorrect = q.type === 'OPEN' ? checkOpen(openAccepted(q), choice) : choice === q.correct;
     // Тез жооп бонусу: туура жана убакыттын алгачкы үчтөн биринде берилсе
     const bonus = isCorrect && game.speedBonus > 0 && responseMs <= fullMs / 3 ? game.speedBonus : 0;
     try {
@@ -533,7 +569,7 @@ export function buzz(gameId: number, playerId: number): Promise<void> {
     const endsAt = game.questionEndsAt?.getTime();
     if (!endsAt || now > endsAt + ANSWER_GRACE_MS) throw new AppError('TIME_UP');
     if (q.answers.some((a) => a.playerId === playerId)) throw new AppError('ALREADY_ANSWERED');
-    const fullMs = game.timerSeconds * 1000;
+    const fullMs = questionMs(game, q);
     const responseMs = Math.min(fullMs, Math.max(0, fullMs - (endsAt - now)));
     try {
       await prisma.answer.create({
@@ -580,7 +616,7 @@ export async function audienceVote(gameId: number, voterId: string, choiceRaw: u
   const q = currentQuestion(game);
   const choice = String(choiceRaw ?? '').toUpperCase();
   if (!q || game.phase !== 'QUESTION' || game.paused) throw new AppError('TIME_UP');
-  if (!validChoice(q.type, choice) || q.type === 'ORDER') throw new AppError('BAD_REQUEST');
+  if (!validChoice(q.type, choice) || q.type === 'ORDER' || q.type === 'OPEN') throw new AppError('BAD_REQUEST');
   if (!game.questionEndsAt || Date.now() > game.questionEndsAt.getTime() + ANSWER_GRACE_MS) throw new AppError('TIME_UP');
   try {
     await prisma.audienceVote.create({ data: { gameQuestionId: q.id, voterId: voterId.slice(0, 64), choice } });
@@ -597,4 +633,12 @@ export async function restoreTimers() {
   for (const g of running) {
     if (g.questionEndsAt && g.questionEndsAt.getTime() > Date.now()) scheduleClose(g.id, g.questionEndsAt);
   }
+}
+
+/** Оюнчу өзүнө аватар тандайт (бош сап — алып салуу) */
+export async function setAvatar(gameId: number, playerId: number, raw: unknown): Promise<void> {
+  const avatar = String(raw ?? '');
+  if (avatar && !(AVATARS as readonly string[]).includes(avatar)) throw new AppError('BAD_REQUEST');
+  await prisma.player.updateMany({ where: { id: playerId, gameId }, data: { avatar } });
+  changed(gameId);
 }

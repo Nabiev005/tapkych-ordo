@@ -1,5 +1,5 @@
 import { ROUNDS, type Round } from '../types.js';
-import { type FullGame, participants, playedRound, roundIndex, roundQuestions } from './load.js';
+import { type FullGame, participants, playedRound, roundIndex, roundQuestions, questionMs } from './load.js';
 
 export interface RoundScore {
   playerId: number;
@@ -22,7 +22,6 @@ export interface Ranked extends RoundScore {
  */
 export function roundScores(game: FullGame, round: Round): RoundScore[] {
   const questions = roundQuestions(game, round).filter((q) => q.revealedAt);
-  const fullMs = game.timerSeconds * 1000;
   return participants(game, round).map((p) => {
     let score = 0;
     let timeMs = 0;
@@ -34,7 +33,7 @@ export function roundScores(game: FullGame, round: Round): RoundScore[] {
         timeMs += a.responseMs;
         if (a.isCorrect) correct++;
       } else {
-        timeMs += fullMs;
+        timeMs += questionMs(game, q);
       }
     }
     for (const adj of game.adjustments) {

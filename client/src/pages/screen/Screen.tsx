@@ -1,6 +1,8 @@
 import confetti from 'canvas-confetti';
+import { FlyingReactions, useFlyingReactions } from '../../components/Reactions';
+import { Avatar } from '../../components/Avatar';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Hand, Lock, School, Star, Trophy, Users, Volume1, Zap } from 'lucide-react';
+import { Hand, Keyboard, Lock, School, Star, Trophy, Users, Volume1, Zap } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { AudienceBars, JoinQr, LeaderboardList, OPTION_STYLE, OptionCard, Podium, RingTimer, TeamBoard } from '../../components/game';
@@ -28,8 +30,10 @@ function burst(big = false) {
 export default function Screen() {
   const { code = '' } = useParams();
   const [deleted, setDeleted] = useState(false);
+  const flying = useFlyingReactions();
   const { state, status, offset } = useGameSocket<ScreenState>(deleted ? null : { role: 'screen', code }, {
     'game:deleted': () => setDeleted(true),
+    reaction: (r?: { kind?: string }) => r?.kind && flying.push(r.kind),
   });
   const [audioOk, setAudioOk] = useState(audioUnlocked());
 
@@ -65,6 +69,7 @@ export default function Screen() {
       </div>
       <OrnamentBand height={26} flip />
 
+      <FlyingReactions items={flying.items} />
       <IntroOverlay state={state} offset={offset} />
 
       <AnimatePresence>
@@ -184,6 +189,7 @@ function Lobby({ state }: { state: ScreenState }) {
                 transition={{ type: 'spring', damping: 12 }}
                 className="rounded-2xl bg-gradient-to-b from-ordo-red to-ordo-red-dark px-6 py-3 font-display text-2xl font-bold shadow-lg ring-2 ring-ordo-gold/50"
               >
+                <Avatar id={p.avatar} name={p.name} size={40} className="mr-3 align-middle" />
                 {p.name}
               </motion.div>
             ))}
@@ -280,16 +286,36 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
           <RingTimer msLeft={msLeft} totalSec={g.timerSeconds} size={Math.min(200, window.innerHeight * 0.2)} paused={g.paused} />
         ) : (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="rounded-3xl bg-emerald-500 px-8 py-5 font-display text-3xl font-black shadow-[0_0_50px_rgba(16,185,129,0.5)]">
-            ✓ {q.type === 'ORDER' ? ky.screen.orderTitle : `${ky.admin.control.correctAnswer}: ${correctBadge}`}
+            ✓ {q.type === 'ORDER' ? ky.screen.orderTitle : q.type === 'OPEN' ? ky.admin.control.correctAnswer : `${ky.admin.control.correctAnswer}: ${correctBadge}`}
           </motion.div>
         )}
       </div>
 
       <div className="flex min-h-0 flex-1 gap-[3vw]">
+        {q.videoUrl && <QuestionVideo src={assetUrl(q.videoUrl)!} />}
         {q.imageUrl && (
           <motion.img initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} src={assetUrl(q.imageUrl)} alt="" className="max-h-full w-[34%] self-center rounded-3xl object-contain shadow-2xl ring-4 ring-ordo-gold/40" />
         )}
-        {q.type === 'ORDER' ? (
+        {q.type === 'OPEN' ? (
+          // Ачык жооп: суроо учурунда — «телефонго жазыңыз», ачылганда — туура жооп чоң кылып
+          <div className="flex flex-1 items-center justify-center">
+            {revealed ? (
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', damping: 12 }}
+                className="max-w-[80%] rounded-[2.5rem] bg-gradient-to-b from-emerald-400 to-emerald-700 px-[4vw] py-[4vh] text-center font-display text-[clamp(2.5rem,6vw,7rem)] font-black leading-tight shadow-[0_0_80px_rgba(16,185,129,0.5)]"
+              >
+                {q.options.A}
+              </motion.div>
+            ) : (
+              <div className="flex items-center gap-6 rounded-[2.5rem] border-2 border-dashed border-white/25 bg-white/[0.06] px-[4vw] py-[5vh] font-display text-[clamp(1.6rem,3vw,3.4rem)] font-bold text-white/85">
+                <Keyboard className="h-[clamp(3rem,6vw,6rem)] w-[clamp(3rem,6vw,6rem)] text-ordo-gold" />
+                {ky.screen.openWrite}
+              </div>
+            )}
+          </div>
+        ) : q.type === 'ORDER' ? (
           // Иретке келтирүү: ачылгандан кийин элементтер туура тартипте номерленет
           <div className="flex flex-1 flex-col justify-center gap-[1.6vh]">
             {(revealed ? [...q.correct!].map((c) => c as OptionKey) : keys).map((k, i) => (
@@ -361,8 +387,10 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
               className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 font-display text-[clamp(1rem,1.5vw,1.6rem)] font-bold ring-2 ${cls}`}
             >
               {pressed >= 0 && <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/25 text-base">{pressed + 1}</span>}
+              {p.avatar && <Avatar id={p.avatar} name={p.name} size={30} />}
               {correct === true ? '✓' : correct === false ? '✗' : p.answered ? '●' : '○'} {p.name}
               {pressed >= 0 && <span className="text-base font-semibold opacity-80">{ky.screen.pressSec(state.pressOrder![pressed].responseMs)}</span>}
+              {p.text && <span className="max-w-[14vw] truncate rounded-lg bg-black/20 px-2 text-[0.85em] font-semibold">«{p.text}»</span>}
               {p.bonus > 0 && <span className="rounded-lg bg-black/20 px-2 text-base"><Zap className="ico" />+{p.bonus}</span>}
             </motion.div>
           );
@@ -568,6 +596,20 @@ function SoundDirector({ state, offset }: { state: ScreenState; offset: number }
   }, [msLeft, g.phase, g.paused, g.endsAt]);
 
   return null;
+}
+
+/** Видео суроо: экранда үнү менен ойнойт (браузер уруксат бербесе — үнсүз), башкаруу баскычтары бар */
+function QuestionVideo({ src }: { src: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.play().catch(() => {
+      v.muted = true;
+      v.play().catch(() => undefined);
+    });
+  }, [src]);
+  return <video ref={ref} src={src} controls playsInline className="max-h-full w-[44%] self-center rounded-3xl bg-black object-contain shadow-2xl ring-4 ring-ordo-gold/40" />;
 }
 
 /** Музыкалык суроо: экранда автоматтык түрдө ойнойт (браузер уруксат берсе), болбосо баскыч менен */

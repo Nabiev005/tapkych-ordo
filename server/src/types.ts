@@ -7,8 +7,13 @@ export const OPTIONS = ['A', 'B', 'C', 'D'] as const;
 export type Option = (typeof OPTIONS)[number];
 
 /** Суроонун түрлөрү: тандоо (А/Б/В/Г), Туура/Туура эмес, иретке келтирүү */
-export const QUESTION_TYPES = ['CHOICE', 'TF', 'ORDER'] as const;
+export const QUESTION_TYPES = ['CHOICE', 'TF', 'ORDER', 'OPEN'] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
+/**
+ * Китепкана (машыгуу, күндүн суроолору, Telegram) жана үй тапшырмалары үчүн — ачык жоопсуз:
+ * ал жерлерде жооп варианттар менен гана текшерилет. OPEN — оюндар үчүн гана.
+ */
+export const LIBRARY_TYPES = ['CHOICE', 'TF', 'ORDER'] as const;
 
 export const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -25,6 +30,11 @@ export type Phase = 'IDLE' | 'READY' | 'QUESTION' | 'REVEAL' | 'ROUND_END';
 
 /** Финалдын «биринчи баскан» режиминде Answer.choice — оозеки жооп */
 export const BUZZ_CHOICE = 'BUZZ';
+
+/** Оюнчунун аватары — клиенттеги components/Avatar.tsx ачкычтары менен бирдей */
+export const AVATARS = ['cat', 'dog', 'bird', 'fish', 'rabbit', 'squirrel', 'turtle', 'bug', 'rocket', 'star', 'crown', 'mountain', 'sun', 'moon', 'flower', 'gem', 'zap', 'book', 'music', 'trophy'] as const;
+/** Залдын реакциялары (экранда учуп чыгат, сакталбайт) */
+export const REACTIONS = ['clap', 'fire', 'heart', 'wow', 'laugh', 'party'] as const;
 
 export const nextRound = (r: Round): Round | null =>
   r === 'ROUND1' ? 'ROUND2' : r === 'ROUND2' ? 'FINAL' : null;

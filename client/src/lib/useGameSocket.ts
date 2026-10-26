@@ -12,7 +12,8 @@ type AckRes = { ok: true } | { ok: false; error: string; details?: unknown };
  */
 export function useGameSocket<S extends { serverNow: number }>(
   auth: Record<string, unknown> | null,
-  handlers: Record<string, () => void> = {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handlers: Record<string, (payload?: any) => void> = {},
 ) {
   const [state, setState] = useState<S | null>(null);
   const [status, setStatus] = useState<ConnStatus>('connecting');
@@ -60,8 +61,8 @@ export function useGameSocket<S extends { serverNow: number }>(
       } else setStatus('offline');
     });
     socket.on('state', (s: S) => setState(s));
-    for (const ev of ['game:deleted', 'player:kicked', 'session:replaced']) {
-      socket.on(ev, () => handlersRef.current[ev]?.());
+    for (const ev of ['game:deleted', 'player:kicked', 'session:replaced', 'reaction']) {
+      socket.on(ev, (payload?: unknown) => handlersRef.current[ev]?.(payload));
     }
     const resync = setInterval(sync, 60_000);
     return () => {
@@ -84,7 +85,12 @@ export function useGameSocket<S extends { serverNow: number }>(
     });
   }, []);
 
-  return { state, status, offset, emit };
+  /** Жооп күтпөй жөнөтүү (мис. реакциялар) */
+  const send = useCallback((event: string, payload: unknown) => {
+    if (socketRef.current?.connected) socketRef.current.emit(event, payload);
+  }, []);
+
+  return { state, status, offset, emit, send };
 }
 
 /** Сервердин убактысы боюнча калган миллисекунд (100 мс сайын жаңыланат) */

@@ -150,7 +150,13 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
 
       {/* Суроолордун саны жана интро — баштоодон мурун өзгөртсө болот */}
       <div className="space-y-5 lg:col-span-2">
-        <section className="card p-5">
+        <section className="card space-y-4 p-5">
+          <Toggle
+            checked={g.settings.shuffle}
+            onChange={(v) => rest(() => api.patch(`/api/games/${g.id}/settings`, { shuffle: v }))}
+            label={ky.admin.newGame.shuffle}
+            hint={ky.admin.newGame.shuffleHint}
+          />
           <Toggle
             checked={g.settings.finalBuzzer}
             onChange={(v) => rest(() => api.patch(`/api/games/${g.id}/settings`, { finalBuzzer: v }))}

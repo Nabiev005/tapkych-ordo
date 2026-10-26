@@ -2,7 +2,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, BarChart3, Feather, FileSpreadsheet, Image, Import, Info, Library, Music, Pencil, Trash2, TriangleAlert, Undo2 } from 'lucide-react';
+import { Archive, BarChart3, Clapperboard, Feather, FileSpreadsheet, Image, Import, Info, Library, Music, Pencil, Timer, Trash2, TriangleAlert, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OPTION_STYLE } from '../../components/game';
 import { Button, Modal, Spinner, useDialogs } from '../../components/ui';
@@ -10,7 +10,7 @@ import { fmtDate, ky, type Difficulty, type OptionKey, type QuestionType, type R
 import { api, assetUrl, downloadFile } from '../../lib/api';
 import { resizeImage } from '../../lib/image';
 import { answerText } from '../../lib/questions';
-import { DIFFICULTIES, OPTION_KEYS, QUESTION_TYPES, ROUND_KEYS, optionKeysFor, type Question, type QuestionStats } from '../../lib/types';
+import { DIFFICULTIES, GAME_QUESTION_TYPES, OPTION_KEYS, QUESTION_TYPES, ROUND_KEYS, optionKeysFor, type Question, type QuestionStats } from '../../lib/types';
 
 const REQUIRED: Record<RoundKey, number> = { ROUND1: 10, ROUND2: 10, FINAL: 5 };
 
@@ -22,6 +22,8 @@ export const emptyDraft = (round: RoundKey): Draft => ({
   difficulty: 'MEDIUM',
   text: '',
   imageUrl: null,
+  videoUrl: null,
+  timerSeconds: null,
   audioUrl: null,
   optionA: '',
   optionB: '',
@@ -37,13 +39,15 @@ const DIFF_STYLE: Record<Difficulty, string> = {
   HARD: 'bg-rose-100 text-rose-800',
 };
 
-export function QuestionBadges({ q }: { q: Pick<Question, 'type' | 'category' | 'difficulty' | 'audioUrl' | 'imageUrl'> }) {
+export function QuestionBadges({ q }: { q: Pick<Question, 'type' | 'category' | 'difficulty' | 'audioUrl' | 'imageUrl' | 'videoUrl' | 'timerSeconds'> }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${DIFF_STYLE[q.difficulty]}`}>{ky.difficulty[q.difficulty]}</span>
       {q.type !== 'CHOICE' && <span className="rounded-md bg-ordo-sky/15 px-2 py-0.5 text-xs font-bold text-ordo-sky">{ky.qtypesShort[q.type]}</span>}
       {q.category && <span className="rounded-md bg-ordo-ink/5 px-2 py-0.5 text-xs font-semibold text-ordo-ink/70">#{q.category}</span>}
       {q.audioUrl && <span className="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700"><Music className="ico" /></span>}
+      {q.videoUrl && <span className="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700"><Clapperboard className="ico" /></span>}
+      {q.timerSeconds && <span className="rounded-md bg-ordo-gold/20 px-2 py-0.5 text-xs font-bold text-ordo-ink/70"><Timer className="ico" /> {ky.admin.control.ownTimer(q.timerSeconds)}</span>}
     </div>
   );
 }
@@ -296,6 +300,19 @@ export default function Questions() {
 }
 
 export function OptionsPreview({ q }: { q: Pick<Question, 'type' | 'correct' | 'optionA' | 'optionB' | 'optionC' | 'optionD'> }) {
+  if (q.type === 'OPEN') {
+    const alt = [q.optionB, q.optionC, q.optionD].filter((x) => x.trim());
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+        <span className="rounded-lg bg-emerald-100 px-2 py-1 font-semibold text-emerald-800">✓ {q.optionA}</span>
+        {alt.map((x) => (
+          <span key={x} className="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-800/80">
+            {x}
+          </span>
+        ))}
+      </div>
+    );
+  }
   if (q.type === 'ORDER') {
     return (
       <ol className="mt-2 space-y-1 text-sm">
@@ -368,7 +385,7 @@ function SortableRow({
         <Button size="sm" variant="outline" onClick={onArchive}>
           <Archive className="ico" /> {ky.admin.questions.toArchive}
         </Button>
-        {!q.libraryId && (
+        {!q.libraryId && q.type !== 'OPEN' && (
           <Button size="sm" variant="outline" title={ky.admin.questions.shareHint} onClick={onShare}>
             <Library className="ico" /> {ky.admin.questions.share}
           </Button>
@@ -398,7 +415,8 @@ export function QuestionForm({
   const { toast } = useDialogs();
   const [d, setD] = useState<Draft | null>(draft);
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState<'image' | 'audio' | null>(null);
+  const [uploading, setUploading] = useState<'image' | 'audio' | 'video' | null>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLInputElement>(null);
   useEffect(() => setD(draft), [draft]);
@@ -408,17 +426,18 @@ export function QuestionForm({
   const valid =
     !!d &&
     !!d.text.trim() &&
-    (d.type === 'TF' || OPTION_KEYS.every((k) => d[optField(k)].trim())) &&
+    (d.type === 'TF' || (d.type === 'OPEN' ? !!d.optionA.trim() : OPTION_KEYS.every((k) => d[optField(k)].trim()))) &&
     (d.type !== 'ORDER' || orderDone);
 
   const setType = (type: QuestionType) => {
     if (!d) return;
     // Түрү өзгөргөндө туура жоопту ошого ылайыкташтырабыз
-    const correct = type === 'ORDER' ? '' : type === 'TF' ? (d.correct === 'B' ? 'B' : 'A') : 'ABCD'.includes(d.correct) && d.correct.length === 1 ? d.correct : 'A';
+    const correct = type === 'OPEN' ? 'A' : type === 'ORDER' ? '' : type === 'TF' ? (d.correct === 'B' ? 'B' : 'A') : 'ABCD'.includes(d.correct) && d.correct.length === 1 ? d.correct : 'A';
     setD({ ...d, type, correct });
   };
 
-  const upload = async (file: File, kind: 'image' | 'audio') => {
+  const upload = async (file: File, kind: 'image' | 'audio' | 'video') => {
+    if (kind === 'video' && (!['video/mp4', 'video/webm'].includes(file.type) || file.size > 25 * 1024 * 1024)) return toast(f.videoBadFile, 'err');
     setUploading(kind);
     try {
       let toSend = file;
@@ -430,7 +449,7 @@ export function QuestionForm({
       const form = new FormData();
       form.append(kind, toSend);
       const { url } = await api.upload<{ url: string }>(`/api/uploads/${kind}`, form);
-      setD((x) => (x ? { ...x, [kind === 'image' ? 'imageUrl' : 'audioUrl']: url } : x));
+      setD((x) => (x ? { ...x, [kind === 'image' ? 'imageUrl' : kind === 'audio' ? 'audioUrl' : 'videoUrl']: url } : x));
     } catch (e) {
       toast((e as Error).message, 'err');
     } finally {
@@ -454,6 +473,8 @@ export function QuestionForm({
       optionC: d.optionC,
       optionD: d.optionD,
       correct: d.correct,
+      // Китепканада видео жана өзүнчө убакыт жок
+      ...(library ? {} : { videoUrl: d.videoUrl ?? null, timerSeconds: d.timerSeconds ?? null }),
     };
     try {
       const base = library ? '/api/library' : '/api/questions';
@@ -503,7 +524,7 @@ export function QuestionForm({
             <div>
               <label className="label">{f.type}</label>
               <div className="grid gap-2">
-                {QUESTION_TYPES.map((x) => (
+                {(library ? QUESTION_TYPES : GAME_QUESTION_TYPES).map((x) => (
                   <button key={x} onClick={() => setType(x)} className={`${seg(d.type === x)} text-left text-sm`}>
                     {ky.qtypes[x]}
                   </button>
@@ -566,6 +587,41 @@ export function QuestionForm({
             </div>
           </div>
 
+{!library && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label">{f.video}</label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input ref={videoRef} type="file" accept="video/mp4,video/webm" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0], 'video')} />
+                  <Button variant="outline" size="sm" loading={uploading === 'video'} onClick={() => videoRef.current?.click()}>
+                    <Clapperboard className="ico" /> {uploading === 'video' ? f.uploading : f.uploadVideo}
+                  </Button>
+                  {d.videoUrl && (
+                    <Button variant="ghost" size="sm" onClick={() => setD({ ...d, videoUrl: null })}>
+                      ✕ {f.removeVideo}
+                    </Button>
+                  )}
+                </div>
+                {d.videoUrl && <video controls muted src={assetUrl(d.videoUrl)} className="mt-2 max-h-40 w-full rounded-xl bg-black" />}
+              </div>
+              <div>
+                <label className="label">
+                  <Timer className="ico" /> {f.timer}
+                </label>
+                <input
+                  type="number"
+                  min={5}
+                  max={180}
+                  className="input w-40"
+                  placeholder={f.timerPlaceholder}
+                  value={d.timerSeconds ?? ''}
+                  onChange={(e) => setD({ ...d, timerSeconds: e.target.value ? Math.max(5, Math.min(180, Number(e.target.value) || 5)) : null })}
+                />
+                <p className="mt-1 text-xs text-ordo-ink/50">{f.timerHint}</p>
+              </div>
+            </div>
+          )}
+
           {/* Варианттар — түрүнө жараша */}
           {d.type === 'TF' && (
             <div>
@@ -607,6 +663,40 @@ export function QuestionForm({
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {d.type === 'OPEN' && (
+            <div className="space-y-3">
+              <div>
+                <label className="label">{f.openAnswer}</label>
+                <input
+                  className="input border-emerald-400 text-lg font-semibold"
+                  placeholder={f.openAnswerPlaceholder}
+                  maxLength={100}
+                  value={d.optionA}
+                  onChange={(e) => setD({ ...d, optionA: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">{f.openAlt}</label>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {(['B', 'C', 'D'] as const).map((k, i) => (
+                    <input
+                      key={k}
+                      className="input"
+                      placeholder={f.openAltPlaceholder(i + 2)}
+                      maxLength={100}
+                      value={d[optField(k)]}
+                      onChange={(e) => setD({ ...d, [optField(k)]: e.target.value })}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-ordo-sky/10 p-3 text-sm text-ordo-ink/70">
+                {f.openHint}
+                <div className="mt-1 text-xs text-ordo-ink/50">{f.openNotInLibrary}</div>
               </div>
             </div>
           )}

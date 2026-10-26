@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { currentLang } from '../i18n/lang';
+import { googleLocale } from '../i18n/lang';
 
 type GsiId = {
   initialize: (o: { client_id: string; callback: (r: { credential: string }) => void; ux_mode?: 'popup' }) => void;
@@ -50,7 +50,7 @@ export function GoogleButton({ clientId, onCredential }: { clientId: string; onC
           shape: 'pill',
           text: 'signin_with',
           width: Math.min(320, ref.current.clientWidth || 320),
-          locale: currentLang === 'ru' ? 'ru' : 'ky',
+          locale: googleLocale,
         });
       })
       .catch(() => alive && setFailed(true));

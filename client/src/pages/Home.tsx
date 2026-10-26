@@ -1,37 +1,5 @@
 import { motion } from 'framer-motion';
-import {
-  Archive,
-  Award,
-  BarChart3,
-  Check,
-  FileSpreadsheet,
-  Flame,
-  Gift,
-  GraduationCap,
-  Laptop,
-  Library,
-  Lock,
-  Mic,
-  NotebookPen,
-  Plus,
-  Presentation,
-  Projector,
-  Puzzle,
-  School,
-  Smartphone,
-  TrendingUp,
-  Trophy,
-  Users,
-  Vote,
-  Zap,
-  ChartColumn,
-  Medal,
-  Send,
-  Share2,
-  Swords,
-  Target,
-  type LucideIcon,
-} from 'lucide-react';
+import { Archive, Award, BarChart3, Check, FileSpreadsheet, Flame, Gift, GraduationCap, Laptop, Library, Lock, Mic, NotebookPen, Plus, Presentation, Projector, Puzzle, School, Smartphone, TrendingUp, Trophy, Users, Vote, Zap, ChartColumn, Medal, Send, Share2, Swords, Target, type LucideIcon, Hand, Keyboard, Clapperboard, Video, Smile, SlidersHorizontal, Languages } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { OPTION_STYLE } from '../components/game';
@@ -69,6 +37,13 @@ const ICONS: Record<string, LucideIcon> = {
   share: Share2,
   medal: Medal,
   target: Target,
+  hand: Hand,
+  keyboard: Keyboard,
+  clapper: Clapperboard,
+  video: Video,
+  smile: Smile,
+  sliders: SlidersHorizontal,
+  languages: Languages,
 };
 
 function LandingIcon({ name, className }: { name: string; className: string }) {
@@ -213,7 +188,7 @@ export default function Home() {
                 ))}
               </div>
             </motion.div>
-            <div className="absolute -left-10 -top-14 hidden drop-shadow-xl md:block">
+            <div className="absolute -left-14 -top-28 hidden drop-shadow-xl md:block">
               <Mascot size={120} />
             </div>
           </motion.div>

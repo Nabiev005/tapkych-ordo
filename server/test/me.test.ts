@@ -187,11 +187,14 @@ describe('студенттин кабинети', () => {
     const cat = 'Математика';
     const p = await api(base, 'GET', `/api/me/practice?category=${encodeURIComponent(cat)}`, { token });
     assert.ok(p.body.questions.every((q: any) => q.category === cat));
-    const first = p.body.questions[0];
+    // Күндүн суроолору аткарылгандан кийин машыгууда чыгышы мүмкүн — статистика тести бузулбашы үчүн аларды колдонбойбуз
+    const pool = p.body.questions.filter((q: any) => !dailyIds.includes(q.id));
+    assert.ok(pool.length >= 3);
+    const first = pool[0];
     const answers = [
       { id: first.id, choice: correctOf.get(first.id)! },
       { id: first.id, choice: correctOf.get(first.id)! },
-      ...p.body.questions.slice(1, 3).map((q: any) => ({ id: q.id, choice: 'Z' })),
+      ...pool.slice(1, 3).map((q: any) => ({ id: q.id, choice: 'Z' })),
     ];
     const r = await api(base, 'POST', '/api/me/practice', { token, body: { category: cat, answers } });
     assert.equal(r.body.correct, 1);

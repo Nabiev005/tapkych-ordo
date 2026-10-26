@@ -1,7 +1,7 @@
 import { prisma } from '../db.js';
 import { BUZZ_CHOICE, ROUNDS, type Round } from '../types.js';
 import { presence } from './presence.js';
-import { currentQuestion, currentRound, isBuzzer, participants, playedRound, roundIndex, roundQuestions, type FullGame, type FullQuestion } from './load.js';
+import { currentQuestion, currentRound, isBuzzer, participants, questionMs, playedRound, roundIndex, roundQuestions, type FullGame, type FullQuestion } from './load.js';
 import { advanceSuggestion, overallStandings, rankRound, teamStandings } from './scoring.js';
 
 /**
@@ -20,7 +20,8 @@ function base(game: FullGame) {
     paused: game.paused,
     showLeaderboard: game.showLeaderboard,
     soundEnabled: game.soundEnabled,
-    timerSeconds: game.timerSeconds,
+    // Учурдагы суроонун убактысы (суроого өзүнчө коюлган болушу мүмкүн)
+    timerSeconds: questionMs(game, currentQuestion(game)) / 1000,
     teamMode: game.teamMode,
     fiftyFifty: game.fiftyFifty,
     speedBonus: game.speedBonus,
@@ -60,7 +61,7 @@ const options = (q: FullQuestion) => ({ A: q.optionA, B: q.optionB, C: q.optionC
 
 /** Ар бир вариантты канча оюнчу тандаганы (ORDER түрүндө — туура/ката гана) */
 function optionStats(q: FullQuestion) {
-  if (q.type === 'ORDER' || q.answers.some((a) => a.choice === BUZZ_CHOICE)) return null;
+  if (q.type === 'ORDER' || q.type === 'OPEN' || q.answers.some((a) => a.choice === BUZZ_CHOICE)) return null;
   const stats = { A: 0, B: 0, C: 0, D: 0 } as Record<string, number>;
   for (const a of q.answers) stats[a.choice] = (stats[a.choice] ?? 0) + 1;
   return stats;
@@ -74,7 +75,11 @@ function audienceStats(q: FullQuestion) {
 }
 
 /** Суроонун жалпы маалыматы (туура жоопсуз) */
-function questionInfo(q: FullQuestion, showText: boolean) {
+/**
+ * Ачык жоопто «варианттар» — бул туура жооптун өзү (жана башка жазылыштары),
+ * ошондуктан алар REVEAL'га чейин бош жөнөтүлөт. Алып баруучу дайыма көрөт (revealed = true).
+ */
+function questionInfo(q: FullQuestion, showText: boolean, revealed: boolean) {
   return {
     number: q.order + 1,
     type: q.type,
@@ -82,7 +87,8 @@ function questionInfo(q: FullQuestion, showText: boolean) {
     text: showText ? q.text : null,
     imageUrl: showText ? q.imageUrl : null,
     audioUrl: showText ? q.audioUrl : null,
-    options: showText ? options(q) : null,
+    videoUrl: showText ? q.videoUrl : null,
+    options: showText ? (q.type === 'OPEN' && !revealed ? { A: '', B: '', C: '', D: '' } : options(q)) : null,
   };
 }
 
@@ -139,6 +145,7 @@ export async function adminSnapshot(game: FullGame) {
         introEnabled: game.introEnabled,
         introVideoUrl: game.introVideoUrl,
         finalBuzzer: game.finalBuzzer,
+        shuffle: game.shuffle,
       },
     },
     bank,
@@ -155,12 +162,14 @@ export async function adminSnapshot(game: FullGame) {
       joined: p.joinedAt !== null,
       online: presence.isOnline(p.id),
       fiftyUsed: !!p.fiftyQuestionId,
+      avatar: p.avatar,
     })),
     activeIds: active,
     question: q
       ? {
           id: q.id,
-          ...questionInfo(q, true),
+          ...questionInfo(q, true, true),
+          timerSeconds: q.timerSeconds,
           correct: q.correct,
           startedAt: q.startedAt?.getTime() ?? null,
           revealed: !!q.revealedAt,
@@ -192,7 +201,9 @@ export async function adminSnapshot(game: FullGame) {
               text: x.text,
               correct: x.correct,
               correctText:
-                x.type === 'ORDER'
+                x.type === 'OPEN'
+                  ? x.optionA
+                  : x.type === 'ORDER'
                   ? [...x.correct].map((l) => options(x)[l as keyof ReturnType<typeof options>]).join(' → ')
                   : options(x)[x.correct as keyof ReturnType<typeof options>],
               answered: x.answers.length,
@@ -227,17 +238,20 @@ export function screenSnapshot(game: FullGame) {
         id: p.id,
         name: p.name,
         team: p.team,
+        avatar: p.avatar,
         online: presence.isOnline(p.id),
         answered: !!a,
         // ✓/✗ туура жооп ачылгандан кийин гана
         correct: revealed && q ? (a ? a.isCorrect : false) : null,
         bonus: revealed && a ? a.bonus : 0,
+        // Ачык жоопто — оюнчунун жазганы, туура жооп ачылгандан кийин гана
+        text: revealed && q?.type === 'OPEN' && a ? a.choice : null,
       };
     }),
     question:
       q && (showText || game.phase === 'READY')
         ? {
-            ...questionInfo(q, showText),
+            ...questionInfo(q, showText, revealed),
             correct: revealed ? q.correct : null,
             stats: revealed ? optionStats(q) : null,
             // Залдын добушу — туура жооп ачылгандан кийин гана көрсөтүлөт
@@ -280,7 +294,7 @@ export function playerSnapshot(game: FullGame, playerId: number) {
     role: 'player' as const,
     serverNow: Date.now(),
     game: base(game),
-    me: me ? { id: me.id, name: me.name, status: me.status, eliminatedAfter: me.eliminatedAfter, team: me.team } : null,
+    me: me ? { id: me.id, name: me.name, status: me.status, eliminatedAfter: me.eliminatedAfter, team: me.team, avatar: me.avatar } : null,
     inRound,
     // «50/50» бир оюнда бир жолу (тандоо түрүндөгү суроолордо гана)
     fiftyAvailable: !!me && game.fiftyFifty && !me.fiftyQuestionId,
@@ -288,7 +302,7 @@ export function playerSnapshot(game: FullGame, playerId: number) {
     // Туура жооп — REVEAL фазасына чейин эч качан.
     question: q
       ? {
-          ...questionInfo(q, showText),
+          ...questionInfo(q, showText, revealed),
           hidden: me?.fiftyQuestionId === q.id && me.fiftyHidden ? [...me.fiftyHidden] : [],
           myChoice: myAnswer?.choice ?? null,
           correct: revealed ? q.correct : null,
@@ -330,7 +344,7 @@ export function audienceSnapshot(game: FullGame, voterId: string) {
     game: base(game),
     question: q
       ? {
-          ...questionInfo(q, showText),
+          ...questionInfo(q, showText, revealed),
           myVote: q.votes.find((v) => v.voterId === voterId)?.choice ?? null,
           correct: revealed ? q.correct : null,
           audience: revealed ? audienceStats(q) : null,

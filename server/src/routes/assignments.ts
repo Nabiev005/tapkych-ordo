@@ -89,12 +89,14 @@ export const assignmentBodySchema = z.object({
 export async function createAssignment(ownerId: number | null, body: z.infer<typeof assignmentBodySchema>, leagueId: number | null = null) {
   let questions;
   if (body.questionIds?.length) {
-    const found = await prisma.question.findMany({ where: { id: { in: body.questionIds }, ownerId } });
+    // Ачык жооп суроолору үй тапшырмасына кирбейт
+    const found = await prisma.question.findMany({ where: { id: { in: body.questionIds }, ownerId, type: { not: 'OPEN' } } });
     questions = body.questionIds.map((id) => found.find((q) => q.id === id)).filter((q) => !!q);
   } else if (body.auto) {
     const pool = await prisma.question.findMany({
       where: {
         ownerId,
+        type: { not: 'OPEN' },
         ...(body.auto.includeArchived ? {} : { archived: false }),
         ...(body.auto.categories?.length ? { category: { in: body.auto.categories } } : {}),
         ...(body.auto.difficulty ? { difficulty: body.auto.difficulty } : {}),

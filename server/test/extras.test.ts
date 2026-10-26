@@ -286,3 +286,105 @@ describe('финал: «биринчи баскан жооп берет» реж
     assert.deepEqual(rv.pressOrder.map((x: any) => x.status), ['wrong']);
   });
 });
+
+describe('ачык жооп: салыштыруу', () => {
+  it('чоң/кичине тамга, тыныш белгилер, ң/ө/ү жана кичине каталар', async () => {
+    const { checkOpen, normalizeOpen } = await import('../src/game/openAnswer.js');
+    assert.equal(normalizeOpen('  «Жакып»!  '), 'жакып');
+    assert.equal(normalizeOpen('Үч-Көл'), 'уч кол');
+    assert.ok(checkOpen(['Жакып'], 'жакып'));
+    assert.ok(checkOpen(['Жакып'], 'Жакыб')); // 5 белги — 1 ката кабыл
+    assert.ok(!checkOpen(['Жакып'], 'Жакыбы1'));
+    assert.ok(checkOpen(['Ысык-Көл'], 'ысык кол'));
+    assert.ok(checkOpen(['Айтматов'], 'Айтматоф'));
+    assert.ok(checkOpen(['Чыңгыз Айтматов'], 'чынгыз айтматв'));
+    assert.ok(!checkOpen(['Ош'], 'Ыш')); // кыска сөз — так дал келиши керек
+    assert.ok(!checkOpen(['1991'], '1992')); // сандар так
+    assert.ok(checkOpen(['Жакып', 'Жакып хан'], 'жакып хан'));
+    assert.ok(!checkOpen(['Жакып'], '   '));
+  });
+});
+
+describe('ачык жооп: оюнда', () => {
+  let admin: Client;
+  let screen: Client;
+  let audience: Client;
+  const p: Client[] = [];
+  const ids: number[] = [];
+
+  before(async () => {
+    const open = { round: 'ROUND1', type: 'OPEN', text: 'Манастын атасы ким?', optionA: 'Жакып', optionB: 'Жакып хан', optionC: '', optionD: '', correct: '' };
+    const r = await api(base, 'POST', '/api/questions', { token, body: open });
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.equal(r.body.question?.correct ?? 'A', 'A');
+    // Жообу жок ачык суроо кабыл алынбайт
+    assert.equal((await api(base, 'POST', '/api/questions', { token, body: { ...open, text: 'башка', optionA: '' } })).status, 400);
+    // Китепканага ачык суроо кошулбайт
+    assert.equal((await api(base, 'POST', '/api/library', { token, body: { ...open, text: 'китеп' } })).status, 400);
+    for (const [round, text] of [['ROUND2', 'А2'], ['FINAL', 'АФ']] as const) await api(base, 'POST', '/api/questions', { token, body: choiceQuestion(round, text, 'A') });
+
+    const settings = { round1Count: 1, round2Count: 1, finalQuestionCount: 1, advanceToRound2: 3, advanceToFinal: 3, timerSeconds: 30, pointsPerCorrect: 2, introEnabled: false };
+    const g = await api(base, 'POST', '/api/games', { token, body: { players: ['Нургүл', 'Таалай', 'Бекзат'], settings } });
+    admin = connect({ role: 'admin', token, gameId: g.body.game.id });
+    screen = connect({ role: 'screen', code: g.body.game.code });
+    audience = connect({ role: 'audience', code: g.body.game.code, voterId: 'voter-open-1234' });
+    await Promise.all([admin.connected(), screen.connected(), audience.connected()]);
+    for (const pl of g.body.game.players) {
+      ids.push(pl.id);
+      const j = await api(base, 'POST', '/api/join', { body: { code: g.body.game.code, pin: pl.pin } });
+      const c = connect({ role: 'player', token: j.body.token });
+      await c.connected();
+      p.push(c);
+    }
+    await act(admin, { type: 'startGame' });
+    await act(admin, { type: 'nextQuestion' });
+    await act(admin, { type: 'showQuestion' });
+  });
+
+  it('туура жооп REVEAL чейин эч кимге жетпейт', async () => {
+    const ps = await p[0].waitFor((s) => s.game.phase === 'QUESTION');
+    assert.equal(ps.question.type, 'OPEN');
+    assert.equal(ps.question.text, 'Манастын атасы ким?');
+    assert.deepEqual(ps.question.options, { A: '', B: '', C: '', D: '' });
+    const sc = await screen.waitFor((s) => s.game.phase === 'QUESTION');
+    assert.deepEqual(sc.question.options, { A: '', B: '', C: '', D: '' });
+    const au = await audience.waitFor((s) => s.game.phase === 'QUESTION');
+    assert.deepEqual(au.question.options, { A: '', B: '', C: '', D: '' });
+    const ad = await admin.waitFor((s) => s.game.phase === 'QUESTION');
+    assert.equal(ad.question.options.A, 'Жакып');
+  });
+
+  it('жооптор текшерилет; алып баруучу кол менен оңдой алат', async () => {
+    assert.equal((await p[0].emit('player:answer', { choice: '  жакыб ' })).ok, true);
+    assert.equal((await p[1].emit('player:answer', { choice: 'Жакып-хан' })).ok, true);
+    assert.equal((await p[2].emit('player:answer', { choice: 'Бакай' })).ok, true);
+    assert.equal((await p[0].emit('player:answer', { choice: 'x'.repeat(101) })).error, 'BAD_REQUEST');
+    assert.equal((await audience.emit('audience:vote', { choice: 'A' })).error, 'BAD_REQUEST');
+    const ad = await admin.waitFor((s) => Object.keys(s.answers).length === 3);
+    assert.equal(ad.answers[ids[0]].choice, 'жакыб');
+    assert.equal(ad.answers[ids[0]].isCorrect, true);
+    assert.equal(ad.answers[ids[1]].isCorrect, true);
+    assert.equal(ad.answers[ids[2]].isCorrect, false);
+    // Бакай деген жоопту алып баруучу туура деп эсептеди (мисал)
+    await act(admin, { type: 'markAnswer', playerId: ids[2], correct: true });
+    await admin.waitFor((s) => s.answers[ids[2]].isCorrect === true);
+    await act(admin, { type: 'markAnswer', playerId: ids[2], correct: false });
+    await admin.waitFor((s) => s.answers[ids[2]].isCorrect === false);
+  });
+
+  it('REVEAL: туура жооп жана оюнчулардын жазгандары экранда', async () => {
+    await act(admin, { type: 'revealAnswer' });
+    const sc = await screen.waitFor((s) => s.game.phase === 'REVEAL');
+    assert.equal(sc.question.options.A, 'Жакып');
+    assert.equal(sc.question.stats, null);
+    assert.equal(sc.players.find((x: any) => x.id === ids[1]).text, 'Жакып-хан');
+    assert.equal(sc.players.find((x: any) => x.id === ids[2]).correct, false);
+    const me = await p[0].waitFor((s) => s.game.phase === 'REVEAL');
+    assert.equal(me.question.myCorrect, true);
+    assert.equal(me.question.myPoints, 2);
+    // REVEAL'дан кийин да оңдосо болот — упай кайра эсептелет
+    await act(admin, { type: 'markAnswer', playerId: ids[2], correct: true });
+    const ad = await admin.waitFor((s) => s.leaderboard.find((r: any) => r.playerId === ids[2])?.score === 2);
+    assert.ok(ad);
+  });
+});

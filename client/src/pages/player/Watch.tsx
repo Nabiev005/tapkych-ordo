@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { ReactionBar } from '../../components/Reactions';
 import { Users } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -33,7 +34,7 @@ export default function Watch() {
   const { code = '' } = useParams();
   const [voter] = useState(voterId);
   const { toast } = useDialogs();
-  const { state, status, offset, emit } = useGameSocket<AudienceState>({ role: 'audience', code, voterId: voter });
+  const { state, status, offset, emit, send } = useGameSocket<AudienceState>({ role: 'audience', code, voterId: voter });
   const [pending, setPending] = useState<string | null>(null);
   const g = state?.game;
   const q = state?.question;
@@ -108,7 +109,7 @@ export default function Watch() {
                   </div>
                 )}
               </div>
-            ) : q!.type === 'ORDER' ? (
+            ) : q!.type === 'ORDER' || q!.type === 'OPEN' ? (
               <div className="rounded-2xl bg-white/5 p-4 text-center text-white/70">{t.noVote}</div>
             ) : myVote ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
@@ -136,6 +137,11 @@ export default function Watch() {
           </>
         )}
       </div>
+      {g.status !== 'FINISHED' && (
+        <div className="px-4 pb-3">
+          <ReactionBar label={ky.player.reactions} onSend={(kind) => send('reaction', { kind })} />
+        </div>
+      )}
       <OrnamentBand height={16} flip />
       <ConnBadge status={status} dark />
     </div>

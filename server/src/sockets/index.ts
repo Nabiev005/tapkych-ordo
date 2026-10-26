@@ -2,11 +2,11 @@ import type { Server, Socket } from 'socket.io';
 import { prisma } from '../db.js';
 import { verifyStaffToken } from '../auth.js';
 import { bus } from '../events.js';
-import { AppError } from '../types.js';
+import { AppError, REACTIONS } from '../types.js';
 import { presence } from '../game/presence.js';
 import { loadFull } from '../game/load.js';
 import { adminSnapshot, audienceSnapshot, playerSnapshot, screenSnapshot } from '../game/state.js';
-import { audienceVote, buzz, runAdminAction, submitAnswer, useFiftyFifty, type AdminAction } from '../game/engine.js';
+import { audienceVote, buzz, runAdminAction, setAvatar, submitAnswer, useFiftyFifty, type AdminAction } from '../game/engine.js';
 
 /**
  * Бөлмөлөр:
@@ -32,6 +32,22 @@ type SocketData =
 type Ack = (res: { ok: true } | { ok: false; error: string; details?: unknown }) => void;
 
 let io: Server;
+
+/**
+ * Залдын реакциялары: экранга гана жөнөтүлөт, базага жазылбайт.
+ * Ар бир туташуудан 700 мс сайын бирден ашпайт (экранды толтуруп салбашы үчүн).
+ */
+const REACT_GAP_MS = 700;
+function onReact(socket: Socket, gameId: number) {
+  let last = 0;
+  socket.on('reaction', (payload: { kind?: unknown }) => {
+    const kind = String(payload?.kind ?? '');
+    const now = Date.now();
+    if (!(REACTIONS as readonly string[]).includes(kind) || now - last < REACT_GAP_MS) return;
+    last = now;
+    io.to(rooms.screen(gameId)).emit('reaction', { kind });
+  });
+}
 
 /** Оюндун абалын ар бир ролго өзүнчө жөнөтөт */
 export async function broadcastState(gameId: number) {
@@ -138,6 +154,7 @@ export function setupSockets(server: Server) {
 
     if (data.role === 'audience') {
       socket.join(rooms.audience(data.gameId));
+      onReact(socket, data.gameId);
       socket.on('audience:vote', async (payload: { choice?: unknown }, ack?: Ack) => {
         try {
           await audienceVote(data.gameId, data.voterId, payload?.choice);
@@ -151,6 +168,15 @@ export function setupSockets(server: Server) {
     if (data.role === 'player') {
       socket.join([rooms.players(data.gameId), rooms.player(data.playerId)]);
       presence.add(data.playerId, socket.id);
+      onReact(socket, data.gameId);
+      socket.on('player:avatar', async (payload: { avatar?: unknown }, ack?: Ack) => {
+        try {
+          await setAvatar(data.gameId, data.playerId, payload?.avatar);
+          ack?.({ ok: true });
+        } catch (e) {
+          replyError(ack, e);
+        }
+      });
       socket.on('player:answer', async (payload: { choice?: unknown }, ack?: Ack) => {
         try {
           await submitAnswer(data.gameId, data.playerId, payload?.choice);

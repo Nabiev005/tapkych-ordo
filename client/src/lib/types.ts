@@ -14,6 +14,10 @@ export interface Question {
   text: string;
   imageUrl: string | null;
   audioUrl: string | null;
+  /** Видео суроо (китепканада жок) */
+  videoUrl?: string | null;
+  /** Ушул суроонун убактысы (сек); null — оюндун жөндөөсү */
+  timerSeconds?: number | null;
   optionA: string;
   optionB: string;
   optionC: string;
@@ -58,6 +62,7 @@ export interface Settings {
   fiftyFifty: boolean;
   selectionMode: 'ORDER' | 'DIFFICULTY';
   categories: string;
+  shuffle: boolean;
   introEnabled: boolean;
   introVideoUrl: string | null;
   finalBuzzer: boolean;
@@ -147,6 +152,7 @@ export interface QuestionInfo {
   text: string | null;
   imageUrl: string | null;
   audioUrl: string | null;
+  videoUrl: string | null;
   options: Options | null;
 }
 
@@ -173,6 +179,7 @@ export interface AdminState {
     joined: boolean;
     online: boolean;
     fiftyUsed: boolean;
+    avatar: string;
   }[];
   activeIds: number[];
   question:
@@ -183,6 +190,7 @@ export interface AdminState {
         correct: string;
         startedAt: number | null;
         revealed: boolean;
+        timerSeconds: number | null;
         stats: Record<OptionKey, number> | null;
         audience: { total: number; counts: Record<OptionKey, number> };
       })
@@ -209,7 +217,7 @@ export interface ScreenState {
   role: 'screen';
   serverNow: number;
   game: BaseGame;
-  players: { id: number; name: string; team: string; online: boolean; answered: boolean; correct: boolean | null; bonus: number }[];
+  players: { id: number; name: string; team: string; avatar: string; online: boolean; answered: boolean; correct: boolean | null; bonus: number; text: string | null }[];
   question:
     | (QuestionInfo & {
         correct: string | null;
@@ -229,7 +237,7 @@ export interface PlayerState {
   role: 'player';
   serverNow: number;
   game: BaseGame;
-  me: { id: number; name: string; status: PlayerStatus; eliminatedAfter: RoundKey | null; team: string } | null;
+  me: { id: number; name: string; status: PlayerStatus; eliminatedAfter: RoundKey | null; team: string; avatar: string } | null;
   inRound: boolean;
   fiftyAvailable: boolean;
   myPress: { place: number; status: 'pending' | 'wrong' | 'correct' | null; queue: number | null } | null;
@@ -263,7 +271,10 @@ export interface AudienceState {
 
 export const OPTION_KEYS: OptionKey[] = ['A', 'B', 'C', 'D'];
 export const ROUND_KEYS: RoundKey[] = ['ROUND1', 'ROUND2', 'FINAL'];
+/** Китепкана жана үй тапшырмалары үчүн (ачык жоопсуз) */
 export const QUESTION_TYPES: QuestionType[] = ['CHOICE', 'TF', 'ORDER'];
+/** Оюндун суроолор банкы үчүн — ачык жооп да бар */
+export const GAME_QUESTION_TYPES: QuestionType[] = [...QUESTION_TYPES, 'OPEN'];
 export const DIFFICULTIES: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
 
 /** Суроонун түрүнө жараша көрсөтүлүүчү варианттар (TF — экөө гана) */

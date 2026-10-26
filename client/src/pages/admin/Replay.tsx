@@ -66,7 +66,14 @@ export default function Replay() {
                 {step.imageUrl && <img src={assetUrl(step.imageUrl)} alt="" className="h-36 w-52 rounded-2xl object-cover" />}
                 <h1 className="font-display text-3xl font-bold leading-tight">{step.text}</h1>
               </div>
-              {step.type === 'ORDER' ? (
+              {step.type === 'OPEN' ? (
+                <div className="rounded-2xl bg-emerald-500/20 p-4 ring-2 ring-emerald-400">
+                  <div className="font-display text-2xl font-black">✓ {step.options.A}</div>
+                  {[step.options.B, step.options.C, step.options.D].some((x) => x.trim()) && (
+                    <div className="mt-1 text-sm text-white/70">{[step.options.B, step.options.C, step.options.D].filter((x) => x.trim()).join(', ')}</div>
+                  )}
+                </div>
+              ) : step.type === 'ORDER' ? (
                 <ol className="space-y-2">
                   {[...step.correct].map((l, k) => (
                     <li key={l} className="flex items-center gap-3 rounded-2xl bg-emerald-500/20 p-3 ring-1 ring-emerald-400">

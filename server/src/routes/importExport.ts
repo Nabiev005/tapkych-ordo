@@ -16,7 +16,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 const HEADERS = [
   'Тур (1, 2 же Финал)',
-  'Түрү (Тандоо / Туура-Туура эмес / Иретке келтирүү)',
+  'Түрү (Тандоо / Туура-Туура эмес / Иретке келтирүү / Ачык жооп)',
   'Тема',
   'Кыйынчылык (Жеңил / Орто / Кыйын)',
   'Суроо',
@@ -30,11 +30,12 @@ const HEADERS = [
 const EXAMPLES = [
   ['1', 'Тандоо', 'География', 'Жеңил', 'Кыргызстандын борбор шаары кайсы?', 'Ош', 'Бишкек', 'Каракол', 'Нарын', 'Б', ''],
   ['2', 'Туура / Туура эмес', 'Илим', 'Орто', 'Суу 100 °C’да кайнайт.', '', '', '', '', 'Туура', ''],
+  ['Финал', 'Ачык жооп', 'Адабият', 'Орто', '«Манас» эпосундагы Манастын атасынын аты ким?', 'Жакып', 'Жакып хан', '', '', '', ''],
   ['Финал', 'Иретке келтирүү', 'Тарых', 'Кыйын', 'Окуяларды убакыт боюнча иреттеңиз', 'Эгемендүүлүк', 'Бурана курулушу', '«Манас» биринчи жазылышы', 'Сулайман-Тоо ЮНЕСКОдо', 'БВАГ', ''],
 ];
 
 const ROUND_LABEL: Record<Round, string> = { ROUND1: '1-тур', ROUND2: '2-тур', FINAL: 'Финал' };
-const TYPE_LABEL: Record<QuestionType, string> = { CHOICE: 'Тандоо', TF: 'Туура / Туура эмес', ORDER: 'Иретке келтирүү' };
+const TYPE_LABEL: Record<QuestionType, string> = { CHOICE: 'Тандоо', TF: 'Туура / Туура эмес', ORDER: 'Иретке келтирүү', OPEN: 'Ачык жооп' };
 const DIFF_LABEL: Record<Difficulty, string> = { EASY: 'Жеңил', MEDIUM: 'Орто', HARD: 'Кыйын' };
 const OPT_KY: Record<Option, string> = { A: 'А', B: 'Б', C: 'В', D: 'Г' };
 const LETTER: Record<string, Option> = { А: 'A', A: 'A', Б: 'B', B: 'B', В: 'C', C: 'C', Г: 'D', D: 'D', '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
@@ -43,6 +44,8 @@ const LETTER: Record<string, Option> = { А: 'A', A: 'A', Б: 'B', B: 'B', В: '
 export function correctLabel(type: string, correct: string): string {
   if (type === 'TF') return correct === 'A' ? 'Туура' : 'Туура эмес';
   if (correct === 'BUZZ') return 'Оозеки';
+  // Ачык жооп: оюнчунун жазганы ошол бойдон (суроонун туура жообу — optionA, аны чакырган жер өзү көрсөтөт)
+  if (type === 'OPEN') return correct;
   return [...correct].map((l) => OPT_KY[l as Option] ?? l).join('');
 }
 
@@ -60,6 +63,7 @@ function parseType(v: string): QuestionType | null {
   if (!s || s.startsWith('танд') || s.startsWith('выбор') || s === 'choice') return 'CHOICE';
   if (s.startsWith('туура') || s.startsWith('верно') || s === 'tf' || s.includes('true')) return 'TF';
   if (s.startsWith('ирет') || s.startsWith('тартип') || s.startsWith('поряд') || s === 'order') return 'ORDER';
+  if (s.startsWith('ачык') || s.startsWith('открыт') || s.startsWith('свобод') || s === 'open') return 'OPEN';
   return null;
 }
 
@@ -72,6 +76,7 @@ function parseDifficulty(v: string): Difficulty | null {
 }
 
 function parseCorrect(type: QuestionType, v: string): string | null {
+  if (type === 'OPEN') return 'A'; // жооптор А–Г мамычаларында
   const s = v.trim().toUpperCase();
   if (type === 'TF') {
     if (['ТУУРА', 'А', 'A', 'TRUE', 'ООБА', 'ВЕРНО', 'ДА', '1'].includes(s)) return 'A';
@@ -104,7 +109,7 @@ export interface ParsedQuestion {
  * Шаблондун саптарын текшерет. roundOptional — китепкана үчүн: «Тур» мамычасы бош болсо да болот.
  * Эски (8 мамычалуу) шаблон да кабыл алынат.
  */
-export function parseQuestionRows(rows: string[][], roundOptional = false) {
+export function parseQuestionRows(rows: string[][], roundOptional = false, allowOpen = true) {
   // Баш сап: 1-мамычада тур эмес текст бар (китепканада турсуз саптын 1-мамычасы бош болот)
   const first = (rows[0]?.[0] ?? '').trim();
   const hasHeader = rows.length > 0 && !!first && !parseRound(first);
@@ -125,10 +130,10 @@ export function parseQuestionRows(rows: string[][], roundOptional = false) {
     const type = parseType(typeRaw);
     const difficulty = parseDifficulty(diffRaw);
     if (!round && !(roundOptional && !roundRaw)) return errors.push({ row: rowNo, problem: 'ROUND' });
-    if (!type) return errors.push({ row: rowNo, problem: 'TYPE' });
+    if (!type || (type === 'OPEN' && !allowOpen)) return errors.push({ row: rowNo, problem: 'TYPE' });
     if (!difficulty) return errors.push({ row: rowNo, problem: 'DIFFICULTY' });
     if (!text) return errors.push({ row: rowNo, problem: 'TEXT' });
-    if (type !== 'TF' && (!a || !b || !c || !d)) return errors.push({ row: rowNo, problem: 'OPTIONS' });
+    if (type === 'OPEN' ? !a : type !== 'TF' && (!a || !b || !c || !d)) return errors.push({ row: rowNo, problem: 'OPTIONS' });
     const correct = parseCorrect(type, correctRaw);
     if (!correct) return errors.push({ row: rowNo, problem: 'CORRECT' });
     const opts = type === 'TF' ? TF_OPTIONS : { optionA: a, optionB: b, optionC: c, optionD: d };
@@ -214,7 +219,7 @@ importExportRouter.get('/questions/export.xlsx', async (_req, res) => {
     q.type === 'TF' ? '' : q.optionB,
     q.optionC,
     q.optionD,
-    correctLabel(q.type, q.correct),
+    q.type === 'OPEN' ? '' : correctLabel(q.type, q.correct),
     q.imageUrl ?? '',
   ];
   const wb = new ExcelJS.Workbook();
@@ -306,7 +311,7 @@ importExportRouter.get('/games/:id/export.xlsx', async (req, res) => {
     const qs = roundQuestions(game, round).filter((q) => q.startedAt);
     if (!qs.length) continue;
     const ws = wb.addWorksheet(`Жооптор — ${ROUND_LABEL[round]}`);
-    ws.addRow(['Аты-жөнү', ...qs.map((q) => `№${q.order + 1} (туура: ${correctLabel(q.type, q.correct)})`), 'Упай']);
+    ws.addRow(['Аты-жөнү', ...qs.map((q) => `№${q.order + 1} (туура: ${q.type === 'OPEN' ? q.optionA : correctLabel(q.type, q.correct)})`), 'Упай']);
     const players = game.players.filter((p) => qs.some((q) => q.answers.some((a) => a.playerId === p.id)) || p.status !== 'KICKED');
     for (const p of players) {
       if (p.eliminatedAfter && ROUNDS.indexOf(p.eliminatedAfter as Round) < ROUNDS.indexOf(round)) continue;
