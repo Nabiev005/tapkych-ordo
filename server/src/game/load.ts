@@ -34,8 +34,20 @@ export function currentQuestion(game: FullGame): FullQuestion | null {
 }
 
 /** Финалдын «биринчи баскан жооп берет» режими: варианттын ордуна баскыч, жоопту алып баруучу баалайт */
-export function isBuzzer(game: { finalBuzzer: boolean }, round: Round | null): boolean {
-  return game.finalBuzzer && round === 'FINAL';
+export function isBuzzer(game: { finalBuzzer: boolean; mode: string }, round: Round | null): boolean {
+  if (!round) return false;
+  return game.mode === 'BRAIN_RING' || (game.finalBuzzer && round === 'FINAL');
+}
+
+/** Ушул оюнда ойнолуучу турлар: Брейн-рингде бир гана тур */
+export function gameRounds(game: { mode: string }): readonly Round[] {
+  return game.mode === 'BRAIN_RING' ? (['ROUND1'] as const) : ROUNDS;
+}
+
+/** Оюндун акыркы туру (андан кийин — FINISHED) */
+export function lastRound(game: { mode: string }): Round {
+  const list = gameRounds(game);
+  return list[list.length - 1];
 }
 
 /** Суроонун убактысы (мс): суроого өзүнчө коюлса — ошол, болбосо оюндун жөндөөсү */

@@ -3,7 +3,7 @@ import { prisma } from '../db.js';
 import { bus } from '../events.js';
 import { AVATARS, AppError, BUZZ_CHOICE, OPTIONS, ROUNDS, nextRound, type Option, type Round } from '../types.js';
 import { OPEN_MAX_LENGTH, checkOpen, openAccepted } from './openAnswer.js';
-import { currentQuestion, currentRound, isBuzzer, loadFull, participants, questionMs, roundQuestions, roundSize, type FullGame, type FullQuestion } from './load.js';
+import { currentQuestion, currentRound, gameRounds, isBuzzer, lastRound, loadFull, participants, questionMs, roundQuestions, roundSize, type FullGame, type FullQuestion } from './load.js';
 
 /**
  * Оюндун кыймылдаткычы. Бардык абал БДда сакталат, ошондуктан сервер же
@@ -67,6 +67,8 @@ function notPaused(game: FullGame) {
   if (game.paused) throw new AppError('GAME_PAUSED');
 }
 
+export const teamOf = (game: FullGame, playerId: number) => game.players.find((p) => p.id === playerId)?.team || '—';
+
 function shuffleInPlace<T>(list: T[]) {
   for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -81,6 +83,8 @@ async function startGame(gameId: number) {
   if (game.status !== 'LOBBY') throw new AppError('INVALID_ACTION');
   const players = game.players.filter((p) => p.status !== 'KICKED');
   if (players.length < 2) throw new AppError('NOT_ENOUGH_PLAYERS');
+  // Брейн-ринг: жок дегенде эки команда керек
+  if (game.mode === 'BRAIN_RING' && new Set(players.map((p) => p.team || '—')).size < 2) throw new AppError('NOT_ENOUGH_TEAMS');
 
   // Ээсинин банкы, архивдеги (мурунку оюндарда суралган) суроолорсуз, тандалган темалар боюнча
   const categories = game.categories
@@ -99,7 +103,7 @@ async function startGame(gameId: number) {
     // 1-тур — жеңил, 2-тур — орто, финал — кыйын (жетпесе башка деңгээлден толуктайт)
     const prefer: Record<Round, string[]> = { ROUND1: ['EASY', 'MEDIUM', 'HARD'], ROUND2: ['MEDIUM', 'EASY', 'HARD'], FINAL: ['HARD', 'MEDIUM', 'EASY'] };
     const used = new Set<number>();
-    for (const round of [...ROUNDS].reverse()) {
+    for (const round of [...gameRounds(game)].reverse()) {
       const need = roundSize(game, round);
       const list: typeof pool = [];
       for (const level of prefer[round]) {
@@ -114,11 +118,11 @@ async function startGame(gameId: number) {
       picked.set(round, list);
     }
   } else {
-    for (const round of ROUNDS) picked.set(round, pool.filter((q) => q.round === round).slice(0, roundSize(game, round)));
+    for (const round of gameRounds(game)) picked.set(round, pool.filter((q) => q.round === round).slice(0, roundSize(game, round)));
   }
 
   const snapshot: Prisma.GameQuestionCreateManyInput[] = [];
-  for (const round of ROUNDS) {
+  for (const round of gameRounds(game)) {
     const need = roundSize(game, round);
     const bank = picked.get(round) ?? [];
     if (bank.length < need) throw new AppError('NOT_ENOUGH_QUESTIONS', 400, { round, need, have: bank.length });
@@ -167,6 +171,7 @@ async function setRoundCount(gameId: number, round: Round, count: number) {
   const game = await mustLoad(gameId);
   const cur = currentRound(game);
   if (!cur || !Number.isInteger(count) || count < 1 || count > MAX_ROUND_COUNT) throw new AppError('BAD_REQUEST');
+  if (!gameRounds(game).includes(round)) throw new AppError('INVALID_ACTION');
   const ri = ROUNDS.indexOf(round);
   const ci = ROUNDS.indexOf(cur);
   if (ri < ci || (ri === ci && game.phase === 'ROUND_END')) throw new AppError('INVALID_ACTION');
@@ -357,7 +362,7 @@ async function endRound(gameId: number) {
 async function confirmAdvance(gameId: number, playerIds: number[]) {
   const game = await mustLoad(gameId);
   const round = mustRound(game);
-  const next = nextRound(round);
+  const next = round === lastRound(game) ? null : nextRound(round);
   if (game.phase !== 'ROUND_END' || !next) throw new AppError('INVALID_ACTION');
   const current = participants(game, round).filter((p) => p.status === 'ACTIVE');
   const keep = new Set(playerIds.filter((id) => current.some((p) => p.id === id)));
@@ -374,7 +379,7 @@ async function confirmAdvance(gameId: number, playerIds: number[]) {
 
 async function finishGame(gameId: number) {
   const game = await mustLoad(gameId);
-  if (game.status !== 'FINAL' || game.phase !== 'ROUND_END') throw new AppError('INVALID_ACTION');
+  if (game.status !== lastRound(game) || game.phase !== 'ROUND_END') throw new AppError('INVALID_ACTION');
   await prisma.game.update({
     where: { id: gameId },
     data: { status: 'FINISHED', phase: 'IDLE', finishedAt: new Date(), showLeaderboard: false },
@@ -569,6 +574,8 @@ export function buzz(gameId: number, playerId: number): Promise<void> {
     const endsAt = game.questionEndsAt?.getTime();
     if (!endsAt || now > endsAt + ANSWER_GRACE_MS) throw new AppError('TIME_UP');
     if (q.answers.some((a) => a.playerId === playerId)) throw new AppError('ALREADY_ANSWERED');
+    // Брейн-ринг: бир суроого бир командадан бир гана басуу (ката айтса — команда бөгөттөлөт)
+    if (game.mode === 'BRAIN_RING' && q.answers.some((a) => teamOf(game, a.playerId) === (player.team || '—'))) throw new AppError('ALREADY_ANSWERED');
     const fullMs = questionMs(game, q);
     const responseMs = Math.min(fullMs, Math.max(0, fullMs - (endsAt - now)));
     try {

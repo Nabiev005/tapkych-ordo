@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Clapperboard, Link2, Monitor, Pencil, Play, Printer, RefreshCw, Trash2 } from 'lucide-react';
+import { Clapperboard, Link2, Monitor, Pencil, Play, Printer, RefreshCw, Trash2, Swords, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { JoinQr } from '../../../components/game';
 import IntroSettings from '../../../components/IntroSettings';
@@ -25,9 +25,13 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
   const players = state.players.filter((p) => p.status !== 'KICKED');
   const joined = players.filter((p) => p.joined).length;
 
-  const need: Record<RoundKey, number> = { ROUND1: g.settings.round1Count, ROUND2: g.settings.round2Count, FINAL: g.settings.finalQuestionCount };
-  const blockers = (Object.keys(need) as RoundKey[]).filter((r) => state.bank[r] < need[r]).map((r) => ky.notEnoughQuestions(r, need[r], state.bank[r]));
+  const brain = g.settings.mode === 'BRAIN_RING';
+  const need: Partial<Record<RoundKey, number>> = brain
+    ? { ROUND1: g.settings.round1Count }
+    : { ROUND1: g.settings.round1Count, ROUND2: g.settings.round2Count, FINAL: g.settings.finalQuestionCount };
+  const blockers = (Object.keys(need) as RoundKey[]).filter((r) => state.bank[r] < need[r]!).map((r) => ky.notEnoughQuestions(r, need[r]!, state.bank[r]));
   if (players.length < 2) blockers.push(ky.admin.newGame.needPlayers);
+  if (brain && new Set(players.map((p) => p.team || '—')).size < 2) blockers.push(t.needTwoTeams);
 
   const rest = async (fn: () => Promise<unknown>) => {
     try {
@@ -113,8 +117,24 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
                   <div className="text-xs text-ordo-ink/50">
                     PIN: <span className="font-mono font-bold tracking-widest text-ordo-ink">{p.pin}</span> · {p.joined ? t.joined : t.notJoined}
                   </div>
+                  {(brain || g.settings.teamMode) && (
+                    <div className="mt-0.5 inline-flex rounded-md bg-ordo-sky/10 px-1.5 text-xs font-bold text-ordo-sky">
+                      {t.teamLabel}: {p.team || t.noTeam}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-0.5 opacity-60 transition group-hover:opacity-100">
+                  {(brain || g.settings.teamMode) && (
+                    <IconBtn
+                      title={t.changeTeam}
+                      onClick={async () => {
+                        const team = await prompt({ title: t.changeTeam, label: t.teamPrompt, defaultValue: p.team, confirmText: ky.common.save });
+                        if (team !== null && team !== undefined && team !== p.team) await rest(() => api.patch(`/api/games/${g.id}/players/${p.id}`, { team }));
+                      }}
+                    >
+                      <Users className="h-4 w-4" />
+                    </IconBtn>
+                  )}
                   <IconBtn
                     title={t.rename}
                     onClick={async () => {
@@ -151,18 +171,33 @@ export default function LobbyPanel({ state, act, busy }: { state: AdminState; ac
       {/* Суроолордун саны жана интро — баштоодон мурун өзгөртсө болот */}
       <div className="space-y-5 lg:col-span-2">
         <section className="card space-y-4 p-5">
+          <div>
+            <div className="mb-1.5 text-sm font-semibold text-ordo-ink/80"><Swords className="ico" /> {ky.admin.newGame.modeTitle}</div>
+            <div className="grid grid-cols-2 gap-2">
+              {(['CLASSIC', 'BRAIN_RING'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => g.settings.mode !== m && rest(() => api.patch(`/api/games/${g.id}/settings`, { mode: m }))}
+                  className={`rounded-xl border-2 px-3 py-2 text-left text-sm font-semibold transition ${g.settings.mode === m ? 'border-ordo-red bg-ordo-red/5' : 'border-ordo-gold/20 hover:border-ordo-gold'}`}
+                >
+                  {m === 'CLASSIC' ? ky.admin.newGame.modeClassic : ky.admin.newGame.modeBrainRing}
+                </button>
+              ))}
+            </div>
+          </div>
           <Toggle
             checked={g.settings.shuffle}
             onChange={(v) => rest(() => api.patch(`/api/games/${g.id}/settings`, { shuffle: v }))}
             label={ky.admin.newGame.shuffle}
             hint={ky.admin.newGame.shuffleHint}
           />
-          <Toggle
+          {!brain && <Toggle
             checked={g.settings.finalBuzzer}
             onChange={(v) => rest(() => api.patch(`/api/games/${g.id}/settings`, { finalBuzzer: v }))}
             label={ky.admin.newGame.finalBuzzer}
             hint={ky.admin.newGame.finalBuzzerHint}
-          />
+          />}
         </section>
         <RoundCounts state={state} onSet={(round, count) => rest(() => api.patch(`/api/games/${g.id}/settings`, { [COUNT_KEY[round]]: count }))} />
       </div>

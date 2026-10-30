@@ -37,7 +37,8 @@ export default function RoundCounts({ state, onSet }: { state: AdminState; onSet
         <p className="text-xs text-ordo-ink/50">{t.countsHint}</p>
       </div>
       <div className="space-y-2">
-        {ROUNDS.map((r, i) => {
+        {ROUNDS.filter((r) => g.settings.mode !== 'BRAIN_RING' || r === 'ROUND1').map((r) => {
+          const i = ROUNDS.indexOf(r);
           const isCur = live && i === cur;
           const done = live && (i < cur || (isCur && g.phase === 'ROUND_END'));
           const value = isCur ? g.total : counts[r];

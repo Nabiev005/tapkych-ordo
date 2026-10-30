@@ -458,7 +458,12 @@ function BuzzPad({ state, offset, emit, toast }: { state: PlayerState; offset: n
         </div>
       )}
       <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center">
-        {!mine ? (
+        {!mine && state.teamPressed ? (
+          <>
+            <Users className="h-16 w-16 text-ordo-gold" />
+            <div className="max-w-xs font-display text-2xl font-black">{t.teamPressed}</div>
+          </>
+        ) : !mine ? (
           msLeft <= 0 ? (
             <>
               <Hourglass className="h-16 w-16 text-white/70" />
@@ -504,20 +509,22 @@ function RevealView({ state }: { state: PlayerState }) {
   const t = ky.player;
   const q = state.question!;
   const ok = !!q.myCorrect;
+  // «Биринчи баскан» режиминде баспаган оюнчу — нейтралдуу экран
+  const neutral = q.myCorrect === null;
   useEffect(() => {
-    vibrate(ok ? [60, 40, 60] : 300);
-  }, [ok]);
+    if (!neutral) vibrate(ok ? [60, 40, 60] : 300);
+  }, [ok, neutral]);
   const correctKey = asOption(q.correct);
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`flex min-h-dvh flex-col items-center justify-center gap-5 p-6 text-center text-white ${ok ? 'bg-gradient-to-b from-emerald-500 to-emerald-800' : 'bg-gradient-to-b from-[#e0213f] to-[#6e0818]'}`}
+      className={`flex min-h-dvh flex-col items-center justify-center gap-5 p-6 text-center text-white ${neutral ? 'bg-night' : ok ? 'bg-gradient-to-b from-emerald-500 to-emerald-800' : 'bg-gradient-to-b from-[#e0213f] to-[#6e0818]'}`}
     >
       <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', damping: 10 }} className="text-9xl">
-        {ok ? '✓' : '✗'}
+        {neutral ? '' : ok ? '✓' : '✗'}
       </motion.div>
-      <div className="font-display text-5xl font-black">{ok ? t.correct : t.wrong}</div>
+      {!neutral && <div className="font-display text-5xl font-black">{ok ? t.correct : t.wrong}</div>}
       {ok && q.myPoints ? <div className="font-display text-3xl font-bold text-ordo-gold-light">{t.plusPoints(q.myPoints)}</div> : null}
       {ok && q.myBonus ? <div className="rounded-full bg-black/20 px-4 py-1 font-bold text-ordo-gold-light"><Zap className="ico" /> {t.bonus(q.myBonus)}</div> : null}
       {!q.myChoice && <div className="text-xl text-white/80">{t.noAnswer}</div>}

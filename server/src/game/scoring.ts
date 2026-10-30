@@ -1,5 +1,5 @@
 import { ROUNDS, type Round } from '../types.js';
-import { type FullGame, participants, playedRound, roundIndex, roundQuestions, questionMs } from './load.js';
+import { type FullGame, participants, playedRound, roundIndex, roundQuestions, questionMs, gameRounds } from './load.js';
 
 export interface RoundScore {
   playerId: number;
@@ -96,7 +96,8 @@ export function overallStandings(game: FullGame): Standing[] {
     .map((p) => {
       const rounds: Standing['rounds'] = {};
       let reached: Round = 'ROUND1';
-      for (const r of ROUNDS) {
+      // Оюнда болгон турлар гана (Брейн-рингде — 1-тур)
+      for (const r of gameRounds(game)) {
         if (!playedRound(p, r)) continue;
         // Оюн али бул турга жете элек болсо — көрсөтпөйбүз
         if (game.status !== 'FINISHED' && game.status !== 'LOBBY') {

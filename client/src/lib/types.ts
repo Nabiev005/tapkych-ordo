@@ -63,6 +63,8 @@ export interface Settings {
   selectionMode: 'ORDER' | 'DIFFICULTY';
   categories: string;
   shuffle: boolean;
+  /** CLASSIC — 3 тур; BRAIN_RING — команда командага каршы, бир тур */
+  mode: 'CLASSIC' | 'BRAIN_RING';
   introEnabled: boolean;
   introVideoUrl: string | null;
   finalBuzzer: boolean;
@@ -102,12 +104,14 @@ export interface BaseGame {
   startedAt: number | null;
   intro: { videoUrl: string | null } | null;
   buzzer: boolean;
+  mode: 'CLASSIC' | 'BRAIN_RING';
 }
 
 /** Финалда ким биринчи басканы (жооп берген тартибинде) */
 export interface PressEntry {
   playerId: number;
   name: string;
+  team?: string;
   responseMs: number;
   /** «Биринчи баскан» режиминде гана */
   status?: 'pending' | 'wrong' | 'correct';
@@ -240,6 +244,8 @@ export interface PlayerState {
   me: { id: number; name: string; status: PlayerStatus; eliminatedAfter: RoundKey | null; team: string; avatar: string } | null;
   inRound: boolean;
   fiftyAvailable: boolean;
+  /** Брейн-ринг: командалашы бул суроодо басып койгон */
+  teamPressed: boolean;
   myPress: { place: number; status: 'pending' | 'wrong' | 'correct' | null; queue: number | null } | null;
   question:
     | (QuestionInfo & {

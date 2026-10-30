@@ -63,7 +63,7 @@ export default function LivePanel({ state, act, busy, offset }: { state: AdminSt
   const hint =
     g.phase === 'REVEAL' && isLast
       ? t.hints.REVEAL_LAST
-      : g.phase === 'ROUND_END' && round === 'FINAL'
+      : g.phase === 'ROUND_END' && (round === 'FINAL' || g.mode === 'BRAIN_RING')
         ? t.hints.ROUND_END_FINAL
         : t.hints[g.phase as keyof typeof t.hints];
 
@@ -454,7 +454,7 @@ function RoundEndPanel({
   const t = ky.admin.control;
   const { confirm } = useDialogs();
   const re = state.roundEnd!;
-  const isFinal = re.round === 'FINAL';
+  const isFinal = re.round === 'FINAL' || state.game.mode === 'BRAIN_RING';
   const suggestedKey = re.suggested.join(',');
   const [selected, setSelected] = useState<number[]>(re.suggested);
   // Упай оңдолгондо сунуш өзгөрүшү мүмкүн — тандоону жаңылайбыз

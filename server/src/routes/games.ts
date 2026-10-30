@@ -31,6 +31,7 @@ const settingsSchema = z.object({
   introEnabled: z.boolean(),
   finalBuzzer: z.boolean(),
   shuffle: z.boolean(),
+  mode: z.enum(['CLASSIC', 'BRAIN_RING']),
   introVideoUrl: z
     .string()
     .trim()
@@ -155,6 +156,8 @@ gamesRouter.post('/', async (req, res) => {
   assertUniqueNames(entries.map((e) => e.name));
   const settings = { ...body.settings };
   // Командалык режимде эч ким чыгарылбайт — бардыгы бардык турларды ойнойт
+  // Брейн-ринг — дайыма командалык (эч ким чыгарылбайт)
+  if (settings.mode === 'BRAIN_RING') settings.teamMode = true;
   if (settings.teamMode) {
     settings.advanceToRound2 = 100;
     settings.advanceToFinal = 100;
@@ -233,6 +236,7 @@ gamesRouter.get('/:id/replay', async (req, res) => {
 gamesRouter.patch('/:id/settings', async (req, res) => {
   const id = parseId(req.params.id);
   const data = settingsSchema.partial().parse(req.body);
+  if (data.mode === 'BRAIN_RING') Object.assign(data, { teamMode: true, advanceToRound2: 100, advanceToFinal: 100 });
   const game = await loadGame(id, res);
   // Оюн башталгандан кийин үндү гана өзгөртүүгө болот
   const onlySound = Object.keys(data).every((k) => k === 'soundEnabled');
@@ -262,10 +266,11 @@ gamesRouter.post('/:id/players', async (req, res) => {
 gamesRouter.patch('/:id/players/:pid', async (req, res) => {
   const id = parseId(req.params.id);
   const pid = parseId(req.params.pid);
-  const { name } = z.object({ name: nameSchema }).parse(req.body);
+  // Аты жана/же командасы (Брейн-ринг жана командалык режим үчүн)
+  const { name, team } = z.object({ name: nameSchema.optional(), team: z.string().trim().max(40).optional() }).parse(req.body);
   const game = await loadGame(id, res);
-  assertUniqueNames([...game.players.filter((p) => p.id !== pid).map((p) => p.name), name]);
-  await prisma.player.updateMany({ where: { id: pid, gameId: id }, data: { name } });
+  if (name) assertUniqueNames([...game.players.filter((p) => p.id !== pid).map((p) => p.name), name]);
+  await prisma.player.updateMany({ where: { id: pid, gameId: id }, data: { ...(name ? { name } : {}), ...(team !== undefined ? { team } : {}) } });
   bus.emit('game:changed', id);
   res.json({ game: await loadGame(id, res) });
 });

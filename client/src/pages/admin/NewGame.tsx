@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Clapperboard, Gamepad2, Settings as SettingsIcon, Tag, Target, TriangleAlert, Users, Zap } from 'lucide-react';
+import { Clapperboard, Gamepad2, Settings as SettingsIcon, Tag, Target, TriangleAlert, Users, Zap, Swords } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import IntroSettings from '../../components/IntroSettings';
@@ -25,6 +25,7 @@ const DEFAULTS: Omit<Settings, 'soundEnabled'> = {
   introEnabled: true,
   finalBuzzer: false,
   shuffle: false,
+  mode: 'CLASSIC',
   introVideoUrl: null,
 };
 
@@ -38,6 +39,9 @@ function savedIntro(): string | null {
     return null;
   }
 }
+
+/** Брейн-рингде бир гана тур — калган турлардын жөндөөлөрү керек эмес */
+const BRAIN_HIDDEN: string[] = ['round2Count', 'finalQuestionCount', 'advanceToRound2', 'advanceToFinal'];
 
 type NumKey = 'pointsPerCorrect' | 'timerSeconds' | 'expectedPlayers' | 'round1Count' | 'round2Count' | 'finalQuestionCount' | 'advanceToRound2' | 'advanceToFinal';
 const FIELDS: { key: NumKey; min: number; max: number }[] = [
@@ -104,8 +108,9 @@ export default function NewGame() {
     }
   };
 
-  const need: Record<RoundKey, number> = { ROUND1: s.round1Count, ROUND2: s.round2Count, FINAL: s.finalQuestionCount };
-  const lacking = bank ? (Object.keys(need) as RoundKey[]).filter((r) => bank[r] < need[r]) : [];
+  const brain = s.mode === 'BRAIN_RING';
+  const need: Partial<Record<RoundKey, number>> = brain ? { ROUND1: s.round1Count } : { ROUND1: s.round1Count, ROUND2: s.round2Count, FINAL: s.finalQuestionCount };
+  const lacking = bank ? (Object.keys(need) as RoundKey[]).filter((r) => bank[r] < need[r]!) : [];
 
   const create = async () => {
     if (selected.length < 2) return toast(t.needPlayers, 'err');
@@ -247,11 +252,27 @@ export default function NewGame() {
           </section>
 
           <section className="card space-y-4 p-5">
+            <div>
+              <div className="mb-1.5 text-sm font-semibold text-ordo-ink/80"><Swords className="ico" /> {t.modeTitle}</div>
+              <div className="grid gap-2">
+                {(['CLASSIC', 'BRAIN_RING'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setS({ ...s, mode: m })}
+                    className={`rounded-2xl border-2 p-3 text-left transition ${s.mode === m ? 'border-ordo-red bg-ordo-red/5' : 'border-ordo-gold/20 hover:border-ordo-gold'}`}
+                  >
+                    <div className="font-semibold">{m === 'CLASSIC' ? t.modeClassic : t.modeBrainRing}</div>
+                    <div className="text-xs text-ordo-ink/55">{m === 'CLASSIC' ? t.modeClassicHint : t.modeBrainRingHint}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
             <h2 className="font-display text-lg font-bold"><Gamepad2 className="ico" /> {t.modesTitle}</h2>
-            <Toggle checked={s.teamMode} onChange={(v) => setS({ ...s, teamMode: v })} label={t.teamMode} hint={t.teamModeHint} />
+            {!brain && <Toggle checked={s.teamMode} onChange={(v) => setS({ ...s, teamMode: v })} label={t.teamMode} hint={t.teamModeHint} />}
             <Toggle checked={s.fiftyFifty} onChange={(v) => setS({ ...s, fiftyFifty: v })} label={t.fiftyFifty} hint={t.fiftyFiftyHint} />
             <Toggle checked={s.shuffle} onChange={(v) => setS({ ...s, shuffle: v })} label={t.shuffle} hint={t.shuffleHint} />
-            <Toggle checked={s.finalBuzzer} onChange={(v) => setS({ ...s, finalBuzzer: v })} label={t.finalBuzzer} hint={t.finalBuzzerHint} />
+            {!brain && <Toggle checked={s.finalBuzzer} onChange={(v) => setS({ ...s, finalBuzzer: v })} label={t.finalBuzzer} hint={t.finalBuzzerHint} />}
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-ordo-ink/80"><Zap className="ico" /> {t.speedBonus}</div>
@@ -315,7 +336,7 @@ export default function NewGame() {
             <h2 className="font-display text-lg font-bold"><SettingsIcon className="ico" /> {t.settings}</h2>
             <p className="text-sm text-ordo-ink/60">{t.settingsHint}</p>
             <div className="space-y-3">
-              {FIELDS.map((f) => (
+              {FIELDS.filter((f) => !brain || !BRAIN_HIDDEN.includes(f.key)).map((f) => (
                 <div key={f.key} className="flex items-center justify-between gap-3">
                   <label className="text-sm font-semibold text-ordo-ink/70">{t[f.key]}</label>
                   <input
@@ -338,7 +359,7 @@ export default function NewGame() {
           <TriangleAlert className="ico" /> {t.bankWarn}
           <ul className="mt-1 list-disc pl-6">
             {lacking.map((r) => (
-              <li key={r}>{ky.notEnoughQuestions(r, need[r], bank![r])}</li>
+              <li key={r}>{ky.notEnoughQuestions(r, need[r]!, bank![r])}</li>
             ))}
           </ul>
         </div>

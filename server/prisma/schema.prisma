@@ -160,6 +160,7 @@ model Game {
   categories         String  @default("") // үтүр менен: «Тарых,География» (бош — баары)
   introEnabled       Boolean @default(true) // оюн башталганда экранда интро көрсөтүлөт
   introVideoUrl      String? // өзүнүн интро видеосу (/uploads/...); жок болсо — анимациялык интро
+  mode               String  @default("CLASSIC") // CLASSIC | BRAIN_RING (команда командага каршы, бир тур, ар бир суроо — «биринчи баскан»)
   shuffle            Boolean @default(false) // суроолор кокус тартипте тандалат
   finalBuzzer        Boolean @default(false) // финал: биринчи баскан оозеки жооп берет, алып баруучу баалайт
 

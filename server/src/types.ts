@@ -36,6 +36,10 @@ export const AVATARS = ['cat', 'dog', 'bird', 'fish', 'rabbit', 'squirrel', 'tur
 /** Залдын реакциялары (экранда учуп чыгат, сакталбайт) */
 export const REACTIONS = ['clap', 'fire', 'heart', 'wow', 'laugh', 'party'] as const;
 
+/** Оюндун режими: CLASSIC — 3 тур; BRAIN_RING — команда командага каршы, бир тур, ар бир суроо «биринчи баскан» */
+export const GAME_MODES = ['CLASSIC', 'BRAIN_RING'] as const;
+export type GameMode = (typeof GAME_MODES)[number];
+
 export const nextRound = (r: Round): Round | null =>
   r === 'ROUND1' ? 'ROUND2' : r === 'ROUND2' ? 'FINAL' : null;
 export type PlayerStatus = 'ACTIVE' | 'ELIMINATED' | 'KICKED';
@@ -58,6 +62,7 @@ export type ErrorCode =
   | 'INVALID_FILE'
   | 'NOT_ENOUGH_QUESTIONS'
   | 'NOT_ENOUGH_PLAYERS'
+  | 'NOT_ENOUGH_TEAMS'
   | 'INVALID_ACTION'
   | 'GAME_PAUSED'
   | 'ALREADY_ANSWERED'

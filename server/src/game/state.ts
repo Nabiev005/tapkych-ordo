@@ -36,6 +36,7 @@ function base(game: FullGame) {
     intro: game.introEnabled ? { videoUrl: game.introVideoUrl } : null,
     // Финалдын «биринчи баскан жооп берет» режими (учурдагы турда)
     buzzer: isBuzzer(game, round),
+    mode: game.mode,
   };
 }
 
@@ -46,12 +47,14 @@ function base(game: FullGame) {
  * (туура жооптун өзү ачылбайт — туура бааланса, суроо ошол замат REVEAL'га өтөт).
  */
 function pressOrder(game: FullGame, q: FullQuestion | null) {
-  if (currentRound(game) !== 'FINAL' || !q || (game.phase !== 'QUESTION' && game.phase !== 'REVEAL')) return null;
+  const round = currentRound(game);
+  if ((round !== 'FINAL' && !isBuzzer(game, round)) || !q || (game.phase !== 'QUESTION' && game.phase !== 'REVEAL')) return null;
   return [...q.answers]
     .sort((a, b) => a.responseMs - b.responseMs || a.id - b.id)
     .map((a) => ({
       playerId: a.playerId,
       name: game.players.find((p) => p.id === a.playerId)?.name ?? '?',
+      team: game.players.find((p) => p.id === a.playerId)?.team || '',
       responseMs: a.responseMs,
       ...(a.choice === BUZZ_CHOICE ? { status: !a.judgedAt ? ('pending' as const) : a.isCorrect ? ('correct' as const) : ('wrong' as const) } : {}),
     }));
@@ -146,6 +149,7 @@ export async function adminSnapshot(game: FullGame) {
         introVideoUrl: game.introVideoUrl,
         finalBuzzer: game.finalBuzzer,
         shuffle: game.shuffle,
+        mode: game.mode,
       },
     },
     bank,
@@ -242,7 +246,8 @@ export function screenSnapshot(game: FullGame) {
         online: presence.isOnline(p.id),
         answered: !!a,
         // ✓/✗ туура жооп ачылгандан кийин гана
-        correct: revealed && q ? (a ? a.isCorrect : false) : null,
+        // «Биринчи баскан» режиминде баспаган оюнчу ката кетирген жок — нейтралдуу (null)
+        correct: revealed && q ? (a ? a.isCorrect : isBuzzer(game, round) ? null : false) : null,
         bonus: revealed && a ? a.bonus : 0,
         // Ачык жоопто — оюнчунун жазганы, туура жооп ачылгандан кийин гана
         text: revealed && q?.type === 'OPEN' && a ? a.choice : null,
@@ -260,7 +265,7 @@ export function screenSnapshot(game: FullGame) {
         : null,
     pressOrder: pressOrder(game, q),
     leaderboard: showBoard ? rankRound(game, round!) : null,
-    teams: game.teamMode && (showBoard || game.status === 'FINISHED') ? teamStandings(game) : null,
+    teams: game.teamMode && (showBoard || game.status === 'FINISHED' || (game.mode === 'BRAIN_RING' && game.status !== 'LOBBY')) ? teamStandings(game) : null,
     // Жаңы турдун башында: мурунку турдан өткөндөр салтанаттуу көрсөтүлөт
     qualifiers:
       round && prev && game.phase === 'IDLE' && !game.teamMode
@@ -306,12 +311,15 @@ export function playerSnapshot(game: FullGame, playerId: number) {
           hidden: me?.fiftyQuestionId === q.id && me.fiftyHidden ? [...me.fiftyHidden] : [],
           myChoice: myAnswer?.choice ?? null,
           correct: revealed ? q.correct : null,
-          myCorrect: revealed ? (myAnswer?.isCorrect ?? false) : null,
+          myCorrect: revealed ? (myAnswer ? myAnswer.isCorrect : isBuzzer(game, round) ? null : false) : null,
           myPoints: revealed ? (myAnswer?.points ?? 0) : null,
           myBonus: revealed ? (myAnswer?.bonus ?? 0) : null,
         }
       : null,
     // Финалда: мен канчанчы болуп бастым (жана «биринчи баскан» режиминде — баалоонун абалы)
+    // Брейн-ринг: командалашы бул суроодо басып койгон (оюнчу кайра баса албайт)
+    teamPressed:
+      game.mode === 'BRAIN_RING' && !!me && !!q && myPressIdx < 0 && q.answers.some((a) => (game.players.find((p) => p.id === a.playerId)?.team || '—') === (me.team || '—')),
     myPress:
       myPressIdx >= 0
         ? {

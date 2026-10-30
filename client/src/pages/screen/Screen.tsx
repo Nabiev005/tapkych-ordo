@@ -125,10 +125,10 @@ function Stage({ state, offset }: { state: ScreenState; offset: number }) {
     content = <BoardView title={ky.screen.leaderboard} subtitle={round ? ky.rounds[round] : undefined} rows={state.leaderboard} teams={state.teams} />;
   } else if (g.phase === 'IDLE' && round) {
     key = `idle-${round}`;
-    content = <RoundIntro round={round} qualifiers={state.qualifiers} />;
+    content = <RoundIntro round={round} title={g.mode === 'BRAIN_RING' ? ky.screen.brainRing : ky.roundsUpper[round]} qualifiers={state.qualifiers} />;
   } else if (g.phase === 'READY' && state.question && round) {
     key = `ready-${state.question.number}`;
-    content = <ReadyView round={round} number={state.question.number} total={g.total} />;
+    content = <ReadyView title={g.mode === 'BRAIN_RING' ? ky.screen.brainRing : ky.roundsUpper[round]} number={state.question.number} total={g.total} />;
   } else {
     key = `q-${state.question?.number}`;
     content = <QuestionView state={state} offset={offset} />;
@@ -202,7 +202,7 @@ function Lobby({ state }: { state: ScreenState }) {
 
 // ─────────────────────────── Тур башталышы / өткөндөр ───────────────────────────
 
-function RoundIntro({ round, qualifiers }: { round: RoundKey; qualifiers: { id: number; name: string }[] | null }) {
+function RoundIntro({ round, title, qualifiers }: { round: RoundKey; title: string; qualifiers: { id: number; name: string }[] | null }) {
   useEffect(() => {
     if (qualifiers?.length) burst(round === 'FINAL');
   }, [qualifiers?.length, round]);
@@ -211,7 +211,7 @@ function RoundIntro({ round, qualifiers }: { round: RoundKey; qualifiers: { id: 
       <motion.div initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', damping: 10 }} className="flex items-center gap-8">
         <HornMotif className="w-32 text-ordo-gold" />
         <div className="font-display text-[clamp(5rem,12vw,11rem)] font-black leading-none text-gold-gradient drop-shadow-[0_8px_40px_rgba(245,183,0,0.4)]">
-          {ky.roundsUpper[round]}
+          {title}
         </div>
         <HornMotif className="w-32 -scale-x-100 text-ordo-gold" />
       </motion.div>
@@ -239,10 +239,10 @@ function RoundIntro({ round, qualifiers }: { round: RoundKey; qualifiers: { id: 
   );
 }
 
-function ReadyView({ round, number, total }: { round: RoundKey; number: number; total: number }) {
+function ReadyView({ title, number, total }: { title: string; number: number; total: number }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6">
-      <div className="font-display text-4xl tracking-widest text-ordo-sky-light">{ky.roundsUpper[round]}</div>
+      <div className="font-display text-4xl tracking-widest text-ordo-sky-light">{title}</div>
       <motion.div
         initial={{ scale: 2.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -272,7 +272,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
       <div className="flex items-start gap-8">
         <div className="flex-1">
           <div className="mb-3 font-display text-2xl tracking-widest text-ordo-sky-light">
-            {g.round && ky.roundsUpper[g.round]} · {q.number}/{g.total}
+            {g.mode === 'BRAIN_RING' ? ky.screen.brainRing : g.round && ky.roundsUpper[g.round]} · {q.number}/{g.total}
           </div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -362,6 +362,7 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
       {q.audioUrl && g.phase === 'QUESTION' && <QuestionAudio src={assetUrl(q.audioUrl)!} />}
       {!revealed && q.audience.total > 0 && <div className="text-center text-lg text-violet-200/70"><Users className="ico" /> {ky.screen.audienceVotes(q.audience.total)}</div>}
 
+      {g.mode === 'BRAIN_RING' && state.teams && <TeamScores teams={state.teams} />}
       {g.buzzer ? <BuzzBanner state={state} /> : state.pressOrder && state.pressOrder.length > 0 && <FirstPress entry={state.pressOrder[0]} />}
 
       {/* Оюнчулар: ким жооп бергени (жооптун өзү көрүнбөйт), ачылгандан кийин ✓/✗ */}
@@ -401,6 +402,27 @@ function QuestionView({ state, offset }: { state: ScreenState; offset: number })
 }
 
 /** Финал: биринчи баскан оюнчунун аты-жөнү */
+/** Брейн-ринг: командалардын эсеби (суроо учурунда дайыма көрүнөт) */
+function TeamScores({ teams }: { teams: NonNullable<ScreenState['teams']> }) {
+  const top = teams[0]?.total ?? 0;
+  return (
+    <div className="flex flex-wrap justify-center gap-4">
+      {teams.map((t) => (
+        <motion.div
+          key={t.team}
+          layout
+          className={`flex items-center gap-4 rounded-2xl px-6 py-2 ring-2 ${t.total === top && top > 0 ? 'bg-ordo-gold/20 ring-ordo-gold' : 'bg-white/10 ring-white/15'}`}
+        >
+          <span className="font-display text-[clamp(1.1rem,1.8vw,2rem)] font-bold">{t.team}</span>
+          <motion.span key={t.total} initial={{ scale: 1.6 }} animate={{ scale: 1 }} className="font-display text-[clamp(1.6rem,2.6vw,3rem)] font-black tabular-nums text-ordo-gold-light">
+            {t.total}
+          </motion.span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 /** Финал, «биринчи баскан» режими: ким жооп берип жатат / ким туура айтты */
 function BuzzBanner({ state }: { state: ScreenState }) {
   const order = state.pressOrder ?? [];
@@ -421,7 +443,7 @@ function BuzzBanner({ state }: { state: ScreenState }) {
   );
 }
 
-function FirstPress({ entry, label = ky.screen.pressFirst, tone = 'gold' }: { entry: { playerId: number; name: string; responseMs: number }; label?: string; tone?: 'gold' | 'green' }) {
+function FirstPress({ entry, label = ky.screen.pressFirst, tone = 'gold' }: { entry: { playerId: number; name: string; team?: string; responseMs: number }; label?: string; tone?: 'gold' | 'green' }) {
   return (
     <motion.div
       key={entry.playerId}
@@ -434,6 +456,7 @@ function FirstPress({ entry, label = ky.screen.pressFirst, tone = 'gold' }: { en
       <div>
         <div className="font-display text-xl font-black tracking-[0.25em]">{label}</div>
         <div className="font-display text-[clamp(2rem,3.6vw,4rem)] font-black leading-none">{entry.name}</div>
+        {entry.team && <div className="mt-1 font-display text-xl font-bold opacity-80">{entry.team}</div>}
       </div>
       <div className="rounded-2xl bg-black/15 px-4 py-2 font-display text-3xl font-black tabular-nums">{ky.screen.pressSec(entry.responseMs)}</div>
     </motion.div>
